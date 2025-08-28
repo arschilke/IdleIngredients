@@ -1,14 +1,14 @@
 import { useState } from 'react';
 import { OrderForm } from './OrderForm';
-import { ProductionResults } from './ProductionResults';
-import { ResourceManager } from './ResourceManager';
-import { WorkerManager } from './WorkerManager';
+import { ProductionPlan } from './ProductionPlan';
+import { CurrentInventory } from './CurrentInventory';
+import { CurrentOrders } from './CurrentOrders';
 import { ProductionCalculator } from './calculator';
-import { Order, Resource, Worker, Factory, Destination, ProductionPlan, Warehouse } from './types';
+import { Order, Resource, Worker, Factory, Destination, Warehouse, GameState } from './types';
 import './index.css';
 
 function App() {
-  const [resources, setResources] = useState<Resource[]>([
+  const [resources] = useState<Resource[]>([
     { id: 'coal', name: 'Coal' },
     { id: 'iron', name: 'Iron' },
     { id: 'oakwood', name: 'Oakwood'  },
@@ -20,7 +20,7 @@ function App() {
     { id: 'copper', name: 'Copper'}
   ]);
 
-  const [workers, setWorkers] = useState<Worker[]>([
+  const [workers] = useState<Worker[]>([
     { id: 'worker1', name: 'Worker 1', capacity: 10, availableAt: 0 },
     { id: 'worker2', name: 'Worker 2', capacity: 15, availableAt: 0 },
     { id: 'worker3', name: 'Worker 3', capacity: 12, availableAt: 0 },
@@ -31,7 +31,7 @@ function App() {
     { id: 'worker8', name: 'Worker 8', capacity: 11, availableAt: 0 }
   ]);
 
-  const [factories, setFactories] = useState<Factory[]>([
+  const [factories] = useState<Factory[]>([
     {
       id: 'factory1',
       name: 'Smelting Plant',
@@ -100,151 +100,101 @@ function App() {
           outputAmount: 30
         }
       ]
-    },
+    }
   ]);
 
-  const [destinations, setDestinations] = useState<Destination[]>([
-    { id: 'iron_mine', travelTime: 30, resourceId: 'iron' },
-    { id: 'coal_mine', travelTime: 30, resourceId: 'coal' },
-    { id: 'copper_mine', travelTime: 600, resourceId: 'copper_ore' }
+  const [destinations] = useState<Destination[]>([
+    { id: 'coal_mine', travelTime: 120, resourceId: 'coal' },
+    { id: 'iron_mine', travelTime: 180, resourceId: 'iron' },
+    { id: 'oak_forest', travelTime: 90, resourceId: 'oakwood' },
+    { id: 'copper_mine', travelTime: 240, resourceId: 'copper_ore' }
   ]);
 
-  const [warehouses, setWarehouses] = useState<Warehouse[]>([
+  const [warehouses] = useState<Warehouse[]>([
     {
       id: 'main_warehouse',
       name: 'Main Warehouse',
+      maxCapacity: 1000,
       inventory: new Map([
-        ['coal', 100],
-        ['iron', 150],
-        ['oakwood', 200],
-        ['steel', 50],
-        ['nails', 25],
-        ['iron_powder', 75],
-        ['saw_blade', 10],
-        ['copper_ore', 80],
-        ['copper', 30]
-      ]),
-      maxCapacity: 10000
+        ['coal', 50],
+        ['iron', 30],
+        ['oakwood', 20],
+        ['steel', 10],
+        ['nails', 5],
+        ['iron_powder', 15],
+        ['saw_blade', 2],
+        ['copper_ore', 25],
+        ['copper', 8]
+      ])
     }
   ]);
 
   const [orders, setOrders] = useState<Order[]>([]);
-  const [productionPlan, setProductionPlan] = useState<ProductionPlan | null>(null);
-  const [activeTab, setActiveTab] = useState<'orders' | 'results' | 'resources' | 'workers' | 'warehouse'>('orders');
+  const [currentOrder, setCurrentOrder] = useState<Order | null>(null);
+  const [activeLevel, setActiveLevel] = useState<number>(1);
 
-  const calculateProduction = (order: Order) => {
-    try {
-      const calculator = new ProductionCalculator(resources, workers, factories, destinations, warehouses);
-      const plan = calculator.calculateProductionPlan(order);
-      setProductionPlan(plan);
-      setActiveTab('results');
-    } catch (error) {
-      console.error('Error calculating production plan:', error);
-      alert('Error calculating production plan. Please check the console for details.');
-    }
+  // Create game state for calculator
+  const gameState: GameState = {
+    resources,
+    workers,
+    orders,
+    warehouses,
+    factories,
+    destinations
   };
 
-  const addOrder = (order: Order) => {
+  const calculator = new ProductionCalculator(gameState);
+
+  const handleOrderSubmit = (order: Order) => {
     setOrders([...orders, order]);
+    setCurrentOrder(order);
   };
 
   return (
     <div className="app">
       <header className="app-header">
-        <h1>🏭 Idle Ingredients Production Planner</h1>
-        <p>Optimize your production chains and worker assignments</p>
+        <h1>Idle Game Production Planner</h1>
+        <p>Plan your production steps and manage resources</p>
       </header>
 
-      <nav className="app-nav">
-        <button 
-          className={`nav-button ${activeTab === 'orders' ? 'active' : ''}`}
-          onClick={() => setActiveTab('orders')}
-        >
-          📋 Orders
-        </button>
-        <button 
-          className={`nav-button ${activeTab === 'results' ? 'active' : ''}`}
-          onClick={() => setActiveTab('results')}
-          disabled={!productionPlan}
-        >
-          🚀 Results
-        </button>
-        <button 
-          className={`nav-button ${activeTab === 'resources' ? 'active' : ''}`}
-          onClick={() => setActiveTab('resources')}
-        >
-          🏗️ Resources
-        </button>
-        <button 
-          className={`nav-button ${activeTab === 'workers' ? 'active' : ''}`}
-          onClick={() => setActiveTab('workers')}
-        >
-          👥 Workers
-        </button>
-        <button 
-          className={`nav-button ${activeTab === 'warehouse' ? 'active' : ''}`}
-          onClick={() => setActiveTab('warehouse')}
-        >
-          🏪 Warehouse
-        </button>
-      </nav>
-
-      <main className="app-main">
-        {activeTab === 'orders' && (
-          <div>
-            <OrderForm resources={resources} onSubmit={addOrder} />
-            {orders.length > 0 && (
-              <div className="orders-list">
-                <h2>📋 Current Orders</h2>
-                {orders.map((order) => (
-                  <div key={order.id} className="order-item">
-                    <div className="order-info">
-                      <h3>{order.name}</h3>
-                      <p>Resource: {resources.find(r => r.id === order.resourceId)?.name || order.resourceId}</p>
-                      <p>Amount: {order.amount}</p>
-                    </div>
-                    <button 
-                      className="btn btn-primary"
-                      onClick={() => calculateProduction(order)}
-                    >
-                      Calculate Production
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
+      <main className="dashboard">
+        {/* Row 1: Current Orders and New Order Form */}
+        <div className="dashboard-row">
+          <div className="dashboard-panel">
+            <CurrentOrders 
+              orders={orders}
+              resources={resources}
+              onOrderSelect={setCurrentOrder}
+            />
           </div>
-        )}
+          <div className="dashboard-panel">
+            <OrderForm
+              resources={resources}
+              onSubmit={handleOrderSubmit}
+              existingOrders={orders}
+              onOrdersChange={setOrders}
+            />
+          </div>
+        </div>
 
-        {activeTab === 'results' && productionPlan && (
-          <ProductionResults productionPlan={productionPlan} workers={workers} />
-        )}
-
-        {activeTab === 'resources' && (
-          <ResourceManager 
-            resources={resources} 
-            onResourcesChange={setResources}
-            factories={factories}
-            onFactoriesChange={setFactories}
-            destinations={destinations}
-            onDestinationsChange={setDestinations}
-          />
-        )}
-
-        {activeTab === 'workers' && (
-          <WorkerManager 
-            workers={workers} 
-            onWorkersChange={setWorkers} 
-          />
-        )}
-
-        {activeTab === 'warehouse' && (
-          <WarehouseManager 
-            warehouses={warehouses}
-            onWarehousesChange={setWarehouses}
-            resources={resources}
-          />
-        )}
+        {/* Row 2: Production Plan and Current Inventory */}
+        <div className="dashboard-row">
+          <div className="dashboard-panel">
+            <ProductionPlan
+              order={currentOrder}
+              calculator={calculator}
+              gameState={gameState}
+              activeLevel={activeLevel}
+              onActiveLevelChange={setActiveLevel}
+            />
+          </div>
+          <div className="dashboard-panel">
+            <CurrentInventory
+              gameState={gameState}
+              activeLevel={activeLevel}
+            />
+          </div>
+        </div>
       </main>
     </div>
   );

@@ -1,81 +1,38 @@
 import {
-  Resource,
   Order,
-  Worker,
-  ProductionStep,
+  PlannedStep,
   ProductionPlan,
-  TimelineEvent,
-  Factory,
-  ResourceRequirement,
-  Destination,
   Recipe,
   RecipeTreeNode,
-  ProductionLevel,
-  Warehouse,
-  InventoryUpdate
+  PlanningLevel,
+  GameState
 } from './types';
 
 export class ProductionCalculator {
-  private resources: Map<string, Resource>;
-  private workers: Worker[];
-  private factories: Factory[];
-  private destinations: Destination[];
-  private warehouses: Warehouse[];
+  private gameState: GameState;
 
-  constructor(
-    resources: Resource[], 
-    workers: Worker[], 
-    factories: Factory[], 
-    destinations: Destination[],
-    warehouses: Warehouse[]
-  ) {
-    this.resources = new Map(resources.map(r => [r.id, r]));
-    this.workers = [...workers];
-    this.factories = [...factories];
-    this.destinations = [...destinations];
-    this.warehouses = [...warehouses];
+  constructor(gameState: GameState) {
+    this.gameState = gameState;
   }
 
   /**
-   * Calculate the optimal production plan using a level-based system
+   * Builds a recipe tree showing all available options for producing required resources
    */
-  calculateProductionPlan(order: Order): ProductionPlan {
-    const MAX_CONCURRENT_WORKERS = 5;
+  buildRecipeTree(order: Order): RecipeTreeNode[] {
+    const trees: RecipeTreeNode[] = [];
     
-    // Build recipe tree for the requested resource
-    const recipeTree = this.buildRecipeTree(order.resourceId, order.amount);
+    for (const resourceReq of order.resources) {
+      const tree = this.buildResourceTree(resourceReq.resourceId, resourceReq.amount);
+      trees.push(tree);
+    }
     
-    // Analyze the tree to get production requirements
-    const analysis = this.analyzeRecipeTree(recipeTree);
-    
-    // Create production levels
-    const levels = this.createProductionLevels(analysis, order, MAX_CONCURRENT_WORKERS);
-    
-    // Optimize worker assignments across all levels
-    const workerAssignments = this.optimizeWorkerAssignmentsAcrossLevels(levels, MAX_CONCURRENT_WORKERS);
-    
-    // Calculate timeline and warehouse updates
-    const { timeline, warehouseUpdates } = this.calculateTimelineAndInventory(levels, workerAssignments, order);
-    
-    // Calculate total time
-    const totalTime = Math.max(...levels.map(level => 
-      Math.max(...level.steps.map(step => step.endTime || 0))
-    ));
-    
-    return {
-      levels,
-      totalTime,
-      workerAssignments,
-      timeline,
-      maxConcurrentWorkers: MAX_CONCURRENT_WORKERS,
-      warehouseUpdates
-    };
+    return trees;
   }
 
   /**
-   * Builds a recipe tree to determine the best recipes for producing required resources
+   * Builds a recipe tree for a single resource
    */
-  buildRecipeTree(resourceId: string, requiredAmount: number, visited: Set<string> = new Set()): RecipeTreeNode {
+  private buildResourceTree(resourceId: string, requiredAmount: number, visited: Set<string> = new Set()): RecipeTreeNode {
     // Prevent circular dependencies
     if (visited.has(resourceId)) {
       throw new Error(`Circular dependency detected for resource: ${resourceId}`);
@@ -83,61 +40,38 @@ export class ProductionCalculator {
     visited.add(resourceId);
 
     // Get the resource name
-    const resource = this.resources.get(resourceId);
+    const resource = this.gameState.resources.find(r => r.id === resourceId);
     const resourceName = resource?.name || resourceId;
 
-    // Find all recipes that can produce this resource from both factories and destinations
-    const recipes: Recipe[] = [];
+    // Find all available recipes and destinations
+    const availableRecipes: Recipe[] = [];
+    const availableDestinations: any[] = [];
     
     // Search factories for recipes
-    for (const factory of this.factories) {
+    for (const factory of this.gameState.factories) {
       for (const recipe of factory.recipes) {
         if (recipe.resourceId === resourceId) {
-          recipes.push(recipe);
+          availableRecipes.push(recipe);
         }
       }
     }
     
-    // Search destinations for recipes (base resource gathering)
-    for (const destination of this.destinations) {
+    // Search destinations
+    for (const destination of this.gameState.destinations) {
       if (destination.resourceId === resourceId) {
-        // Calculate total worker capacity for this destination
-        let totalCapacity = 0;
-        for (const worker of this.workers) {
-          totalCapacity += worker.capacity;
-        }
-        
-        // Create a recipe-like structure for destinations
-        const destinationRecipe: Recipe = {
-          resourceId: destination.resourceId,
-          timeRequired: destination.travelTime,
-          requires: [], // Destinations don't require other resources
-          outputAmount: totalCapacity // Use total worker capacity as output amount per trip
-        };
-        recipes.push(destinationRecipe);
+        availableDestinations.push(destination);
       }
-    }
-
-    // Calculate crafts required and total time for the best recipe
-    let selectedRecipe: Recipe | null = null;
-    let craftsRequired = 0;
-    let totalTime = 0;
-
-    if (recipes.length > 0) {
-      // Select the best recipe (for now, just pick the first one)
-      // In a more sophisticated version, you could compare recipes based on efficiency
-      selectedRecipe = recipes[0];
-      craftsRequired = Math.ceil(requiredAmount / (selectedRecipe.outputAmount || 1));
-      totalTime = selectedRecipe.timeRequired * craftsRequired;
     }
 
     // Build child nodes for required ingredients
     const children: RecipeTreeNode[] = [];
-    if (selectedRecipe && selectedRecipe.requires.length > 0) {
-      for (const requirement of selectedRecipe.requires) {
-        const childRequiredAmount = requirement.amount * craftsRequired;
+    // For now, we'll build children for the first recipe if available
+    if (availableRecipes.length > 0) {
+      const firstRecipe = availableRecipes[0];
+      for (const requirement of firstRecipe.requires) {
+        const childRequiredAmount = requirement.amount * Math.ceil(requiredAmount / (firstRecipe.outputAmount || 1));
         try {
-          const childNode = this.buildRecipeTree(requirement.resourceId, childRequiredAmount, new Set(visited));
+          const childNode = this.buildResourceTree(requirement.resourceId, childRequiredAmount, new Set(visited));
           children.push(childNode);
         } catch (error) {
           console.warn(`Could not build tree for ${requirement.resourceId}:`, error);
@@ -152,456 +86,298 @@ export class ProductionCalculator {
       resourceId,
       resourceName,
       requiredAmount,
-      recipes,
-      selectedRecipe,
-      craftsRequired,
-      totalTime,
-      children,
-      isBaseResource: false // All resources now have recipes (either from factories or destinations)
+      availableRecipes,
+      availableDestinations,
+      craftsRequired: 0,
+      totalTime: 0,
+      children
     };
   }
 
   /**
-   * Analyzes a recipe tree to find the optimal production path
+   * Creates a production plan from selected recipes and destinations
    */
-  analyzeRecipeTree(tree: RecipeTreeNode): {
-    totalTime: number;
-    totalCrafts: number;
-    baseResources: Map<string, number>;
-    productionSteps: Array<{
-      resourceId: string;
-      resourceName: string;
-      amount: number;
-      crafts: number;
-      time: number;
-      recipe: Recipe | null;
-    }>;
-    optimizationSuggestions: string[];
-  } {
-    const baseResources = new Map<string, number>();
-    const productionSteps: Array<{
-      resourceId: string;
-      resourceName: string;
-      amount: number;
-      crafts: number;
-      time: number;
-      recipe: Recipe | null;
-    }> = [];
-    const optimizationSuggestions: string[] = [];
-
-    // Recursive function to analyze the tree
-    const analyzeNode = (node: RecipeTreeNode, level: number = 0): number => {
-      let maxChildTime = 0;
-
-      // Analyze children first (dependencies)
-      for (const child of node.children) {
-        const childTime = analyzeNode(child, level + 1);
-        maxChildTime = Math.max(maxChildTime, childTime);
-      }
-
-      // Add this node to production steps
-      if (node.selectedRecipe) {
-        // Check if this is a destination recipe (no requirements = base resource)
-        const isDestination = node.selectedRecipe.requires.length === 0;
-        
-        productionSteps.push({
-          resourceId: node.resourceId,
-          resourceName: node.resourceName,
-          amount: node.requiredAmount,
-          crafts: node.craftsRequired,
-          time: node.totalTime,
-          recipe: node.selectedRecipe
-        });
-        
-        // Track destination resources (base resources) separately
-        if (isDestination) {
-          const current = baseResources.get(node.resourceId) || 0;
-          baseResources.set(node.resourceId, current + node.requiredAmount);
-        }
-      }
-
-      // Return the total time for this branch (including dependencies)
-      return maxChildTime + node.totalTime;
-    };
-
-    const totalTime = analyzeNode(tree);
-    const totalCrafts = productionSteps.reduce((sum, step) => sum + step.crafts, 0);
-
-    // Generate optimization suggestions
-    if (totalTime > 0) {
-      // Find steps that could be parallelized
-      const parallelizableSteps = productionSteps.filter(step => step.time > 0);
-      if (parallelizableSteps.length > 1) {
-        optimizationSuggestions.push(
-          `Consider parallelizing production of ${parallelizableSteps.length} different resources to reduce total time.`
-        );
-      }
-
-      // Find the most time-consuming step
-      const longestStep = productionSteps.reduce((longest, current) => 
-        current.time > longest.time ? current : longest
-      );
-      if (longestStep) {
-        const stepType = longestStep.recipe?.requires.length === 0 ? 'gathering' : 'production';
-        optimizationSuggestions.push(
-          `${longestStep.resourceName} ${stepType} takes the longest (${ProductionCalculator.formatTime(longestStep.time)}). Consider optimizing this process.`
-        );
-      }
-
-      // Check for destination resource bottlenecks
-      for (const [resourceId, amount] of baseResources) {
-        if (amount > 100) { // Arbitrary threshold
-          optimizationSuggestions.push(
-            `High requirement for ${resourceId} (${amount} units). Consider bulk gathering or alternative sources.`
-          );
-        }
-      }
-      
-      // Check for factory production bottlenecks
-      const factorySteps = productionSteps.filter(step => step.recipe && step.recipe.requires.length > 0);
-      if (factorySteps.length > 0) {
-        const totalFactoryTime = factorySteps.reduce((sum, step) => sum + step.time, 0);
-        optimizationSuggestions.push(
-          `Factory production time: ${ProductionCalculator.formatTime(totalFactoryTime)}. Consider upgrading factories or adding more workers.`
-        );
-      }
-    }
-
+  createProductionPlan(_order: Order, selectedSteps: PlannedStep[]): ProductionPlan {
+    const MAX_CONCURRENT_WORKERS = 5;
+    
+    // Group steps by level
+    const levels = this.createPlanningLevels(selectedSteps, MAX_CONCURRENT_WORKERS);
+    
+    // Calculate inventory changes for each level
+    this.calculateInventoryChanges(levels);
+    
+    // Calculate timing
+    this.calculateTiming(levels);
+    
+    // Calculate total time
+    const totalTime = Math.max(...levels.map(level => level.estimatedTime));
+    
     return {
+      levels,
       totalTime,
-      totalCrafts,
-      baseResources,
-      productionSteps,
-      optimizationSuggestions
+      workerAssignments: new Map(),
+      maxConcurrentWorkers: MAX_CONCURRENT_WORKERS,
+      inventorySnapshot: this.getCurrentInventory()
     };
   }
 
   /**
-   * Create production levels that organize steps for optimal concurrent execution
+   * Creates planning levels from selected steps
    */
-  private createProductionLevels(analysis: any, order: Order, maxConcurrentWorkers: number): ProductionLevel[] {
-    const levels: ProductionLevel[] = [];
+  private createPlanningLevels(steps: PlannedStep[], maxConcurrentWorkers: number): PlanningLevel[] {
+    const levels = new Map<number, PlannedStep[]>();
     
-    // Level 1: Base resource gathering (destinations)
-    const destinationSteps: ProductionStep[] = [];
-    for (const [resourceId, amount] of analysis.baseResources) {
-      const destination = this.destinations.find(d => d.resourceId === resourceId);
-      if (destination) {
-        const step: ProductionStep = {
-          id: `destination_${resourceId}`,
-          resourceId: resourceId,
-          timeRequired: destination.travelTime,
-          dependencies: [],
-          stepType: 'destination',
-          level: 1,
-          amountProcessed: 0 // Will be calculated based on worker capacity
-        };
-        destinationSteps.push(step);
+    // Group steps by level
+    for (const step of steps) {
+      if (!levels.has(step.level)) {
+        levels.set(step.level, []);
       }
+      levels.get(step.level)!.push(step);
     }
     
-    if (destinationSteps.length > 0) {
-      levels.push({
-        level: 1,
-        steps: destinationSteps,
-        description: `Gather base resources: ${destinationSteps.map(s => s.resourceId).join(', ')}`,
-        estimatedTime: Math.max(...destinationSteps.map(s => s.timeRequired))
+    // Convert to PlanningLevel array
+    const planningLevels: PlanningLevel[] = [];
+    for (const [levelNum, levelSteps] of levels) {
+      const workerCount = this.countWorkersNeeded(levelSteps);
+      const isOverCapacity = workerCount > maxConcurrentWorkers;
+      
+      planningLevels.push({
+        level: levelNum,
+        steps: levelSteps,
+        description: this.generateLevelDescription(levelSteps),
+        estimatedTime: this.calculateLevelTime(levelSteps),
+        inventoryChanges: new Map(),
+        workerCount,
+        isOverCapacity
       });
     }
     
-    // Level 2: Factory production
-    const factorySteps: ProductionStep[] = [];
-    for (const step of analysis.productionSteps) {
-      if (step.recipe && step.recipe.requires.length > 0) {
-        const factoryStep: ProductionStep = {
-          id: `factory_${step.resourceId}`,
-          resourceId: step.resourceId,
-          timeRequired: step.time,
-          dependencies: step.recipe.requires.map((req: ResourceRequirement) => `destination_${req.resourceId}`),
-          stepType: 'factory',
-          level: 2,
-          amountProcessed: 0 // Will be calculated based on worker capacity
-        };
-        factorySteps.push(factoryStep);
-      }
-    }
-    
-    if (factorySteps.length > 0) {
-      levels.push({
-        level: 2,
-        steps: factorySteps,
-        description: `Produce resources in factories: ${factorySteps.map(s => s.resourceId).join(', ')}`,
-        estimatedTime: Math.max(...factorySteps.map(s => s.timeRequired))
-      });
-    }
-    
-    // Level 3: Final delivery
-    const deliveryStep: ProductionStep = {
-      id: `delivery_${order.id}`,
-      resourceId: 'delivery',
-      timeRequired: order.amount, // 1 second per unit
-      dependencies: factorySteps.length > 0 ? factorySteps.map(s => s.id) : destinationSteps.map(s => s.id),
-      stepType: 'delivery',
-      level: 3,
-      amountProcessed: 0 // Will be calculated based on worker capacity
-    };
-    
-    levels.push({
-      level: 3,
-      steps: [deliveryStep],
-      description: `Deliver ${order.amount} ${order.resourceId} to complete order`,
-      estimatedTime: deliveryStep.timeRequired
-    });
-    
-    return levels;
+    // Sort by level number
+    return planningLevels.sort((a, b) => a.level - b.level);
   }
 
   /**
-   * Optimize worker assignments across all levels
+   * Counts how many workers are needed for a level
    */
-  private optimizeWorkerAssignmentsAcrossLevels(levels: ProductionLevel[], maxConcurrentWorkers: number): Map<string, string> {
-    const assignments = new Map<string, string>();
-    const workerAvailability = new Map<string, number>();
+  private countWorkersNeeded(steps: PlannedStep[]): number {
+    let workerCount = 0;
     
-    // Initialize worker availability
-    for (const worker of this.workers) {
-      workerAvailability.set(worker.id, worker.availableAt || 0);
+    for (const step of steps) {
+      if (step.stepType === 'destination') {
+        // Destinations need workers
+        workerCount++;
+      }
+      // Factories don't need workers
     }
     
-    // Process each level sequentially
+    return workerCount;
+  }
+
+  /**
+   * Generates a description for a planning level
+   */
+  private generateLevelDescription(steps: PlannedStep[]): string {
+    const destinationCount = steps.filter(s => s.stepType === 'destination').length;
+    const factoryCount = steps.filter(s => s.stepType === 'factory').length;
+    
+    if (destinationCount > 0 && factoryCount > 0) {
+      return `${destinationCount} gathering, ${factoryCount} production`;
+    } else if (destinationCount > 0) {
+      return `${destinationCount} gathering`;
+    } else if (factoryCount > 0) {
+      return `${factoryCount} production`;
+    }
+    return 'Planning';
+  }
+
+  /**
+   * Calculates the estimated time for a level
+   */
+  private calculateLevelTime(steps: PlannedStep[]): number {
+    if (steps.length === 0) return 0;
+    
+    // For now, return the maximum time of any step in the level
+    // In a more sophisticated version, you could account for parallel execution
+    return Math.max(...steps.map(step => step.timeRequired));
+  }
+
+  /**
+   * Calculates inventory changes for each level
+   */
+  private calculateInventoryChanges(levels: PlanningLevel[]): void {
+    let currentInventory = this.getCurrentInventory();
+    
     for (const level of levels) {
-      const activeWorkers = new Set<string>();
+      const levelChanges = new Map<string, number>();
       
-      // Sort steps by time (longest first for better worker utilization)
-      const sortedSteps = [...level.steps].sort((a, b) => b.timeRequired - a.timeRequired);
-      
-      for (const step of sortedSteps) {
-        // Find the best available worker
-        let bestWorker: Worker | null = null;
-        let earliestStart = Infinity;
-        
-        for (const worker of this.workers) {
-          const availableAt = workerAvailability.get(worker.id) || 0;
-          const stepStartTime = Math.max(availableAt, this.getStepStartTime(step, assignments, workerAvailability, levels));
-          
-          // Check if we can assign this worker (respecting concurrent limit)
-          const canAssign = !activeWorkers.has(worker.id) || activeWorkers.size < maxConcurrentWorkers;
-          
-          if (canAssign && stepStartTime < earliestStart) {
-            earliestStart = stepStartTime;
-            bestWorker = worker;
-          }
-        }
-        
-        if (bestWorker) {
-          const workerId = bestWorker.id;
-          const startTime = Math.max(
-            workerAvailability.get(workerId) || 0,
-            this.getStepStartTime(step, assignments, workerAvailability, levels)
-          );
-          
-          const endTime = startTime + step.timeRequired;
-          
-          // Calculate amount processed based on worker capacity
-          if (step.stepType === 'destination') {
-            // For destinations, amount processed equals worker capacity
-            step.amountProcessed = bestWorker.capacity;
-          } else if (step.stepType === 'delivery') {
-            // For delivery, amount processed equals order amount
-            step.amountProcessed = step.timeRequired; // timeRequired is the order amount
-          } else {
-            // For factory steps, amount processed equals worker capacity
-            step.amountProcessed = bestWorker.capacity;
-          }
-          
-          // Update step timing
-          step.startTime = startTime;
-          step.endTime = endTime;
-          step.workerId = workerId;
-          
-          // Update worker availability
-          workerAvailability.set(workerId, endTime);
-          
-          // Track active workers for this level
-          activeWorkers.add(workerId);
-          
-          // Record assignment
-          assignments.set(step.id, workerId);
-        }
-      }
-    }
-    
-    return assignments;
-  }
-
-  /**
-   * Calculate when a step can start based on its dependencies
-   */
-  private getStepStartTime(
-    step: ProductionStep,
-    assignments: Map<string, string>,
-    workerAvailability: Map<string, number>,
-    levels: ProductionLevel[]
-  ): number {
-    if (step.dependencies.length === 0) {
-      return 0;
-    }
-    
-    let maxDependencyEndTime = 0;
-    for (const depId of step.dependencies) {
-      // Find the step that produces this dependency
-      for (const [stepId, workerId] of assignments) {
-        if (stepId === depId) {
-          // This is a dependency step, find its end time
-          const depStep = this.findStepById(stepId, levels);
-          if (depStep && depStep.endTime) {
-            maxDependencyEndTime = Math.max(maxDependencyEndTime, depStep.endTime);
-          }
-          break;
-        }
-      }
-    }
-    
-    return maxDependencyEndTime;
-  }
-
-  /**
-   * Find a step by ID across all levels
-   */
-  private findStepById(stepId: string, levels: ProductionLevel[]): ProductionStep | null {
-    for (const level of levels) {
-      const step = level.steps.find((s: ProductionStep) => s.id === stepId);
-      if (step) return step;
-    }
-    return null;
-  }
-
-  /**
-   * Calculate timeline and warehouse inventory updates
-   */
-  private calculateTimelineAndInventory(
-    levels: ProductionLevel[], 
-    assignments: Map<string, string>, 
-    order: Order
-  ): { timeline: TimelineEvent[], warehouseUpdates: InventoryUpdate[] } {
-    const events: TimelineEvent[] = [];
-    const warehouseUpdates: InventoryUpdate[] = [];
-    const timestamp = Date.now();
-    
-    for (const level of levels) {
       for (const step of level.steps) {
-        const workerId = assignments.get(step.id);
-        const worker = this.workers.find(w => w.id === workerId);
-        
-        if (step.startTime !== undefined && step.endTime !== undefined) {
-          // Start event
-          events.push({
-            time: step.startTime,
-            type: 'start',
-            stepId: step.id,
-            resourceName: step.resourceId,
-            workerName: worker?.name,
-            description: `Start ${step.stepType} for ${step.resourceId}`,
-            inventoryChange: undefined
-          });
-          
-          // Complete event with inventory changes
-          let inventoryChange = 0;
-          
-          if (step.stepType === 'destination') {
-            // Add resources to warehouse from destination
-            inventoryChange = step.amountProcessed;
-            warehouseUpdates.push({
-              resourceId: step.resourceId,
-              change: inventoryChange,
-              source: 'destination',
-              timestamp: timestamp + step.endTime * 1000 // Convert to milliseconds
-            });
-          } else if (step.stepType === 'factory') {
-            // Add produced resources to warehouse
-            inventoryChange = step.amountProcessed;
-            warehouseUpdates.push({
-              resourceId: step.resourceId,
-              change: inventoryChange,
-              source: 'factory',
-              timestamp: timestamp + step.endTime * 1000
-            });
-          } else if (step.stepType === 'delivery') {
-            // Remove resources from warehouse for delivery
-            inventoryChange = -step.amountProcessed;
-            warehouseUpdates.push({
-              resourceId: order.resourceId,
-              change: inventoryChange,
-              source: 'delivery',
-              timestamp: timestamp + step.endTime * 1000
-            });
+        // Calculate what this step produces or consumes
+        if (step.stepType === 'destination') {
+          // Destinations produce resources
+          const current = levelChanges.get(step.resourceId) || 0;
+          levelChanges.set(step.resourceId, current + step.amountProcessed);
+        } else if (step.stepType === 'factory' && step.recipe) {
+          // Factories consume inputs and produce outputs
+          // Consume inputs
+          for (const requirement of step.recipe.requires) {
+            const current = levelChanges.get(requirement.resourceId) || 0;
+            levelChanges.set(requirement.resourceId, current - requirement.amount);
           }
           
-          events.push({
-            time: step.endTime,
-            type: 'complete',
-            stepId: step.id,
-            resourceName: step.resourceId,
-            workerName: worker?.name,
-            description: `Completed ${step.stepType} for ${step.resourceId}`,
-            inventoryChange: inventoryChange
-          });
+          // Produce output
+          const current = levelChanges.get(step.resourceId) || 0;
+          levelChanges.set(step.resourceId, current + (step.recipe.outputAmount || 0));
+        }
+      }
+      
+      level.inventoryChanges = levelChanges;
+      
+      // Update current inventory for next level
+      for (const [resourceId, change] of levelChanges) {
+        const current = currentInventory.get(resourceId) || 0;
+        currentInventory.set(resourceId, current + change);
+      }
+    }
+  }
+
+  /**
+   * Calculates timing for each level
+   */
+  private calculateTiming(levels: PlanningLevel[]): void {
+    let currentTime = 0;
+    
+    for (const level of levels) {
+      // Set start time for all steps in this level
+      for (const step of level.steps) {
+        step.startTime = currentTime;
+        step.endTime = currentTime + step.timeRequired;
+      }
+      
+      // Move to next level
+      currentTime += level.estimatedTime;
+    }
+  }
+
+  /**
+   * Gets current inventory across all warehouses
+   */
+  private getCurrentInventory(): Map<string, number> {
+    const inventory = new Map<string, number>();
+    
+    for (const warehouse of this.gameState.warehouses) {
+      for (const [resourceId, amount] of warehouse.inventory) {
+        const current = inventory.get(resourceId) || 0;
+        inventory.set(resourceId, current + amount);
+      }
+    }
+    
+    return inventory;
+  }
+
+  /**
+   * Validates if a production plan is feasible
+   */
+  validateProductionPlan(plan: ProductionPlan): {
+    isValid: boolean;
+    errors: string[];
+    warnings: string[];
+  } {
+    const errors: string[] = [];
+    const warnings: string[] = [];
+    
+    // Check for over-capacity levels
+    for (const level of plan.levels) {
+      if (level.isOverCapacity) {
+        errors.push(`Level ${level.level} requires ${level.workerCount} workers but only ${plan.maxConcurrentWorkers} are available`);
+      }
+    }
+    
+    // Check for negative inventory
+    for (const level of plan.levels) {
+      for (const [resourceId, change] of level.inventoryChanges) {
+        const currentInventory = this.getCurrentInventory();
+        const current = currentInventory.get(resourceId) || 0;
+        if (current + change < 0) {
+          errors.push(`Insufficient ${resourceId} at level ${level.level}: need ${Math.abs(change)} but only have ${current}`);
         }
       }
     }
     
-    // Sort by time
-    const sortedEvents = events.sort((a, b) => a.time - b.time);
-    const sortedUpdates = warehouseUpdates.sort((a, b) => a.timestamp - b.timestamp);
-    
-    return { timeline: sortedEvents, warehouseUpdates: sortedUpdates };
-  }
-
-  // Helper method to format time
-  static formatTime(seconds: number): string {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const secs = seconds % 60;
-    
-    if (hours > 0) {
-      return `${hours}h ${minutes}m ${secs}s`;
-    } else if (minutes > 0) {
-      return `${minutes}m ${secs}s`;
-    } else {
-      return `${secs}s`;
-    }
+    return {
+      isValid: errors.length === 0,
+      errors,
+      warnings
+    };
   }
 
   /**
-   * Get current warehouse inventory for a resource
+   * Moves a step to a different level
    */
-  getWarehouseInventory(resourceId: string): number {
-    let totalInventory = 0;
-    for (const warehouse of this.warehouses) {
-      totalInventory += warehouse.inventory.get(resourceId) || 0;
+  moveStepToLevel(stepId: string, fromLevel: number, toLevel: number, plan: ProductionPlan): ProductionPlan {
+    const step = plan.levels
+      .flatMap(level => level.steps)
+      .find(s => s.id === stepId);
+    
+    if (!step) {
+      throw new Error(`Step ${stepId} not found`);
     }
-    return totalInventory;
+    
+    // Remove from old level
+    const fromLevelIndex = plan.levels.findIndex(level => level.level === fromLevel);
+    if (fromLevelIndex !== -1) {
+      plan.levels[fromLevelIndex].steps = plan.levels[fromLevelIndex].steps.filter(s => s.id !== stepId);
+    }
+    
+    // Add to new level
+    const toLevelIndex = plan.levels.findIndex(level => level.level === toLevel);
+    if (toLevelIndex !== -1) {
+      step.level = toLevel;
+      plan.levels[toLevelIndex].steps.push(step);
+    }
+    
+    // Recalculate the plan
+    return this.createProductionPlan({} as Order, plan.levels.flatMap(level => level.steps));
   }
 
   /**
-   * Update warehouse inventory
+   * Adds a new step to a level
    */
-  updateWarehouseInventory(resourceId: string, change: number, warehouseId?: string): void {
-    if (warehouseId) {
-      // Update specific warehouse
-      const warehouse = this.warehouses.find(w => w.id === warehouseId);
-      if (warehouse) {
-        const current = warehouse.inventory.get(resourceId) || 0;
-        warehouse.inventory.set(resourceId, Math.max(0, current + change));
-      }
+  addStepToLevel(step: PlannedStep, level: number, plan: ProductionPlan): ProductionPlan {
+    const levelIndex = plan.levels.findIndex(l => l.level === level);
+    if (levelIndex === -1) {
+      // Create new level if it doesn't exist
+      plan.levels.push({
+        level,
+        steps: [step],
+        description: this.generateLevelDescription([step]),
+        estimatedTime: step.timeRequired,
+        inventoryChanges: new Map(),
+        workerCount: this.countWorkersNeeded([step]),
+        isOverCapacity: false
+      });
     } else {
-      // Update first available warehouse
-      for (const warehouse of this.warehouses) {
-        const current = warehouse.inventory.get(resourceId) || 0;
-        const newAmount = Math.max(0, current + change);
-        warehouse.inventory.set(resourceId, newAmount);
-        break; // Only update first warehouse for now
+      plan.levels[levelIndex].steps.push(step);
+    }
+    
+    // Recalculate the plan
+    return this.createProductionPlan({} as Order, plan.levels.flatMap(level => level.steps));
+  }
+
+  /**
+   * Removes a step from a level
+   */
+  removeStepFromLevel(stepId: string, level: number, plan: ProductionPlan): ProductionPlan {
+    const levelIndex = plan.levels.findIndex(l => l.level === level);
+    if (levelIndex !== -1) {
+      plan.levels[levelIndex].steps = plan.levels[levelIndex].steps.filter(s => s.id !== stepId);
+      
+      // Remove empty levels
+      if (plan.levels[levelIndex].steps.length === 0) {
+        plan.levels.splice(levelIndex, 1);
       }
     }
+    
+    // Recalculate the plan
+    return this.createProductionPlan({} as Order, plan.levels.flatMap(level => level.steps));
   }
 }

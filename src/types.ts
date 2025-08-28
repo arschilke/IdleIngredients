@@ -22,29 +22,66 @@ export interface InventoryUpdate {
   timestamp: number;
 }
 
-export interface Order {
+// Base order interface
+export interface BaseOrder {
   id: string;
   name: string;
-  resourceId: string;
-  amount: number;
+  resources: ResourceRequirement[]; // Multiple resources per order
 }
 
-export interface ProductionStep {
+// Different order types
+export interface BoatOrder extends BaseOrder {
+  type: 'boat';
+  expirationTime: number; // When the boat leaves
+}
+
+export interface StoryOrder extends BaseOrder {
+  type: 'story';
+  travelTime: number; // How long the story takes to complete
+}
+
+export interface BuildingOrder extends BaseOrder {
+  type: 'building';
+  // No additional properties for building orders
+}
+
+export type Order = BoatOrder | StoryOrder | BuildingOrder;
+
+// Planning-focused production step
+export interface PlannedStep {
   id: string;
   resourceId: string;
+  resourceName: string;
   timeRequired: number;
   dependencies: string[]; // IDs of steps that must complete first
-  startTime?: number; // When this step starts
-  endTime?: number; // When this step completes
-  workerId?: string; // Which worker is assigned to this step
   stepType: 'destination' | 'factory' | 'delivery';
   level: number; // Which level this step runs in
-  amountProcessed: number; // Actual amount processed based on worker capacity
+  amountProcessed: number; // Amount to be processed
+  workerId?: string; // Which worker is assigned (if applicable)
+  recipe?: Recipe; // Selected recipe for this step
+  destination?: Destination; // Selected destination for this step
+  startTime?: number; // Calculated start time
+  endTime?: number; // Calculated end time
 }
 
-export interface DeliveryStep extends ProductionStep {
-  orderId: string;
-  orderName: string;
+// Planning level with inventory tracking
+export interface PlanningLevel {
+  level: number;
+  steps: PlannedStep[];
+  description: string;
+  estimatedTime: number;
+  inventoryChanges: Map<string, number>; // resourceId -> net change (+ or -)
+  workerCount: number; // Number of workers needed
+  isOverCapacity: boolean; // Whether this level exceeds max concurrent workers
+}
+
+// Planning-focused production plan
+export interface ProductionPlan {
+  levels: PlanningLevel[];
+  totalTime: number;
+  workerAssignments: Map<string, string>; // stepId -> workerId
+  maxConcurrentWorkers: number;
+  inventorySnapshot: Map<string, number>; // Current inventory state
 }
 
 export interface Recipe {
@@ -59,7 +96,7 @@ export interface Factory {
   name: string;
   currentTask?: string; // ID of current production step
   availableAt: number; // Time when factory becomes available
-  queue: ProductionStep[]; // Queue of production steps
+  queue: PlannedStep[]; // Queue of production steps
   queueMaxSize: number; // Length of the queue
   recipes: Recipe[]
 }
@@ -72,42 +109,24 @@ export interface Worker {
   capacity: number;
 }
 
+// Simplified recipe tree for planning
 export interface RecipeTreeNode {
   resourceId: string;
   resourceName: string;
   requiredAmount: number;
-  recipes: Recipe[];
-  selectedRecipe: Recipe | null;
+  availableRecipes: Recipe[];
+  availableDestinations: Destination[];
+  selectedRecipe?: Recipe;
+  selectedDestination?: Destination;
   craftsRequired: number;
   totalTime: number;
   children: RecipeTreeNode[];
-  isBaseResource: boolean;
 }
 
-export interface ProductionLevel {
-  level: number;
-  steps: ProductionStep[];
-  description: string;
-  estimatedTime: number;
-}
-
-export interface ProductionPlan {
-  levels: ProductionLevel[];
-  totalTime: number;
-  workerAssignments: Map<string, string>; // stepId -> workerId
-  timeline: TimelineEvent[];
-  maxConcurrentWorkers: number;
-  warehouseUpdates: InventoryUpdate[];
-}
-
-export interface TimelineEvent {
-  time: number;
-  type: 'start' | 'complete';
-  stepId: string;
-  resourceName: string;
-  workerName?: string;
-  description: string;
-  inventoryChange?: number;
+export interface Destination {
+  id: string, 
+  travelTime: number,
+  resourceId: string
 }
 
 export interface GameState {
@@ -115,10 +134,6 @@ export interface GameState {
   workers: Worker[];
   orders: Order[];
   warehouses: Warehouse[];
-}
-
-export interface Destination {
-  id: string, 
-  travelTime: number,
-  resourceId: string
+  factories: Factory[];
+  destinations: Destination[];
 }
