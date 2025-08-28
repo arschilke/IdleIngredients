@@ -208,96 +208,119 @@ export function ProductionPlan({
 
   if (!order) {
     return (
-      <div className="production-plan">
-        <h2>Production Plan</h2>
-        <p className="no-order">Select an order to view production plan</p>
+      <div className="card h-100">
+        <div className="card-header">
+          <h2 className="h4 mb-0">Production Plan</h2>
+        </div>
+        <div className="card-body text-center">
+          <p className="text-muted mb-0">Select an order to view production plan</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="production-plan">
-      <h2>Production Plan</h2>
-      <div className="order-info">
-        <h3>{order.name}</h3>
-        <p>Type: {order.type}</p>
+    <div className="card h-100">
+      <div className="card-header">
+        <h2 className="h4 mb-0">Production Plan</h2>
       </div>
-      
-      <div className="levels-container">
-        {getLevels().map(level => (
-          <div 
-            key={level}
-            className={`level ${level === activeLevel ? 'active' : ''}`}
-            onDragOver={(e) => handleDragOver(e)}
-            onDrop={(e) => handleDrop(e, level)}
-            onClick={() => onActiveLevelChange(level)}
-          >
-            <div className="level-header">
-              <h4>Level {level}</h4>
-              <span className="job-count">{getJobsByLevel(level).length} jobs</span>
-            </div>
-            
-            <div className="level-jobs">
-              {getJobsByLevel(level).map(job => (
-                <div 
-                  key={job.id}
-                  className={`job ${job.type} ${job.status} ${draggedJob === job.id ? 'dragging' : ''}`}
-                  draggable
-                  onDragStart={(e) => handleDragStart(e, job.id)}
-                  onDragEnd={handleDragEnd}
-                >
-                  {job.type === 'factory' && job.recipe && (
-                    <div className="job-content">
-                      <h5>🏭 {job.recipe.resourceId}</h5>
-                      <p>Time: {formatTime(job.timeRequired)}</p>
-                      <div className="job-resources">
-                        <div className="inputs">
-                          <strong>Inputs:</strong>
-                          {job.inputResources?.map((input, idx) => (
-                            <span 
-                              key={idx} 
-                              className="resource-link"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleResourceClick(input.resourceId, level);
-                              }}
-                            >
-                              {getResourceName(input.resourceId)}: {input.amount}
-                            </span>
-                          ))}
-                        </div>
-                        <div className="outputs">
-                          <strong>Outputs:</strong>
-                          {job.outputResources?.map((output, idx) => (
-                            <span key={idx}>
-                              {getResourceName(output.resourceId)}: {output.amount}
-                            </span>
-                          ))}
-                        </div>
+      <div className="card-body">
+        <div className="alert alert-info mb-3">
+          <h3 className="h6 mb-1">{order.name}</h3>
+          <p className="small mb-0">Type: {order.type}</p>
+        </div>
+        
+        <div className="d-flex flex-column gap-3">
+          {getLevels().map(level => (
+            <div 
+              key={level}
+              className={`card ${level === activeLevel ? 'border-primary' : ''}`}
+              onDragOver={(e) => handleDragOver(e)}
+              onDrop={(e) => handleDrop(e, level)}
+              onClick={() => onActiveLevelChange(level)}
+            >
+              <div className="card-header d-flex justify-content-between align-items-center">
+                <h4 className="h6 mb-0">Level {level}</h4>
+                <span className="badge bg-success">{getJobsByLevel(level).length} jobs</span>
+              </div>
+              
+              <div className="card-body">
+                <div className="d-flex flex-column gap-2">
+                  {getJobsByLevel(level).map(job => (
+                    <div 
+                      key={job.id}
+                      className={`card ${draggedJob === job.id ? 'opacity-50' : ''}`}
+                      draggable
+                      onDragStart={(e) => handleDragStart(e, job.id)}
+                      onDragEnd={handleDragEnd}
+                    >
+                      <div className="card-body">
+                        {job.type === 'factory' && job.recipe && (
+                          <div>
+                            <h5 className="h6 mb-2">
+                              <i className="bi bi-gear me-2"></i>
+                              {job.recipe.resourceId}
+                            </h5>
+                            <p className="small text-muted mb-2">Time: {formatTime(job.timeRequired)}</p>
+                            <div className="row">
+                              <div className="col-6">
+                                <small className="text-muted d-block mb-1">Inputs:</small>
+                                {job.inputResources?.map((input, idx) => (
+                                  <span 
+                                    key={idx} 
+                                    className="badge bg-outline-primary me-1 mb-1 cursor-pointer"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleResourceClick(input.resourceId, level);
+                                    }}
+                                  >
+                                    {getResourceName(input.resourceId)}: {input.amount}
+                                  </span>
+                                ))}
+                              </div>
+                              <div className="col-6">
+                                <small className="text-muted d-block mb-1">Outputs:</small>
+                                {job.outputResources?.map((output, idx) => (
+                                  <span key={idx} className="badge bg-success me-1 mb-1">
+                                    {getResourceName(output.resourceId)}: {output.amount}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                        
+                        {job.type === 'destination' && job.destination && (
+                          <div>
+                            <h5 className="h6 mb-2">
+                              <i className="bi bi-geo-alt me-2"></i>
+                              {job.destination.id}
+                            </h5>
+                            <p className="small text-muted mb-1">Travel: {formatTime(job.timeRequired)}</p>
+                            <p className="small text-muted mb-0">Resource: {getResourceName(job.destination.resourceId)}</p>
+                          </div>
+                        )}
+                        
+                        {job.type === 'delivery' && (
+                          <div>
+                            <h5 className="h6 mb-2">
+                              <i className="bi bi-box me-2"></i>
+                              Delivery
+                            </h5>
+                            <p className="small text-muted mb-1">Order: {job.orderName}</p>
+                            <p className="small text-muted mb-0">
+                              Remaining: {job.deliveryRemaining}/{job.deliveryAmount}
+                            </p>
+                          </div>
+                        )}
                       </div>
                     </div>
-                  )}
-                  
-                  {job.type === 'destination' && job.destination && (
-                    <div className="job-content">
-                      <h5>🗺️ {job.destination.id}</h5>
-                      <p>Travel: {formatTime(job.timeRequired)}</p>
-                      <p>Resource: {getResourceName(job.destination.resourceId)}</p>
-                    </div>
-                  )}
-                  
-                  {job.type === 'delivery' && (
-                    <div className="job-content">
-                      <h5>📦 Delivery</h5>
-                      <p>Order: {job.orderName}</p>
-                      <p>Remaining: {job.deliveryRemaining}/{job.deliveryAmount}</p>
-                    </div>
-                  )}
+                  ))}
                 </div>
-              ))}
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     </div>
   );

@@ -4,11 +4,11 @@ import { ProductionPlan } from './ProductionPlan';
 import { CurrentInventory } from './CurrentInventory';
 import { CurrentOrders } from './CurrentOrders';
 import { ProductionCalculator } from './calculator';
-import { Order, Resource, Worker, Factory, Destination, Warehouse, GameState } from './types';
-import './index.css';
+import { Order, Resource, Train, Factory, Destination, Warehouse, GameState } from './types';
+import './styles.scss';
 
 function App() {
-  const [resources] = useState<Resource[]>([
+  const [resources, setResources] = useState<Resource[]>([
     { id: 'coal', name: 'Coal' },
     { id: 'iron', name: 'Iron' },
     { id: 'oakwood', name: 'Oakwood'  },
@@ -20,18 +20,18 @@ function App() {
     { id: 'copper', name: 'Copper'}
   ]);
 
-  const [workers] = useState<Worker[]>([
-    { id: 'worker1', name: 'Worker 1', capacity: 10, availableAt: 0 },
-    { id: 'worker2', name: 'Worker 2', capacity: 15, availableAt: 0 },
-    { id: 'worker3', name: 'Worker 3', capacity: 12, availableAt: 0 },
-    { id: 'worker4', name: 'Worker 4', capacity: 8, availableAt: 0 },
-    { id: 'worker5', name: 'Worker 5', capacity: 20, availableAt: 0 },
-    { id: 'worker6', name: 'Worker 6', capacity: 14, availableAt: 0 },
-    { id: 'worker7', name: 'Worker 7', capacity: 16, availableAt: 0 },
-    { id: 'worker8', name: 'Worker 8', capacity: 11, availableAt: 0 }
+  const [trains, setTrains] = useState<Train[]>([
+    { id: 'train1', name: 'Train 1', capacity: 10, availableAt: 0 },
+    { id: 'train2', name: 'Train 2', capacity: 15, availableAt: 0 },
+    { id: 'train3', name: 'Train 3', capacity: 12, availableAt: 0 },
+    { id: 'train4', name: 'Train 4', capacity: 8, availableAt: 0 },
+    { id: 'train5', name: 'Train 5', capacity: 20, availableAt: 0 },
+    { id: 'train6', name: 'Train 6', capacity: 14, availableAt: 0 },
+    { id: 'train7', name: 'Train 7', capacity: 16, availableAt: 0 },
+    { id: 'train8', name: 'Train 8', capacity: 11, availableAt: 0 }
   ]);
 
-  const [factories] = useState<Factory[]>([
+  const [factories, setFactories] = useState<Factory[]>([
     {
       id: 'factory1',
       name: 'Smelting Plant',
@@ -103,14 +103,14 @@ function App() {
     }
   ]);
 
-  const [destinations] = useState<Destination[]>([
+  const [destinations, setDestinations] = useState<Destination[]>([
     { id: 'coal_mine', travelTime: 120, resourceId: 'coal' },
     { id: 'iron_mine', travelTime: 180, resourceId: 'iron' },
     { id: 'oak_forest', travelTime: 90, resourceId: 'oakwood' },
     { id: 'copper_mine', travelTime: 240, resourceId: 'copper_ore' }
   ]);
 
-  const [warehouses] = useState<Warehouse[]>([
+  const [warehouses, setWarehouses] = useState<Warehouse[]>([
     {
       id: 'main_warehouse',
       name: 'Main Warehouse',
@@ -136,7 +136,7 @@ function App() {
   // Create game state for calculator
   const gameState: GameState = {
     resources,
-    workers,
+    trains,
     orders,
     warehouses,
     factories,
@@ -157,17 +157,17 @@ function App() {
         <p>Plan your production steps and manage resources</p>
       </header>
 
-      <main className="dashboard">
+      <main className="container-fluid py-4">
         {/* Row 1: Current Orders and New Order Form */}
-        <div className="dashboard-row">
-          <div className="dashboard-panel">
+        <div className="row g-4 mb-4">
+          <div className="col-lg-6">
             <CurrentOrders 
               orders={orders}
               resources={resources}
               onOrderSelect={setCurrentOrder}
             />
           </div>
-          <div className="dashboard-panel">
+          <div className="col-lg-6">
             <OrderForm
               resources={resources}
               onSubmit={handleOrderSubmit}
@@ -178,8 +178,8 @@ function App() {
         </div>
 
         {/* Row 2: Production Plan and Current Inventory */}
-        <div className="dashboard-row">
-          <div className="dashboard-panel">
+        <div className="row g-4">
+          <div className="col-lg-8">
             <ProductionPlan
               order={currentOrder}
               calculator={calculator}
@@ -188,7 +188,7 @@ function App() {
               onActiveLevelChange={setActiveLevel}
             />
           </div>
-          <div className="dashboard-panel">
+          <div className="col-lg-4">
             <CurrentInventory
               gameState={gameState}
               activeLevel={activeLevel}

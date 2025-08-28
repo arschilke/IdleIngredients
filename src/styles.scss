@@ -1,0 +1,234 @@
+// Import Bootstrap with modern syntax
+@use 'bootstrap/scss/bootstrap' as *;
+
+// Custom variables
+$primary-color: #ffed4e;
+$secondary-color: #4ade80;
+$accent-color: #60a5fa;
+$success-color: #34d399;
+$warning-color: #f59e0b;
+$danger-color: #f87171;
+$info-color: #93c5fd;
+$light-color: #e5e7eb;
+$dark-color: #1f2937;
+
+// Base styles
+.app {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 50%, #1d4ed8 100%);
+  color: white;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.app-header {
+  text-align: center;
+  padding: 2rem 1rem;
+  background: rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(10px);
+  
+  h1 {
+    font-size: 3rem;
+    margin-bottom: 0.5rem;
+    color: $primary-color;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+  }
+  
+  p {
+    font-size: 1.2rem;
+    opacity: 0.9;
+    margin: 0;
+  }
+}
+
+// Custom order type badges
+.order-type {
+  &-boat {
+    background: rgba(59, 130, 246, 0.2) !important;
+    color: $accent-color !important;
+    border: 1px solid rgba(59, 130, 246, 0.3) !important;
+  }
+  
+  &-story {
+    background: rgba(168, 85, 247, 0.2) !important;
+    color: #c084fc !important;
+    border: 1px solid rgba(168, 85, 247, 0.3) !important;
+  }
+  
+  &-building {
+    background: rgba(34, 197, 94, 0.2) !important;
+    color: $secondary-color !important;
+    border: 1px solid rgba(34, 197, 94, 0.3) !important;
+  }
+}
+
+// Bootstrap overrides for dark theme
+.card {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  backdrop-filter: blur(10px);
+  
+  .card-header {
+    background: rgba(255, 255, 255, 0.03) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+  }
+  
+  .card-body {
+    color: white;
+  }
+}
+
+.form-control, .form-select {
+  background: rgba(255, 255, 255, 0.1) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  color: white !important;
+  
+  &:focus {
+    background: rgba(255, 255, 255, 0.15) !important;
+    border-color: $accent-color !important;
+    box-shadow: 0 0 0 0.2rem rgba(96, 165, 250, 0.25) !important;
+  }
+  
+  &::placeholder {
+    color: rgba(255, 255, 255, 0.6) !important;
+  }
+}
+
+.form-label {
+  color: $primary-color !important;
+  font-weight: 500;
+}
+
+.form-text {
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+
+.form-range {
+  &::-webkit-slider-track {
+    background: rgba(255, 255, 255, 0.2);
+  }
+  
+  &::-webkit-slider-thumb {
+    background: $accent-color;
+  }
+}
+
+// Button overrides
+.btn {
+  &-primary {
+    background-color: $accent-color !important;
+    border-color: $accent-color !important;
+    
+    &:hover {
+      background-color: darken($accent-color, 10%) !important;
+      border-color: darken($accent-color, 10%) !important;
+    }
+  }
+  
+  &-success {
+    background-color: $success-color !important;
+    border-color: $success-color !important;
+    
+    &:hover {
+      background-color: darken($success-color, 10%) !important;
+      border-color: darken($success-color, 10%) !important;
+    }
+  }
+  
+  &-warning {
+    background-color: $warning-color !important;
+    border-color: $warning-color !important;
+    
+    &:hover {
+      background-color: darken($warning-color, 10%) !important;
+      border-color: darken($warning-color, 10%) !important;
+    }
+  }
+  
+  &-danger {
+    background-color: $danger-color !important;
+    border-color: $danger-color !important;
+    
+    &:hover {
+      background-color: darken($danger-color, 10%) !important;
+      border-color: darken($danger-color, 10%) !important;
+    }
+  }
+  
+  &-outline-primary {
+    color: $accent-color !important;
+    border-color: $accent-color !important;
+    
+    &:hover {
+      background-color: $accent-color !important;
+      color: white !important;
+    }
+  }
+  
+  &-outline-secondary {
+    color: rgba(255, 255, 255, 0.7) !important;
+    border-color: rgba(255, 255, 255, 0.3) !important;
+    
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.1) !important;
+      color: white !important;
+    }
+  }
+  
+  &-outline-danger {
+    color: $danger-color !important;
+    border-color: $danger-color !important;
+    
+    &:hover {
+      background-color: $danger-color !important;
+      color: white !important;
+    }
+  }
+}
+
+// Badge overrides
+.badge {
+  &.bg-outline-primary {
+    background: transparent !important;
+    color: $accent-color !important;
+    border: 1px solid $accent-color !important;
+  }
+}
+
+// Alert overrides
+.alert {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: white !important;
+  
+  &-success {
+    background: rgba(74, 222, 128, 0.1) !important;
+    border-color: rgba(74, 222, 128, 0.3) !important;
+    color: $secondary-color !important;
+  }
+  
+  &-info {
+    background: rgba(96, 165, 250, 0.1) !important;
+    border-color: rgba(96, 165, 250, 0.3) !important;
+    color: $accent-color !important;
+  }
+}
+
+// Utility classes
+.cursor-pointer {
+  cursor: pointer;
+}
+
+// Responsive adjustments
+@media (max-width: 768px) {
+  .app-header {
+    padding: 1.5rem 1rem;
+    
+    h1 {
+      font-size: 2rem;
+    }
+    
+    p {
+      font-size: 1rem;
+    }
+  }
+}
