@@ -3,7 +3,6 @@ import { OrderForm } from './OrderForm';
 import { ProductionPlan } from './ProductionPlan';
 import { CurrentInventory } from './CurrentInventory';
 import { CurrentOrders } from './CurrentOrders';
-import { ProductionCalculator } from './calculator';
 import { Order, Resource, Train, Factory, Destination, Warehouse, GameState, ProductionPlan as ProductionPlanType } from './types';
 import './styles.scss';
 
@@ -142,29 +141,26 @@ function App() {
       steps: [],
       inventoryChanges: new Map(),
       trainCount: 0,
-      isOverCapacity: false,
       description: 'First Level',
       estimatedTime: 0,
-      done: false
+      done: false,
+      isActive: true
     }],
     totalTime: 0,
     maxConcurrentWorkers: maxConcurrentTrains,
     activeLevel: 0
   });
-  const [activeLevel, setActiveLevel] = useState<number>(1);
 
   // Create game state for calculator
   const gameState: GameState = {
+    maxConcurrentTrains,
     resources,
     trains,
     orders,
     warehouse,
     factories,
     destinations,
-    productionPlan,
   };
-
-  const calculator = new ProductionCalculator(gameState);
 
   const handleOrderSubmit = (order: Order) => {
     setOrders([...orders, order]);
@@ -172,43 +168,6 @@ function App() {
 
   const handleProductionPlanChange = (plan: ProductionPlanType) => {
     setProductionPlan(plan);
-  };
-
-  const handleActiveLevelChange = (level: number) => {
-    setActiveLevel(level);
-  };
-
-  const markLevelAsDone = (levelNumber: number) => {
-    if (!productionPlan) return;
-
-    const updatedLevels = productionPlan.levels.map(level =>
-      level.level === levelNumber ? { ...level, done: true } : level
-    );
-
-    setProductionPlan({
-      ...productionPlan,
-      levels: updatedLevels
-    });
-  };
-
-  const removeLevel = (levelNumber: number) => {
-    if (!productionPlan) return;
-
-    const updatedLevels = productionPlan.levels
-      .filter(level => level.level !== levelNumber)
-      .map((level, index) => ({ ...level, level: index + 1 }));
-
-    setProductionPlan({
-      ...productionPlan,
-      levels: updatedLevels
-    });
-
-    // Adjust active level if needed
-    if (activeLevel === levelNumber) {
-      setActiveLevel(updatedLevels.length > 0 ? 1 : 1);
-    } else if (activeLevel > levelNumber) {
-      setActiveLevel(activeLevel - 1);
-    }
   };
 
   const clearProductionPlan = () => {
@@ -220,30 +179,28 @@ function App() {
         steps: [],
         inventoryChanges: new Map(),
         trainCount: 0,
-        isOverCapacity: false,
         description: 'First Level',
         estimatedTime: 0,
-        done: false
+        done: false,
+        isActive: true
       }],
       totalTime: 0,
-      maxConcurrentWorkers:
-        maxConcurrentTrains,
+      maxConcurrentWorkers: maxConcurrentTrains,
       activeLevel: 0
     });
-    setActiveLevel(0);
   };
 
   return (
     <div className="app">
       <header className="app-header">
         <h1>Idle Game Production Planner</h1>
-        <p>Plan your production steps and manage resources</p>
       </header>
 
       <main className="container-fluid py-4">
         {/* Row 1: Current Orders and New Order Form */}
-        <div className="row g-4 mb-4">
-          <div className="col-auto col-md">
+        <div className="row">
+          <div className="d-flex flex-column col-6">
+
             <CurrentOrders
               orders={orders}
               resources={resources}
@@ -252,36 +209,28 @@ function App() {
               onProductionPlanChange={handleProductionPlanChange}
               maxConcurrentTrains={maxConcurrentTrains}
             />
+
+            <ProductionPlan
+              gameState={gameState}
+              productionPlan={productionPlan}
+              onProductionPlanChange={handleProductionPlanChange}
+              onClearPlan={clearProductionPlan} />
+
           </div>
-          <div className="col">
+
+          <div className='d-flex flex-column col-6'>
+
             <OrderForm
               resources={resources}
               onSubmit={handleOrderSubmit}
               onOrdersChange={setOrders}
             />
-          </div>
-        </div>
-
-        {/* Row 2: Production Plan and Current Inventory */}
-        <div className="row g-4">
-          <div className="col-lg-8">
-            <ProductionPlan
-              gameState={gameState}
-              productionPlan={productionPlan}
-              activeLevel={activeLevel}
-              onProductionPlanChange={handleProductionPlanChange}
-              onActiveLevelChange={handleActiveLevelChange}
-              onMarkLevelDone={markLevelAsDone}
-              onRemoveLevel={removeLevel}
-              onClearPlan={clearProductionPlan}
-            />
-          </div>
-          <div className="col-lg-4">
             <CurrentInventory
               gameState={gameState}
-              activeLevel={activeLevel}
+              activeLevel={productionPlan.activeLevel}
               productionPlan={productionPlan}
             />
+
           </div>
         </div>
       </main>

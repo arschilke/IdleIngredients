@@ -48,15 +48,13 @@ export const CurrentInventory: React.FC<CurrentInventoryProps> = ({
   const getActiveLevelInventoryChanges = () => {
     if (!productionPlan) return new Map();
 
-    const activeLevelData = productionPlan.levels.find(level => level.level === activeLevel);
+    const activeLevelData = productionPlan.levels[productionPlan.activeLevel];
     return activeLevelData?.inventoryChanges || new Map();
   };
 
   const getActiveLevelStatus = () => {
     if (!productionPlan) return null;
-    
-    const activeLevelData = productionPlan.levels.find(level => level.level === activeLevel);
-    return activeLevelData;
+    return productionPlan.levels[productionPlan.activeLevel];
   };
 
   const currentInventory = getCurrentInventory();
@@ -66,13 +64,12 @@ export const CurrentInventory: React.FC<CurrentInventoryProps> = ({
   return (
     <div className="card">
       <div className="card-header">
-        <h3 className="card-title mb-0">
+        <h5 className="mb-0">
           <i className="bi bi-box-seam"></i> Current Inventory
-        </h3>
+        </h5>
       </div>
       <div className="card-body">
-        <div className="mb-3">
-          <h6 className="text-muted">Active Level: {activeLevel}</h6>
+        <div className="mb-2">
           {activeLevelData && (
             <div className={`alert ${activeLevelData.done ? 'alert-secondary' : 'alert-info'}`}>
               <small>
@@ -95,7 +92,7 @@ export const CurrentInventory: React.FC<CurrentInventoryProps> = ({
         </div>
 
         {activeLevelChanges.size > 0 && (
-          <div className="mb-3">
+          <div className="mb-2">
             <h6 className="text-muted">Level {activeLevel} Changes:</h6>
             <div className="d-flex flex-wrap gap-1">
               {Array.from(activeLevelChanges.entries()).map(([resourceId, change]) => (

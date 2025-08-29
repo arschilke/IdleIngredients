@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { PlannedStep, GameState, Recipe, Destination } from './types';
+import { PlannedStep, GameState, PlannedStepType } from './types';
 import { formatTime, getResourceName, generateId } from './utils';
 
 interface ProductionJobProps {
@@ -55,12 +55,12 @@ export const ProductionJob: React.FC<ProductionJobProps> = ({
       const newStep: PlannedStep = {
         id: generateId('step'),
         type: 'factory',
-        resourceId,
+        resourceId: recipe.resourceId,
         level: targetLevel,
         timeRequired: recipe.timeRequired,
         amountProcessed: 0,
         dependencies: [],
-        recipe
+        recipe: recipe,
       };
 
       onAddJobToLevel(newStep, targetLevel);
@@ -86,11 +86,22 @@ export const ProductionJob: React.FC<ProductionJobProps> = ({
 
     return (
       <div className="job-edit-form p-3 border rounded mt-2">
-        <h6 className="mb-3">Edit Job: {getResourceName(job.resourceId, gameState)}</h6>
-        
+        <h6 className="mb-2">Edit Job: {
+          job.type === 'delivery' && (job.order?.name) || (getResourceName(job.resourceId, gameState))
+        }
+        </h6>
+
+        {job.type !== 'delivery' && (
+          <div className="d-flex gap-2">
+            <label className="form-label">Job Type:</label>
+            <select className="form-select form-select-sm" value={job.type} onChange={(e) => setEditingJobData(prev => ({ ...prev, type: e.target.value as PlannedStepType }))}>
+              <option value="factory">Factory</option>
+              <option value="destination">Destination</option>
+            </select>
+          </div>)}
         {/* Train Assignment */}
-        {job.type === 'destination' && (
-          <div className="mb-3">
+        {job.type === 'destination' || job.type === 'delivery' && (
+          <div className="mb-2">
             <label className="form-label">Assign Train:</label>
             <select
               className="form-select form-select-sm"
@@ -109,7 +120,7 @@ export const ProductionJob: React.FC<ProductionJobProps> = ({
 
         {/* Recipe Selection for Factory Jobs */}
         {job.type === 'factory' && (
-          <div className="mb-3">
+          <div className="mb-2">
             <label className="form-label">Recipe:</label>
             <select
               className="form-select form-select-sm"
@@ -126,29 +137,6 @@ export const ProductionJob: React.FC<ProductionJobProps> = ({
                 .map(recipe => (
                   <option key={recipe.resourceId} value={recipe.resourceId}>
                     {recipe.requires.map(req => `${req.amount} ${getResourceName(req.resourceId, gameState)}`).join(' + ')} → {recipe.outputAmount} {getResourceName(recipe.resourceId, gameState)}
-                  </option>
-                ))}
-            </select>
-          </div>
-        )}
-
-        {/* Destination Selection for Destination Jobs */}
-        {job.type === 'destination' && (
-          <div className="mb-3">
-            <label className="form-label">Destination:</label>
-            <select
-              className="form-select form-select-sm"
-              value={editingJobData.destination?.id || ''}
-              onChange={(e) => {
-                const selectedDestination = gameState.destinations.find(d => d.id === e.target.value);
-                setEditingJobData(prev => ({ ...prev, destination: selectedDestination }));
-              }}
-            >
-              {gameState.destinations
-                .filter(d => d.resourceId === job.resourceId)
-                .map(destination => (
-                  <option key={destination.id} value={destination.id}>
-                    {destination.id} (Travel: {formatTime(destination.travelTime)})
                   </option>
                 ))}
             </select>
@@ -180,7 +168,7 @@ export const ProductionJob: React.FC<ProductionJobProps> = ({
           <div>
             <strong>{getResourceName(job.resourceId, gameState)}</strong>
             <span className="badge bg-secondary ms-2">{job.type}</span>
-            
+
             {/* Train Assignment Display */}
             {job.trainId && (
               <span className="badge bg-info ms-2">
@@ -188,7 +176,7 @@ export const ProductionJob: React.FC<ProductionJobProps> = ({
               </span>
             )}
           </div>
-          
+
           <div className="d-flex gap-2">
             <button
               className="btn btn-outline-primary btn-sm"

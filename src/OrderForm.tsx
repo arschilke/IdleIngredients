@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Order, Resource, ResourceRequirement } from './types';
+import { formatTime } from './utils';
 
 interface OrderFormProps {
   resources: Resource[];
@@ -63,32 +64,18 @@ export function OrderForm({ resources, onSubmit }: OrderFormProps) {
     setTravelTime(1800);
   };
 
-  const formatTime = (seconds: number): string => {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const secs = seconds % 60;
-    
-    if (hours > 0) {
-      return `${hours}h ${minutes}m ${secs}s`;
-    } else if (minutes > 0) {
-      return `${minutes}m ${secs}s`;
-    } else {
-      return `${secs}s`;
-    }
-  };
-
   return (
-    <div className="card h-100">
-      <div className="card-header">
-        <h2 className="h4 mb-0">Create New Order</h2>
+    <div className="card">
+      <div className="card-header py-2">
+        <h3 className="h5 mb-0">Create New Order</h3>
       </div>
-      <div className="card-body">
+      <div className="card-body py-3">
         <form onSubmit={handleSubmit}>
-          <div className="mb-3">
+          <div className="mb-2">
             <label htmlFor="orderType" className="form-label">Order Type:</label>
             <select
               id="orderType"
-              className="form-select"
+              className="form-select form-select-sm"
               value={orderType}
               onChange={(e) => setOrderType(e.target.value as 'boat' | 'story' | 'building')}
               required
@@ -99,12 +86,12 @@ export function OrderForm({ resources, onSubmit }: OrderFormProps) {
             </select>
           </div>
 
-          <div className="mb-3">
+          <div className="mb-2">
             <label htmlFor="orderName" className="form-label">Order Name:</label>
             <input
               id="orderName"
               type="text"
-              className="form-control"
+              className="form-control form-control-sm"
               value={orderName}
               onChange={(e) => setOrderName(e.target.value)}
               placeholder="Enter order name"
@@ -113,27 +100,26 @@ export function OrderForm({ resources, onSubmit }: OrderFormProps) {
           </div>
 
           {orderType === 'boat' && (
-            <div className="mb-3">
+            <div className="mb-2">
               <label htmlFor="expirationTime" className="form-label">Boat Expiration Time:</label>
               <div className="d-flex align-items-center gap-2">
                 <input
                   id="expirationTime"
                   type="range"
                   className="form-range flex-grow-1"
-                  min="300"
-                  max="7200"
-                  step="300"
+                  min="3600"
+                  max="36000"
+                  step="1800"
                   value={expirationTime}
                   onChange={(e) => setExpirationTime(Number(e.target.value))}
                 />
                 <span className="badge bg-warning">{formatTime(expirationTime)}</span>
               </div>
-              <small className="form-text text-muted">When the boat leaves</small>
             </div>
           )}
 
           {orderType === 'story' && (
-            <div className="mb-3">
+            <div className="mb-1">
               <label htmlFor="travelTime" className="form-label">Story Travel Time:</label>
               <div className="d-flex align-items-center gap-2">
                 <input
@@ -148,16 +134,15 @@ export function OrderForm({ resources, onSubmit }: OrderFormProps) {
                 />
                 <span className="badge bg-info">{formatTime(travelTime)}</span>
               </div>
-              <small className="form-text text-muted">How long the story takes to complete</small>
             </div>
           )}
 
-          <div className="mb-3">
+          <div className="mb-2">
             <label className="form-label">Resources Required:</label>
             {orderResources.map((resource, index) => (
               <div key={index} className="d-flex gap-2 mb-2">
                 <select
-                  className="form-select flex-grow-1"
+                  className="form-select form-select-sm flex-grow-1"
                   value={resource.resourceId}
                   onChange={(e) => updateResource(index, 'resourceId', e.target.value)}
                   required
@@ -171,7 +156,7 @@ export function OrderForm({ resources, onSubmit }: OrderFormProps) {
                 </select>
                 <input
                   type="number"
-                  className="form-control"
+                  className="form-control form-control-sm"
                   style={{ width: '100px' }}
                   min="1"
                   value={resource.amount}
@@ -196,7 +181,7 @@ export function OrderForm({ resources, onSubmit }: OrderFormProps) {
             </button>
           </div>
 
-          <button type="submit" className="btn btn-primary w-100">
+          <button type="submit" className="btn btn-primary btn-sm w-100">
             <i className="bi bi-plus-circle me-1"></i>
             Create Order
           </button>

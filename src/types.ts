@@ -38,6 +38,7 @@ export type TrainClass = 'common' | 'rare' | 'epic' | 'legendary';
 export interface ResourceRequirement {
   resourceId: string;
   amount: number;
+  delivered: number;
 }
 
 export interface Warehouse {
@@ -90,9 +91,9 @@ export interface PlanningLevel {
   startTime: number;
   endTime: number;
   steps: PlannedStep[];
+  isActive: boolean;
   inventoryChanges: Map<string, number>;
   trainCount: number;
-  isOverCapacity: boolean;
   description: string;
   estimatedTime: number;
   done: boolean;
@@ -116,7 +117,7 @@ export interface RecipeTreeNode {
 }
 
 export interface GameState {
-  productionPlan: ProductionPlan;
+  maxConcurrentTrains: number;
   resources: Resource[];
   trains: Train[];
   orders: Order[];
