@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { OrderForm } from './OrderForm';
 import { ProductionPlan } from './ProductionPlan';
 import { CurrentInventory } from './CurrentInventory';
@@ -115,8 +115,10 @@ function App() {
     { id: 'timber_factory', travelTime: 180, resourceId: 'timber', classes: ['epic', 'legendary'] }
   ]);
 
-  const [warehouse] = useState<Warehouse>(
+  const [warehouse, setWarehouse] = useState<Warehouse>(
     {
+      id: 'main_warehouse',
+      name: 'Main Warehouse',
       maxCapacity: 1000,
       inventory: new Map([
         ['coal', 0],
@@ -135,7 +137,7 @@ function App() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [productionPlan, setProductionPlan] = useState<ProductionPlanType>({
     levels: [{
-      level: 0,
+      level: 1,
       startTime: 0,
       endTime: 0,
       steps: [],
@@ -143,12 +145,11 @@ function App() {
       trainCount: 0,
       description: 'First Level',
       estimatedTime: 0,
-      done: false,
-      isActive: true
+      done: false
     }],
     totalTime: 0,
     maxConcurrentWorkers: maxConcurrentTrains,
-    activeLevel: 0
+    activeLevel: 1
   });
 
   // Create game state for calculator
@@ -162,18 +163,45 @@ function App() {
     destinations,
   };
 
+  // Update gameState when warehouse changes
+  useEffect(() => {
+    // This will trigger a re-render of components that use gameState
+  }, [warehouse]);
+
   const handleOrderSubmit = (order: Order) => {
     setOrders([...orders, order]);
   };
 
   const handleProductionPlanChange = (plan: ProductionPlanType) => {
     setProductionPlan(plan);
+
+    // Update warehouse inventory based on completed levels
+    updateWarehouseInventory(plan);
+  };
+
+  const updateWarehouseInventory = (plan: ProductionPlanType) => {
+    const newInventory = new Map(warehouse.inventory);
+
+    // Process inventory changes from completed levels
+    plan.levels.forEach(level => {
+      if (level.done) {
+        level.inventoryChanges.forEach((amount, resourceId) => {
+          const currentAmount = newInventory.get(resourceId) || 0;
+          newInventory.set(resourceId, currentAmount + amount);
+        });
+      }
+    });
+
+    setWarehouse(prev => ({
+      ...prev,
+      inventory: newInventory
+    }));
   };
 
   const clearProductionPlan = () => {
     setProductionPlan({
       levels: [{
-        level: 0,
+        level: 1,
         startTime: 0,
         endTime: 0,
         steps: [],
@@ -181,12 +209,11 @@ function App() {
         trainCount: 0,
         description: 'First Level',
         estimatedTime: 0,
-        done: false,
-        isActive: true
+        done: false
       }],
       totalTime: 0,
       maxConcurrentWorkers: maxConcurrentTrains,
-      activeLevel: 0
+      activeLevel: 1
     });
   };
 
@@ -198,9 +225,8 @@ function App() {
 
       <main className="container-fluid py-4">
         {/* Row 1: Current Orders and New Order Form */}
-        <div className="row">
-          <div className="d-flex flex-column col-6">
-
+        <div className="d-flex gap-2">
+          <div className="d-flex flex-fill justify-content-between flex-column">
             <CurrentOrders
               orders={orders}
               resources={resources}
@@ -209,28 +235,27 @@ function App() {
               onProductionPlanChange={handleProductionPlanChange}
               maxConcurrentTrains={maxConcurrentTrains}
             />
-
             <ProductionPlan
               gameState={gameState}
               productionPlan={productionPlan}
               onProductionPlanChange={handleProductionPlanChange}
               onClearPlan={clearProductionPlan} />
-
           </div>
+          <div className='d-flex flex-fill justify-content-between flex-column'>
 
-          <div className='d-flex flex-column col-6'>
-
-            <OrderForm
-              resources={resources}
-              onSubmit={handleOrderSubmit}
-              onOrdersChange={setOrders}
-            />
-            <CurrentInventory
-              gameState={gameState}
-              activeLevel={productionPlan.activeLevel}
-              productionPlan={productionPlan}
-            />
-
+            <div >
+              <OrderForm
+                resources={resources}
+                onSubmit={handleOrderSubmit}
+                onOrdersChange={setOrders}
+              /></div>
+            <div className='flex-shrink-1'>
+              <CurrentInventory
+                gameState={gameState}
+                activeLevel={productionPlan.activeLevel}
+                productionPlan={productionPlan}
+              />
+            </div>
           </div>
         </div>
       </main>

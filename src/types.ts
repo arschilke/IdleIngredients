@@ -38,10 +38,12 @@ export type TrainClass = 'common' | 'rare' | 'epic' | 'legendary';
 export interface ResourceRequirement {
   resourceId: string;
   amount: number;
-  delivered: number;
+  delivered?: number;
 }
 
 export interface Warehouse {
+  id: string;
+  name: string;
   maxCapacity: number;
   inventory: Map<string, number>;
 }
@@ -91,7 +93,6 @@ export interface PlanningLevel {
   startTime: number;
   endTime: number;
   steps: PlannedStep[];
-  isActive: boolean;
   inventoryChanges: Map<string, number>;
   trainCount: number;
   description: string;

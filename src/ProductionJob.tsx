@@ -164,10 +164,14 @@ export const ProductionJob: React.FC<ProductionJobProps> = ({
   const renderJobDetails = () => {
     return (
       <div className="job-details">
-        <div className="d-flex justify-content-between align-items-center">
+        <div className="d-flex justify-content-between align-items-center gap-1">
           <div>
-            <strong>{getResourceName(job.resourceId, gameState)}</strong>
-            <span className="badge bg-secondary ms-2">{job.type}</span>
+            <span className="badge bg-secondary ms-2">{job.type.toLocaleUpperCase()}</span>
+            <strong className="ms-2">
+              {
+                job.type === 'delivery' && (job.order?.name) || (getResourceName(job.resourceId, gameState))
+              }
+            </strong>
 
             {/* Train Assignment Display */}
             {job.trainId && (
@@ -176,6 +180,7 @@ export const ProductionJob: React.FC<ProductionJobProps> = ({
               </span>
             )}
           </div>
+         
 
           <div className="d-flex gap-2">
             <button
@@ -186,10 +191,11 @@ export const ProductionJob: React.FC<ProductionJobProps> = ({
             </button>
           </div>
         </div>
+        <div className="d-flex justify-content-between align-items-center gap-1 mt-2">
 
         {/* Recipe Information */}
         {job.recipe && (
-          <div className="mt-2">
+          <div>
             <small className="text-muted d-block">Recipe:</small>
             <div className="d-flex flex-wrap gap-1 mb-2">
               {job.recipe.requires.map((req, index) => (
@@ -209,16 +215,20 @@ export const ProductionJob: React.FC<ProductionJobProps> = ({
 
         {/* Destination Information */}
         {job.destination && (
-          <div className="mt-2">
+          <div>
             <small className="text-muted">Travel time: {formatTime(job.destination.travelTime)}</small>
           </div>
         )}
 
+        
         {/* Time and Amount */}
-        <div className="mt-2 text-end">
+        {job.type == 'delivery' && (
+        <div className="text-end">
           <div className="text-muted small">{formatTime(job.timeRequired)}</div>
           <div className="text-muted small">Amount: {job.amountProcessed}</div>
         </div>
+        )}
+      </div>
       </div>
     );
   };

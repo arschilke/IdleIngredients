@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { ProductionPlan as ProductionPlanType, GameState, PlanningLevel } from './types';
+import { ProductionPlan as ProductionPlanType, GameState, PlanningLevel, PlannedStep } from './types';
 import { ProductionLevel } from './ProductionLevel';
 
 interface ProductionPlanProps {
@@ -18,7 +18,7 @@ export const ProductionPlan: React.FC<ProductionPlanProps> = ({
 }) => {
     const levelRefs = useRef<{ [key: number]: HTMLDivElement | null }>({});
 
-    const [activeLevel, setActiveLevel] = useState<number>(0);
+    const [activeLevel, setActiveLevel] = useState<number>(1);
 
     // Auto-scroll to active level when it changes
     useEffect(() => {
@@ -45,8 +45,7 @@ export const ProductionPlan: React.FC<ProductionPlanProps> = ({
             estimatedTime: 0,
             done: false,
             startTime: 0,
-            endTime: 0,
-            isActive: true
+            endTime: 0
         };
 
         const newPlan: ProductionPlanType = {
@@ -106,7 +105,7 @@ export const ProductionPlan: React.FC<ProductionPlanProps> = ({
     }
 
     return (
-        <div className="card">
+        <div className="card flex-fill">
             <div className="card-header d-flex justify-content-between align-items-center">
                 <h3 className="card-title mb-0">Production Plan</h3>
                 <div className="d-flex gap-2">
@@ -130,19 +129,98 @@ export const ProductionPlan: React.FC<ProductionPlanProps> = ({
                         <ProductionLevel
                             level={level}
                             gameState={gameState}
+                            isActiveLevel={level.level === activeLevel}
                             onLevelClick={handleLevelClick}
                             onRemoveLevel={onRemoveLevel}
                             onLevelChange={(updatedLevel: PlanningLevel) => {
                                 const updatedLevels = productionPlan.levels.map(l =>
                                     l.level === updatedLevel.level ? updatedLevel : l
                                 );
-                                while (productionPlan.levels[activeLevel].done) {
-                                    setActiveLevel(activeLevel + 1);
-                                }
-                                onProductionPlanChange({
+                                
+                                // Update the production plan first
+                                const updatedPlan = {
                                     ...productionPlan,
                                     levels: updatedLevels
-                                });
+                                };
+                                onProductionPlanChange(updatedPlan);
+                                
+                                // Then check if we need to change the active level
+                                if (updatedLevel.level === activeLevel && updatedLevel.done) {
+                                    // If the current active level was marked done, move to next incomplete level
+                                    const nextIncompleteLevel = updatedLevels.find(l => !l.done && l.level > activeLevel);
+                                    if (nextIncompleteLevel) {
+                                        setActiveLevel(nextIncompleteLevel.level);
+                                    }
+                                }
+                            }}
+                            onAddStepToLevel={(step: PlannedStep, targetLevel: number) => {
+                                console.log('onAddStepToLevel called with:', { step, targetLevel, currentLevels: productionPlan.levels.length });
+                                let updatedLevels = [...productionPlan.levels];
+                                
+                                if (targetLevel === -1) {
+                                    console.log('Creating new level at beginning');
+                                    // Create a new level at the beginning of the plan
+                                    const newLevel: PlanningLevel = {
+                                        level: 1,
+                                        startTime: 0,
+                                        endTime: 0,
+                                        steps: [step],
+                                        inventoryChanges: new Map([[step.resourceId, step.amountProcessed]]),
+                                        trainCount: 0,
+                                        description: `Production: ${step.resourceId}`,
+                                        estimatedTime: step.timeRequired,
+                                        done: false
+                                    };
+                                    
+                                    // Add the new level at the beginning
+                                    updatedLevels.unshift(newLevel);
+                                    
+                                    // Renumber all levels while keeping active level the same
+                                    const currentActiveLevel = productionPlan.activeLevel;
+                                    updatedLevels = updatedLevels.map((level, index) => ({
+                                        ...level,
+                                        level: index + 1
+                                    }));
+                                    
+                                    // Update the step's level to match the new level number
+                                    step.level = 1;
+                                    
+                                    // Make the step ID more unique
+                                    step.id = `factory_${step.resourceId}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+                                    
+                                    console.log('New levels after renumbering:', updatedLevels.map(l => ({ level: l.level, description: l.description })));
+                                    
+                                    // Update the production plan with renumbered levels
+                                    onProductionPlanChange({
+                                        ...productionPlan,
+                                        levels: updatedLevels,
+                                        activeLevel: currentActiveLevel + 1 // Adjust active level for renumbering
+                                    });
+                                } else if (targetLevel > 0) {
+                                    console.log('Adding step to existing level:', targetLevel);
+                                    // Find the target level and add the step to it
+                                    const targetLevelIndex = updatedLevels.findIndex(l => l.level === targetLevel);
+                                    if (targetLevelIndex !== -1) {
+                                        const targetLevelObj = updatedLevels[targetLevelIndex];
+                                        
+                                        // Add the step to the target level
+                                        targetLevelObj.steps.push(step);
+                                        
+                                        // Update the target level's inventory changes to track the output
+                                        const currentInventoryChange = targetLevelObj.inventoryChanges.get(step.resourceId) || 0;
+                                        targetLevelObj.inventoryChanges.set(step.resourceId, currentInventoryChange + step.amountProcessed);
+                                        
+                                        // Update the production plan
+                                        onProductionPlanChange({
+                                            ...productionPlan,
+                                            levels: updatedLevels
+                                        });
+                                    } else {
+                                        console.log('Target level not found:', targetLevel);
+                                    }
+                                } else {
+                                    console.log('Invalid target level:', targetLevel);
+                                }
                             }}
                         />
                     </div>

@@ -18,23 +18,54 @@ export function CurrentOrders({
     onProductionPlanChange
 }: CurrentOrdersProps) {
 
+    // Calculate delivered amounts for each order's resource requirements
+    const calculateDeliveredAmounts = (order: Order): Map<string, number> => {
+        if (!productionPlan) return new Map();
+        
+        const deliveredAmounts = new Map<string, number>();
+        
+        // Initialize all resource requirements with 0 delivered
+        order.resources.forEach(req => {
+            deliveredAmounts.set(req.resourceId, 0);
+        });
+        
+        // Sum up amounts from completed delivery steps for this order
+        productionPlan.levels.forEach(level => {
+            if (level.done) {
+                level.steps.forEach(step => {
+                    if (step.type === 'delivery' && step.order?.id === order.id) {
+                        const currentAmount = deliveredAmounts.get(step.resourceId) || 0;
+                        deliveredAmounts.set(step.resourceId, currentAmount + step.amountProcessed);
+                    }
+                });
+            }
+        });
+        
+        return deliveredAmounts;
+    };
+
     const handlePlanProduction = (order: Order) => {
         if (!productionPlan) {
             return;
         }
         // Add to existing active level
-        const activeLevelIndex = productionPlan?.activeLevel ?? 0;
-        const activeLevel = productionPlan?.levels[activeLevelIndex];
+        const activeLevelIndex = productionPlan.activeLevel;
+        const activeLevel = productionPlan.levels.find(level => level.level === activeLevelIndex);
+
+        if (!activeLevel) {
+            console.error('Active level not found:', activeLevelIndex);
+            return;
+        }
 
         const trains = getBestTrains(productionPlan, order.resources[0].amount);
 
         const deliveryJobs: PlannedStep[] = [];
         for (let train of trains) {
             deliveryJobs.push( {
-                id: `delivery_${order.id}_${Date.now()}`,
+                id: `delivery_${order.id}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
                 type: 'delivery',
                 resourceId: order.resources[0].resourceId,
-                level: 1,
+                level: activeLevelIndex,
                 trainId: train.id,
                 timeRequired: order.type === 'story' ? (order as StoryOrder).travelTime : 0,
                 order: order,
@@ -56,8 +87,8 @@ export function CurrentOrders({
 
         const updatedPlan = {
             ...productionPlan,
-            levels: productionPlan.levels.map((level, index) =>
-                index === activeLevelIndex ? updatedLevel : level
+            levels: productionPlan.levels.map(level =>
+                level.level === activeLevelIndex ? updatedLevel : level
             )
         };
 
@@ -66,7 +97,7 @@ export function CurrentOrders({
 
     if (orders.length === 0) {
         return (
-            <div className="card">
+            <div className="card flex-fill flex-shrink-1">
                 <div className="card-header">
                     <h2 className="h4 mb-0">Current Orders</h2>
                 </div>
@@ -78,7 +109,7 @@ export function CurrentOrders({
     }
 
     return (
-        <div className="card">
+        <div className="card flex-fill">
             <div className="card-header">
                 <h2 className="h4 mb-0">Current Orders</h2>
             </div>
@@ -105,9 +136,10 @@ export function CurrentOrders({
                                         <div className="d-flex flex-wrap gap-1">
                                             {order.resources.map((req, index) => {
                                                 const resource = resources.find(r => r.id === req.resourceId);
+                                                const deliveredAmount = calculateDeliveredAmounts(order).get(req.resourceId) || 0;
                                                 return (
                                                     <span key={index} className="badge bg-secondary">
-                                                        {resource?.name || req.resourceId}: {req.delivered}/{req.amount}
+                                                        {resource?.name || req.resourceId}: {deliveredAmount}/{req.amount}
                                                     </span>
                                                 );
                                             })}
@@ -131,7 +163,7 @@ export function CurrentOrders({
 
 
     function getBestTrains(plan: ProductionPlan, amount: number): Train[] {
-        const activeLevel = plan.levels[plan.activeLevel];
+        const activeLevel = plan.levels.find(level => level.level === plan.activeLevel);
         if (!activeLevel) return [];
 
         const busyTrainIds = activeLevel.steps

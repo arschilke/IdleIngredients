@@ -12,13 +12,13 @@ export function OrderForm({ resources, onSubmit }: OrderFormProps) {
   const [orderType, setOrderType] = useState<'boat' | 'story' | 'building'>('story');
   const [orderName, setOrderName] = useState('Story Order ' + new Date().toISOString());
   const [orderResources, setOrderResources] = useState<ResourceRequirement[]>([
-    { resourceId: 'saw_blade', amount: 75 }
+    { resourceId: 'saw_blade', amount: 75 , delivered: 0}
   ]);
   const [expirationTime, setExpirationTime] = useState(3600); // 1 hour in seconds
   const [travelTime, setTravelTime] = useState(1800); // 30 minutes in seconds
 
   const addResource = () => {
-    setOrderResources([...orderResources, { resourceId: '', amount: 0 }]);
+    setOrderResources([...orderResources, { resourceId: '', amount: 0 , delivered: 0}]);
   };
 
   const removeResource = (index: number) => {
@@ -47,7 +47,7 @@ export function OrderForm({ resources, onSubmit }: OrderFormProps) {
     }
 
     const newOrder: Order = {
-      id: `order_${Date.now()}`,
+      id: `order_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       name: orderName.trim(),
       resources: orderResources.filter(r => r.resourceId && r.amount > 0),
       ...(orderType === 'boat' && { type: 'boat', expirationTime }),
@@ -59,7 +59,10 @@ export function OrderForm({ resources, onSubmit }: OrderFormProps) {
     
     // Reset form
     setOrderName('');
-    setOrderResources([{ resourceId: '', amount: 0 }]);
+    setOrderResources([{
+      resourceId: '', amount: 0,
+      delivered: 0
+    }]);
     setExpirationTime(3600);
     setTravelTime(1800);
   };

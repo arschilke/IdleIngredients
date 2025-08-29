@@ -11,7 +11,7 @@ export class Plan implements ProductionPlan {
         this.levels = [];
         this.maxConcurrentWorkers = maxConcurrentWorkers;
         this.inventorySnapshot = new Map();
-        this.activeLevel = 0;
+        this.activeLevel = 1;
     }
 
     get totalTime() {
