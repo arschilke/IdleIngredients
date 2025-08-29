@@ -1,5 +1,6 @@
 import { Order, Resource, ProductionPlan, PlannedStep, BoatOrder, StoryOrder, Train } from './types';
 import { formatTime } from './utils';
+import { getBestTrains } from './trainUtils';
 
 interface CurrentOrdersProps {
     orders: Order[];
@@ -57,10 +58,10 @@ export function CurrentOrders({
             return;
         }
 
-        const trains = getBestTrains(productionPlan, order.resources[0].amount);
+        const selectedTrains = getBestTrains(activeLevel, order.resources[0].amount, trains);
 
         const deliveryJobs: PlannedStep[] = [];
-        for (let train of trains) {
+        for (let train of selectedTrains) {
             deliveryJobs.push( {
                 id: `delivery_${order.id}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
                 type: 'delivery',
@@ -162,38 +163,6 @@ export function CurrentOrders({
     );
 
 
-    function getBestTrains(plan: ProductionPlan, amount: number): Train[] {
-        const activeLevel = plan.levels.find(level => level.level === plan.activeLevel);
-        if (!activeLevel) return [];
 
-        const busyTrainIds = activeLevel.steps
-            .filter(step => step.trainId !== undefined)
-            .map(step => step.trainId!);
-        
-
-        const applicableTrains = trains.filter(t =>
-            !busyTrainIds.includes(t.id) &&
-            t.availableAt <= activeLevel.startTime
-        );
-
-        const bestTrains = applicableTrains.sort((a, b) =>
-            Math.abs(a.capacity - amount) - Math.abs(b.capacity - amount)
-        );
-
-        if(bestTrains.length === 0) {
-            return [];
-        }
-        
-        let index = 0;
-        let capacity = 0;
-        let neededTrains = [];
-        do {
-            capacity += bestTrains[index].capacity;
-            neededTrains.push(bestTrains[index]);
-            index++;
-        } while (capacity <= amount);
-
-        return neededTrains;
-    }
 }
 

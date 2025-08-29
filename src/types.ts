@@ -94,6 +94,7 @@ export interface PlanningLevel {
   endTime: number;
   steps: PlannedStep[];
   inventoryChanges: Map<string, number>;
+  warehouseState: Map<string, number>; // Warehouse state at the end of this level
   trainCount: number;
   description: string;
   estimatedTime: number;
