@@ -259,11 +259,10 @@ export class ProductionCalculator {
   private getCurrentInventory(): Map<string, number> {
     const inventory = new Map<string, number>();
     
-    for (const warehouse of this.gameState.warehouses) {
-      for (const [resourceId, amount] of warehouse.inventory) {
-        const current = inventory.get(resourceId) || 0;
-        inventory.set(resourceId, current + amount);
-      }
+    // Use the single warehouse from gameState
+    for (const [resourceId, amount] of this.gameState.warehouse.inventory) {
+      const current = inventory.get(resourceId) || 0;
+      inventory.set(resourceId, current + amount);
     }
     
     return inventory;

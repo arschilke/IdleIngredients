@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Train } from './types';
+import { Train, TrainClass } from './types';
 
 interface TrainManagerProps {
   trains: Train[];
@@ -11,13 +11,15 @@ export const TrainManager: React.FC<TrainManagerProps> = ({ trains, onTrainsChan
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: '',
-    capacity: 10
+    capacity: 10,
+    class: 'common' as TrainClass
   });
 
   const resetForm = () => {
     setFormData({
       name: '',
-      capacity: 10
+      capacity: 10,
+      class: 'common'
     });
     setIsAdding(false);
     setEditingId(null);
@@ -25,7 +27,7 @@ export const TrainManager: React.FC<TrainManagerProps> = ({ trains, onTrainsChan
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.name) {
       alert('Please fill in the train name.');
       return;
@@ -35,7 +37,8 @@ export const TrainManager: React.FC<TrainManagerProps> = ({ trains, onTrainsChan
       id: editingId || `train_${Date.now()}`,
       name: formData.name.trim(),
       capacity: formData.capacity,
-      availableAt: 0
+      availableAt: 0,
+      class: formData.class as TrainClass
     };
 
     if (editingId) {
@@ -50,7 +53,8 @@ export const TrainManager: React.FC<TrainManagerProps> = ({ trains, onTrainsChan
   const startEdit = (train: Train) => {
     setFormData({
       name: train.name,
-      capacity: train.capacity
+      capacity: train.capacity,
+      class: train.class
     });
     setEditingId(train.id);
     setIsAdding(true);
@@ -65,8 +69,8 @@ export const TrainManager: React.FC<TrainManagerProps> = ({ trains, onTrainsChan
   return (
     <div className="train-manager">
       <h2>🚂 Train Manager</h2>
-      
-      <button 
+
+      <button
         className="btn btn-primary"
         onClick={() => setIsAdding(true)}
         disabled={isAdding}
@@ -77,7 +81,7 @@ export const TrainManager: React.FC<TrainManagerProps> = ({ trains, onTrainsChan
       {isAdding && (
         <div className="card">
           <h3>{editingId ? 'Edit Train' : 'Add New Train'}</h3>
-          
+
           <form onSubmit={handleSubmit} className="form">
             <div className="form-group">
               <label htmlFor="trainName">Train Name:</label>
@@ -105,12 +109,27 @@ export const TrainManager: React.FC<TrainManagerProps> = ({ trains, onTrainsChan
               <small>Capacity determines how much a train can carry or produce per trip</small>
             </div>
 
+            <div className="form-group">
+              <label htmlFor="class">Class:</label>
+              <select
+                id="class"
+                value={formData.class}
+                onChange={(e) => setFormData(prev => ({ ...prev, class: e.target.value as TrainClass }))}
+                required
+              >
+                <option value="common">Common</option>
+                <option value="rare">Rare</option>
+                <option value="epic">Epic</option>
+                <option value="legendary">Legendary</option>
+              </select>
+            </div>
+
             <div className="form-actions">
               <button type="submit" className="btn btn-primary">
                 {editingId ? 'Update Train' : 'Add Train'}
               </button>
-              <button 
-                type="button" 
+              <button
+                type="button"
                 onClick={resetForm}
                 className="btn"
               >
@@ -131,7 +150,7 @@ export const TrainManager: React.FC<TrainManagerProps> = ({ trains, onTrainsChan
                 <p>Capacity: {train.capacity}</p>
                 <p>Available at: {train.availableAt}s</p>
               </div>
-              
+
               <div className="train-actions">
                 <button
                   onClick={() => startEdit(train)}

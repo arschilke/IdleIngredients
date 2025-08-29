@@ -8,6 +8,7 @@ export interface Train {
   name: string;
   capacity: number;
   availableAt: number;
+  class: TrainClass; 
 }
 
 export interface Recipe {
@@ -30,7 +31,9 @@ export interface Destination {
   id: string;
   travelTime: number;
   resourceId: string;
+  classes: TrainClass[];
 }
+export type TrainClass = 'common' | 'rare' | 'epic' | 'legendary';
 
 export interface ResourceRequirement {
   resourceId: string;
@@ -38,8 +41,6 @@ export interface ResourceRequirement {
 }
 
 export interface Warehouse {
-  id: string;
-  name: string;
   maxCapacity: number;
   inventory: Map<string, number>;
 }
@@ -81,6 +82,7 @@ export interface PlannedStep {
   startTime?: number;
   endTime?: number;
   trainId?: string;
+  order?: Order; // For delivery jobs
 }
 
 export interface PlanningLevel {
@@ -117,7 +119,7 @@ export interface GameState {
   resources: Resource[];
   trains: Train[];
   orders: Order[];
-  warehouses: Warehouse[];
+  warehouse: Warehouse;
   factories: Factory[];
   destinations: Destination[];
 }

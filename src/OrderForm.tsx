@@ -202,60 +202,6 @@ export function OrderForm({ resources, onSubmit, existingOrders }: OrderFormProp
             Create Order
           </button>
         </form>
-
-        {existingOrders.length > 0 && (
-          <div className="mt-4">
-            <h3 className="h5 mb-3">Existing Orders</h3>
-            <div className="d-flex flex-column gap-3">
-              {existingOrders.map((order) => (
-                <div key={order.id} className="card border-0 bg-light">
-                  <div className="card-body">
-                    <div className="d-flex justify-content-between align-items-start mb-2">
-                      <h4 className="h6 mb-0">{order.name}</h4>
-                      <span className={`badge order-type-${order.type}`}>
-                        {order.type.charAt(0).toUpperCase() + order.type.slice(1)}
-                      </span>
-                    </div>
-                    <div className="mb-2">
-                      {order.type === 'boat' && (
-                        <p className="small text-warning mb-1">
-                          <i className="bi bi-clock me-1"></i>
-                          Expires in: {formatTime((order as BoatOrder).expirationTime)}
-                        </p>
-                      )}
-                      {order.type === 'story' && (
-                        <p className="small text-info mb-1">
-                          <i className="bi bi-hourglass-split me-1"></i>
-                          Travel time: {formatTime((order as StoryOrder).travelTime)}
-                        </p>
-                      )}
-                      <div className="mt-2">
-                        <small className="text-muted d-block mb-1">Resources:</small>
-                        <div className="d-flex flex-wrap gap-1">
-                          {order.resources.map((req, index) => {
-                            const resource = resources.find(r => r.id === req.resourceId);
-                            return (
-                              <span key={index} className="badge bg-secondary">
-                                {resource?.name || req.resourceId}: {req.amount}
-                              </span>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    </div>
-                    <button
-                      className="btn btn-primary btn-sm w-100"
-                      onClick={() => onSubmit(order)}
-                    >
-                      <i className="bi bi-gear me-1"></i>
-                      Plan Production
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

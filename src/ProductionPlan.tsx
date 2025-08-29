@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import { ProductionPlan as ProductionPlanType, GameState, Order } from './types';
 
 interface ProductionPlanProps {
@@ -24,6 +24,18 @@ export const ProductionPlan: React.FC<ProductionPlanProps> = ({
   onRemoveLevel,
   onClearPlan
 }) => {
+  const levelRefs = useRef<{ [key: number]: HTMLDivElement | null }>({});
+
+  // Auto-scroll to active level when it changes
+  useEffect(() => {
+    if (productionPlan && activeLevel && levelRefs.current[activeLevel]) {
+      levelRefs.current[activeLevel]?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center'
+      });
+    }
+  }, [activeLevel, productionPlan]);
+
   const getResourceName = (resourceId: string): string => {
     return gameState.resources.find(r => r.id === resourceId)?.name || resourceId;
   };
@@ -111,10 +123,11 @@ export const ProductionPlan: React.FC<ProductionPlanProps> = ({
         {productionPlan.levels.map((level) => (
           <div 
             key={level.level} 
-            className={`level-container mb-3 p-3 border rounded ${
-              level.done ? 'bg-success bg-opacity-10 border-success' : 
-              level.isOverCapacity ? 'bg-danger bg-opacity-10 border-danger' : 
-              'bg-light'
+            ref={(el) => { levelRefs.current[level.level] = el; }}
+            className={`level-container mb-3 p-3 border rounded bg-opacity-10 ${
+              level.done ? 'bg-secondary border-secondary text-muted' : 
+              level.isOverCapacity ? 'bg-danger  border-danger' : 
+              ''
             } ${activeLevel === level.level ? 'border-primary border-2' : ''}`}
           >
             <div className="level-header d-flex justify-content-between align-items-center mb-2">
@@ -126,7 +139,7 @@ export const ProductionPlan: React.FC<ProductionPlanProps> = ({
                   Level {level.level}
                 </h5>
                 {level.done && (
-                  <span className="badge bg-success">
+                  <span className="badge bg-secondary">
                     <i className="bi bi-check-circle"></i> Done
                   </span>
                 )}
@@ -138,7 +151,7 @@ export const ProductionPlan: React.FC<ProductionPlanProps> = ({
               </div>
               <div className="d-flex gap-2">
                 <button
-                  className={`btn btn-sm ${level.done ? 'btn-outline-success' : 'btn-success'}`}
+                  className={`btn btn-sm ${level.done ? 'btn-outline-secondary' : 'btn-success'}`}
                   onClick={() => onMarkLevelDone(level.level)}
                   disabled={level.done}
                 >
@@ -172,7 +185,7 @@ export const ProductionPlan: React.FC<ProductionPlanProps> = ({
                 <p className="text-muted fst-italic">No steps in this level</p>
               ) : (
                 level.steps.map((step) => (
-                  <div key={step.id} className="job-item p-2 mb-1 border rounded bg-white">
+                  <div key={step.id} className="job-item p-2 mb-1 border rounded">
                     <div className="d-flex justify-content-between align-items-center">
                       <div>
                         <strong>{step.resourceName}</strong>

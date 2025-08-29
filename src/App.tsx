@@ -21,14 +21,14 @@ function App() {
   ]);
 
   const [trains] = useState<Train[]>([
-    { id: 'train1', name: 'Train 1', capacity: 10, availableAt: 0 },
-    { id: 'train2', name: 'Train 2', capacity: 15, availableAt: 0 },
-    { id: 'train3', name: 'Train 3', capacity: 12, availableAt: 0 },
-    { id: 'train4', name: 'Train 4', capacity: 8, availableAt: 0 },
-    { id: 'train5', name: 'Train 5', capacity: 20, availableAt: 0 },
-    { id: 'train6', name: 'Train 6', capacity: 14, availableAt: 0 },
-    { id: 'train7', name: 'Train 7', capacity: 16, availableAt: 0 },
-    { id: 'train8', name: 'Train 8', capacity: 11, availableAt: 0 }
+    { id: 'train1', name: 'Train 1', capacity: 10, availableAt: 0, class: 'common' },
+    { id: 'train2', name: 'Train 2', capacity: 15, availableAt: 0, class: 'rare' },
+    { id: 'train3', name: 'Train 3', capacity: 12, availableAt: 0, class: 'epic' },
+    { id: 'train4', name: 'Train 4', capacity: 8, availableAt: 0, class: 'legendary' },
+    { id: 'train5', name: 'Train 5', capacity: 20, availableAt: 0, class: 'common' },
+    { id: 'train6', name: 'Train 6', capacity: 14, availableAt: 0, class: 'rare' },
+    { id: 'train7', name: 'Train 7', capacity: 16, availableAt: 0, class: 'epic' },
+    { id: 'train8', name: 'Train 8', capacity: 11, availableAt: 0, class: 'legendary' }
   ]);
 
   const [factories] = useState<Factory[]>([
@@ -104,30 +104,32 @@ function App() {
   ]);
 
   const [destinations] = useState<Destination[]>([
-    { id: 'coal_mine', travelTime: 120, resourceId: 'coal' },
-    { id: 'iron_mine', travelTime: 180, resourceId: 'iron' },
-    { id: 'oak_forest', travelTime: 90, resourceId: 'oakwood' },
-    { id: 'copper_mine', travelTime: 240, resourceId: 'copper_ore' }
+    { id: 'london', travelTime: 60, resourceId: 'coin', classes: ['common', 'rare', 'epic', 'legendary'] },
+    { id: 'coal_mine', travelTime: 30, resourceId: 'coal', classes: ['common', 'rare', 'epic', 'legendary'] },
+    { id: 'iron_ore_mine', travelTime: 30, resourceId: 'iron', classes: ['common', 'rare', 'epic', 'legendary'] },
+    { id: 'steel_factory', travelTime: 180, resourceId: 'steel' , classes: ['epic', 'legendary']},
+    { id: 'berlin', travelTime: 300, resourceId: 'coin', classes: ['common', 'rare', 'epic', 'legendary'] },
+    { id: 'oakwood', travelTime: 300, resourceId: 'oakwood', classes: ['common', 'rare', 'epic', 'legendary'] },
+    { id: 'copper_mine', travelTime: 300, resourceId: 'copper_ore', classes: ['common', 'rare', 'epic', 'legendary'] },
+    { id: 'timber_factory', travelTime: 180, resourceId: 'timber', classes: ['epic', 'legendary'] }
   ]);
 
-  const [warehouses] = useState<Warehouse[]>([
+  const [warehouse]= useState<Warehouse>(
     {
-      id: 'main_warehouse',
-      name: 'Main Warehouse',
       maxCapacity: 1000,
       inventory: new Map([
-        ['coal', 50],
-        ['iron', 30],
-        ['oakwood', 20],
-        ['steel', 10],
-        ['nails', 5],
-        ['iron_powder', 15],
-        ['saw_blade', 2],
-        ['copper_ore', 25],
-        ['copper', 8]
+        ['coal',0],
+        ['iron', 0],
+        ['oakwood', 0],
+        ['steel', 0],
+        ['nails', 0],
+        ['iron_powder', 0],
+        ['saw_blade', 0],
+        ['copper_ore', 0],
+        ['copper', 0]
       ])
     }
-  ]);
+  );
 
   const [orders, setOrders] = useState<Order[]>([]);
   const [productionPlan, setProductionPlan] = useState<ProductionPlanType | null>(null);
@@ -138,7 +140,7 @@ function App() {
     resources,
     trains,
     orders,
-    warehouses,
+    warehouse,
     factories,
     destinations
   };
@@ -209,10 +211,11 @@ function App() {
             <CurrentOrders 
               orders={orders}
               resources={resources}
-              onOrderSelect={() => {}} // No longer needed for single plan
+              productionPlan={productionPlan}
+              onProductionPlanChange={handleProductionPlanChange}
             />
           </div>
-          <div className="col-lg-6">
+          <div className="col-md-5">
             <OrderForm
               resources={resources}
               onSubmit={handleOrderSubmit}

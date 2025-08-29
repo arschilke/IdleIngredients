@@ -132,7 +132,8 @@ export const ResourceManager: React.FC<ResourceManagerProps> = ({
     const destination: Destination = {
       id: editingId || `destination_${Date.now()}`,
       resourceId: destinationFormData.resourceId,
-      travelTime: destinationFormData.travelTime
+      travelTime: destinationFormData.travelTime,
+      classes: ['common', 'rare', 'epic', 'legendary'] // Default to all classes
     };
 
     if (editingId) {

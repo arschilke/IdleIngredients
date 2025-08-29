@@ -7,22 +7,20 @@ interface CurrentInventoryProps {
   productionPlan: ProductionPlan | null;
 }
 
-export const CurrentInventory: React.FC<CurrentInventoryProps> = ({ 
-  gameState, 
-  activeLevel, 
-  productionPlan 
+export const CurrentInventory: React.FC<CurrentInventoryProps> = ({
+  gameState,
+  activeLevel,
+  productionPlan
 }) => {
   const getCurrentInventory = () => {
     const inventory = new Map<string, number>();
-    
+
     // Start with current warehouse inventory
-    for (const warehouse of gameState.warehouses) {
-      for (const [resourceId, amount] of warehouse.inventory) {
-        const current = inventory.get(resourceId) || 0;
-        inventory.set(resourceId, current + amount);
-      }
+    for (const [resourceId, amount] of gameState.warehouse.inventory) {
+      const current = inventory.get(resourceId) || 0;
+      inventory.set(resourceId, current + amount);
     }
-    
+
     // Apply inventory changes from completed levels
     if (productionPlan) {
       for (const level of productionPlan.levels) {
@@ -34,7 +32,7 @@ export const CurrentInventory: React.FC<CurrentInventoryProps> = ({
         }
       }
     }
-    
+
     return inventory;
   };
 
@@ -50,13 +48,21 @@ export const CurrentInventory: React.FC<CurrentInventoryProps> = ({
 
   const getActiveLevelInventoryChanges = () => {
     if (!productionPlan) return new Map();
-    
+
     const activeLevelData = productionPlan.levels.find(level => level.level === activeLevel);
     return activeLevelData?.inventoryChanges || new Map();
   };
 
+  const getActiveLevelStatus = () => {
+    if (!productionPlan) return null;
+    
+    const activeLevelData = productionPlan.levels.find(level => level.level === activeLevel);
+    return activeLevelData;
+  };
+
   const currentInventory = getCurrentInventory();
   const activeLevelChanges = getActiveLevelInventoryChanges();
+  const activeLevelData = getActiveLevelStatus();
 
   return (
     <div className="card">
@@ -68,11 +74,22 @@ export const CurrentInventory: React.FC<CurrentInventoryProps> = ({
       <div className="card-body">
         <div className="mb-3">
           <h6 className="text-muted">Active Level: {activeLevel}</h6>
-          {productionPlan && (
-            <div className="alert alert-info">
+          {activeLevelData && (
+            <div className={`alert ${activeLevelData.done ? 'alert-secondary' : 'alert-info'}`}>
               <small>
-                <i className="bi bi-info-circle"></i> 
-                Showing inventory after completing levels 1-{activeLevel - 1}
+                <i className={`bi ${activeLevelData.done ? 'bi-check-circle' : 'bi-info-circle'}`}></i>
+                {activeLevelData.done 
+                  ? ` Level ${activeLevel} is completed`
+                  : ` Showing inventory after completing levels 1-${activeLevel - 1}`
+                }
+              </small>
+            </div>
+          )}
+          {!activeLevelData && productionPlan && (
+            <div className="alert alert-warning">
+              <small>
+                <i className="bi bi-exclamation-triangle"></i>
+                Level {activeLevel} not found in production plan
               </small>
             </div>
           )}
@@ -83,7 +100,7 @@ export const CurrentInventory: React.FC<CurrentInventoryProps> = ({
             <h6 className="text-muted">Level {activeLevel} Changes:</h6>
             <div className="d-flex flex-wrap gap-1">
               {Array.from(activeLevelChanges.entries()).map(([resourceId, change]) => (
-                <span 
+                <span
                   key={resourceId}
                   className={`badge ${change > 0 ? 'bg-success' : 'bg-danger'}`}
                 >
