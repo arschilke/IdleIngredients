@@ -55,13 +55,13 @@ export function CurrentOrders({
             };
 
             onProductionPlanChange(newPlan);
-            return; // Exit early after creating new plan
         }
 
+        
+
         // Add to existing active level
-        const activeLevelIndex = productionPlan.activeLevel;
-        const activeLevel = productionPlan.levels[activeLevelIndex];
-        if (!activeLevel) return; // Guard clause for null check
+        const activeLevelIndex = productionPlan?.activeLevel ?? 0;
+        const activeLevel = productionPlan?.levels[activeLevelIndex];
 
         const deliveryJob: PlannedStep = {
             id: `delivery_${order.id}_${Date.now()}`,

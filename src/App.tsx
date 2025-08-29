@@ -11,13 +11,13 @@ function App() {
   const [resources] = useState<Resource[]>([
     { id: 'coal', name: 'Coal' },
     { id: 'iron', name: 'Iron' },
-    { id: 'oakwood', name: 'Oakwood'  },
+    { id: 'oakwood', name: 'Oakwood' },
     { id: 'steel', name: 'Steel' },
     { id: 'nails', name: 'Nails' },
-    { id: 'iron_powder', name: 'Iron Powder'},
-    { id: 'saw_blade', name: 'Saw Blade'},
-    { id: 'copper_ore', name: 'Copper Ore'},
-    { id: 'copper', name: 'Copper'}
+    { id: 'iron_powder', name: 'Iron Powder' },
+    { id: 'saw_blade', name: 'Saw Blade' },
+    { id: 'copper_ore', name: 'Copper Ore' },
+    { id: 'copper', name: 'Copper' }
   ]);
 
   const [trains] = useState<Train[]>([
@@ -50,7 +50,7 @@ function App() {
         {
           resourceId: 'copper',
           timeRequired: 500,
-          requires: [ { resourceId: 'copper_ore', amount: 40 }],
+          requires: [{ resourceId: 'copper_ore', amount: 40 }],
           outputAmount: 40
         }
       ]
@@ -95,7 +95,7 @@ function App() {
           requires: [{
             resourceId: 'copper',
             amount: 80
-          },{
+          }, {
             resourceId: 'copper_ore',
             amount: 30
           }],
@@ -109,18 +109,18 @@ function App() {
     { id: 'london', travelTime: 60, resourceId: 'coin', classes: ['common', 'rare', 'epic', 'legendary'] },
     { id: 'coal_mine', travelTime: 30, resourceId: 'coal', classes: ['common', 'rare', 'epic', 'legendary'] },
     { id: 'iron_ore_mine', travelTime: 30, resourceId: 'iron', classes: ['common', 'rare', 'epic', 'legendary'] },
-    { id: 'steel_factory', travelTime: 180, resourceId: 'steel' , classes: ['epic', 'legendary']},
+    { id: 'steel_factory', travelTime: 180, resourceId: 'steel', classes: ['epic', 'legendary'] },
     { id: 'berlin', travelTime: 300, resourceId: 'coin', classes: ['common', 'rare', 'epic', 'legendary'] },
     { id: 'oakwood', travelTime: 300, resourceId: 'oakwood', classes: ['common', 'rare', 'epic', 'legendary'] },
     { id: 'copper_mine', travelTime: 300, resourceId: 'copper_ore', classes: ['common', 'rare', 'epic', 'legendary'] },
     { id: 'timber_factory', travelTime: 180, resourceId: 'timber', classes: ['epic', 'legendary'] }
   ]);
 
-  const [warehouse]= useState<Warehouse>(
+  const [warehouse] = useState<Warehouse>(
     {
       maxCapacity: 1000,
       inventory: new Map([
-        ['coal',0],
+        ['coal', 0],
         ['iron', 0],
         ['oakwood', 0],
         ['steel', 0],
@@ -134,7 +134,23 @@ function App() {
   );
 
   const [orders, setOrders] = useState<Order[]>([]);
-  const [productionPlan, setProductionPlan] = useState<ProductionPlanType | null>(null);
+  const [productionPlan, setProductionPlan] = useState<ProductionPlanType>({
+    levels: [{
+      level: 0,
+      startTime: 0,
+      endTime: 0,
+      steps: [],
+      inventoryChanges: new Map(),
+      trainCount: 0,
+      isOverCapacity: false,
+      description: 'First Level',
+      estimatedTime: 0,
+      done: false
+    }],
+    totalTime: 0,
+    maxConcurrentWorkers: maxConcurrentTrains,
+    activeLevel: 0
+  });
   const [activeLevel, setActiveLevel] = useState<number>(1);
 
   // Create game state for calculator
@@ -144,7 +160,8 @@ function App() {
     orders,
     warehouse,
     factories,
-    destinations
+    destinations,
+    productionPlan,
   };
 
   const calculator = new ProductionCalculator(gameState);
@@ -163,11 +180,11 @@ function App() {
 
   const markLevelAsDone = (levelNumber: number) => {
     if (!productionPlan) return;
-    
-    const updatedLevels = productionPlan.levels.map(level => 
+
+    const updatedLevels = productionPlan.levels.map(level =>
       level.level === levelNumber ? { ...level, done: true } : level
     );
-    
+
     setProductionPlan({
       ...productionPlan,
       levels: updatedLevels
@@ -176,16 +193,16 @@ function App() {
 
   const removeLevel = (levelNumber: number) => {
     if (!productionPlan) return;
-    
+
     const updatedLevels = productionPlan.levels
       .filter(level => level.level !== levelNumber)
       .map((level, index) => ({ ...level, level: index + 1 }));
-    
+
     setProductionPlan({
       ...productionPlan,
       levels: updatedLevels
     });
-    
+
     // Adjust active level if needed
     if (activeLevel === levelNumber) {
       setActiveLevel(updatedLevels.length > 0 ? 1 : 1);
@@ -195,8 +212,25 @@ function App() {
   };
 
   const clearProductionPlan = () => {
-    setProductionPlan(null);
-    setActiveLevel(1);
+    setProductionPlan({
+      levels: [{
+        level: 0,
+        startTime: 0,
+        endTime: 0,
+        steps: [],
+        inventoryChanges: new Map(),
+        trainCount: 0,
+        isOverCapacity: false,
+        description: 'First Level',
+        estimatedTime: 0,
+        done: false
+      }],
+      totalTime: 0,
+      maxConcurrentWorkers:
+        maxConcurrentTrains,
+      activeLevel: 0
+    });
+    setActiveLevel(0);
   };
 
   return (
@@ -209,8 +243,8 @@ function App() {
       <main className="container-fluid py-4">
         {/* Row 1: Current Orders and New Order Form */}
         <div className="row g-4 mb-4">
-          <div className="col-lg-6">
-            <CurrentOrders 
+          <div className="col-auto col-md">
+            <CurrentOrders
               orders={orders}
               resources={resources}
               trains={trains}
@@ -219,7 +253,7 @@ function App() {
               maxConcurrentTrains={maxConcurrentTrains}
             />
           </div>
-          <div className="col-md-5">
+          <div className="col">
             <OrderForm
               resources={resources}
               onSubmit={handleOrderSubmit}
@@ -232,8 +266,6 @@ function App() {
         <div className="row g-4">
           <div className="col-lg-8">
             <ProductionPlan
-              orders={orders}
-              calculator={calculator}
               gameState={gameState}
               productionPlan={productionPlan}
               activeLevel={activeLevel}

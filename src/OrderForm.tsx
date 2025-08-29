@@ -8,10 +8,10 @@ interface OrderFormProps {
 }
 
 export function OrderForm({ resources, onSubmit }: OrderFormProps) {
-  const [orderType, setOrderType] = useState<'boat' | 'story' | 'building'>('building');
-  const [orderName, setOrderName] = useState('');
+  const [orderType, setOrderType] = useState<'boat' | 'story' | 'building'>('story');
+  const [orderName, setOrderName] = useState('Story Order ' + new Date().toISOString());
   const [orderResources, setOrderResources] = useState<ResourceRequirement[]>([
-    { resourceId: '', amount: 0 }
+    { resourceId: 'saw_blade', amount: 75 }
   ]);
   const [expirationTime, setExpirationTime] = useState(3600); // 1 hour in seconds
   const [travelTime, setTravelTime] = useState(1800); // 30 minutes in seconds
@@ -93,9 +93,9 @@ export function OrderForm({ resources, onSubmit }: OrderFormProps) {
               onChange={(e) => setOrderType(e.target.value as 'boat' | 'story' | 'building')}
               required
             >
+              <option value="story">Story Order</option>
               <option value="building">Building Order</option>
               <option value="boat">Boat Order</option>
-              <option value="story">Story Order</option>
             </select>
           </div>
 

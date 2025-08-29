@@ -1,5 +1,6 @@
 import React from 'react';
 import { GameState, ProductionPlan } from './types';
+import { getResourceName } from './utils';
 
 interface CurrentInventoryProps {
   gameState: GameState;
@@ -36,9 +37,7 @@ export const CurrentInventory: React.FC<CurrentInventoryProps> = ({
     return inventory;
   };
 
-  const getResourceName = (resourceId: string): string => {
-    return gameState.resources.find(r => r.id === resourceId)?.name || resourceId;
-  };
+
 
   const getInventoryStatus = (amount: number): { class: string; text: string } => {
     if (amount === 0) return { class: 'text-danger', text: 'Empty' };
@@ -104,7 +103,7 @@ export const CurrentInventory: React.FC<CurrentInventoryProps> = ({
                   key={resourceId}
                   className={`badge ${change > 0 ? 'bg-success' : 'bg-danger'}`}
                 >
-                  {getResourceName(resourceId)} {change > 0 ? '+' : ''}{change}
+                  {getResourceName(resourceId, gameState)} {change > 0 ? '+' : ''}{change}
                 </span>
               ))}
             </div>
@@ -117,7 +116,7 @@ export const CurrentInventory: React.FC<CurrentInventoryProps> = ({
             return (
               <div key={resourceId} className="d-flex justify-content-between align-items-center py-2 border-bottom">
                 <div>
-                  <span className="fw-medium">{getResourceName(resourceId)}</span>
+                  <span className="fw-medium">{getResourceName(resourceId, gameState)}</span>
                   <span className={`badge ms-2 ${status.class.replace('text-', 'bg-')}`}>
                     {status.text}
                   </span>

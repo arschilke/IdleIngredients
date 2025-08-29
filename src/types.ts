@@ -102,7 +102,6 @@ export interface ProductionPlan {
   levels: PlanningLevel[];
   totalTime: number;
   maxConcurrentWorkers: number;
-  inventorySnapshot: Map<string, number>;
   activeLevel: number;
 }
 
@@ -117,6 +116,7 @@ export interface RecipeTreeNode {
 }
 
 export interface GameState {
+  productionPlan: ProductionPlan;
   resources: Resource[];
   trains: Train[];
   orders: Order[];
