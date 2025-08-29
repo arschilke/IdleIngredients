@@ -1,17 +1,22 @@
-import { Order, Resource, ProductionPlan, PlannedStep, BoatOrder, StoryOrder } from './types';
+import { Plan } from './plan';
+import { Order, Resource, ProductionPlan, PlannedStep, BoatOrder, StoryOrder, Train } from './types';
 
 interface CurrentOrdersProps {
     orders: Order[];
     resources: Resource[];
-    productionPlan: ProductionPlan | null;
+    trains: Train[];
+    productionPlan: Plan | null;
     onProductionPlanChange: (plan: ProductionPlan) => void;
+    maxConcurrentTrains: number;
 }
 
-export function CurrentOrders({ 
-    orders, 
-    resources, 
-    productionPlan, 
-    onProductionPlanChange 
+export function CurrentOrders({
+    orders,
+    resources,
+    trains,
+    productionPlan,
+    onProductionPlanChange,
+    maxConcurrentTrains
 }: CurrentOrdersProps) {
     const formatTime = (seconds: number): string => {
         const hours = Math.floor(seconds / 3600);
@@ -28,92 +33,61 @@ export function CurrentOrders({
     };
 
     const handlePlanProduction = (order: Order) => {
-        // Create a delivery job for this order
-        const deliveryJob: PlannedStep = {
-            id: `delivery_${order.id}_${Date.now()}`,
-            type: 'delivery',
-            stepType: 'delivery',
-            resourceName: `Delivery: ${order.name}`,
-            resourceId: 'delivery',
-            level: 1,
-            timeRequired: calculateDeliveryTime(order),
-            amountProcessed: order.resources.reduce((total, req) => total + req.amount, 0),
-            dependencies: [],
-            // Add order-specific information
-            order: order
-        };
 
         if (!productionPlan) {
             // Create new production plan with Level 1
-            const newPlan: ProductionPlan = {
-                levels: [{
-                    level: 1,
-                    steps: [deliveryJob],
-                    inventoryChanges: new Map(),
-                    workerCount: 0, // Delivery jobs don't require workers
-                    isOverCapacity: false,
-                    description: 'Delivery Level',
-                    estimatedTime: deliveryJob.timeRequired,
-                    done: false
-                }],
-                totalTime: deliveryJob.timeRequired,
-                workerAssignments: new Map(),
-                maxConcurrentWorkers: 5,
-                inventorySnapshot: new Map(),
-                activeLevel: 1
-            };
-            onProductionPlanChange(newPlan);
-        } else {
-            // Add to existing Level 1 or create Level 1 if it doesn't exist
-            const level1 = productionPlan.levels.find(l => l.level === 1);
-            if (level1) {
-                // Add to existing Level 1
-                const updatedLevel1 = {
-                    ...level1,
-                    steps: [...level1.steps, deliveryJob],
-                    estimatedTime: Math.max(level1.estimatedTime, deliveryJob.timeRequired)
-                };
-                
-                const updatedLevels = productionPlan.levels.map(l => 
-                    l.level === 1 ? updatedLevel1 : l
-                );
-                
-                onProductionPlanChange({
-                    ...productionPlan,
-                    levels: updatedLevels,
-                    totalTime: Math.max(...updatedLevels.map(l => l.estimatedTime))
-                });
-            } else {
-                // Create Level 1 and add the job
-                const newLevel1 = {
-                    level: 1,
-                    steps: [deliveryJob],
-                    inventoryChanges: new Map(),
-                    workerCount: 0,
-                    isOverCapacity: false,
-                    description: 'Delivery Level',
-                    estimatedTime: deliveryJob.timeRequired,
-                    done: false
-                };
-                
-                const updatedLevels = [newLevel1, ...productionPlan.levels.map(l => ({
-                    ...l,
-                    level: l.level + 1
-                }))];
-                
-                onProductionPlanChange({
-                    ...productionPlan,
-                    levels: updatedLevels,
-                    totalTime: Math.max(...updatedLevels.map(l => l.estimatedTime))
-                });
-            }
+            const newPlan: Plan = new Plan(maxConcurrentTrains);
+
+            newPlan.addLevel({
+                level: 0,
+                steps: [],
+                inventoryChanges: new Map(),
+                trainCount: 1,
+                isOverCapacity: false,
+                description: '',
+                estimatedTime: 0,
+                done: false,
+                startTime: 0,
+                endTime: 0
+            });
+
+            newPlan.setActiveLevel(0);
+            productionPlan = newPlan;
         }
+
+        // Add to existing active level
+        const activeLevel = productionPlan.getActiveLevel();
+
+        const deliveryJob: PlannedStep = {
+            id: `delivery_${order.id}_${Date.now()}`,
+            type: 'delivery',
+            resourceId: order.resources[0].resourceId,
+            level: 1,
+            timeRequired: calculateDeliveryTime(order),
+            trainId: getBestTrain(productionPlan, order.resources[0].amount),
+            order: order,
+            amountProcessed: 0,
+            dependencies: []
+        };
+        if (activeLevel) {
+            // Add to existing Level
+            const updatedLevel = {
+                ...activeLevel,
+                steps: [...activeLevel.steps, deliveryJob],
+                estimatedTime: Math.max(activeLevel.estimatedTime, deliveryJob.timeRequired)
+            };
+
+            productionPlan.updateLevel(activeLevel.level, updatedLevel);
+
+            onProductionPlanChange(productionPlan);
+        }
+
     };
 
     const calculateDeliveryTime = (order: Order): number => {
         // Calculate delivery time based on order type and amount
         const baseAmount = order.resources.reduce((total, req) => total + req.amount, 0);
-        
+
         switch (order.type) {
             case 'boat':
                 // Boat orders have expiration time, delivery should be quick
@@ -199,4 +173,13 @@ export function CurrentOrders({
             </div>
         </div>
     );
+
+
+    function getBestTrain(plan: Plan, amount: number): string | undefined {
+        var busyTrains = plan.getBusyTrains(plan.activeLevel);
+        var applicableTrains = trains.filter(t => !busyTrains.includes(t.id) && t.capacity >= amount && t.availableAt <= plan.levels[plan.activeLevel].startTime);
+        var bestTrain = applicableTrains.sort((a, b) => Math.abs(a.capacity - amount) - Math.abs(b.capacity - amount))[0];
+        return bestTrain?.id;
+    }
 }
+

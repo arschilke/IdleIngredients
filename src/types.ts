@@ -67,11 +67,11 @@ export interface BuildingOrder extends BaseOrder {
 
 export type Order = BoatOrder | StoryOrder | BuildingOrder;
 
+export type PlannedStepType = 'factory' | 'destination' | 'delivery';
+
 export interface PlannedStep {
   id: string;
-  type: 'factory' | 'destination' | 'delivery';
-  stepType: 'factory' | 'destination' | 'delivery';
-  resourceName: string;
+  type: PlannedStepType;
   resourceId: string;
   level: number;
   timeRequired: number;
@@ -87,9 +87,11 @@ export interface PlannedStep {
 
 export interface PlanningLevel {
   level: number;
+  startTime: number;
+  endTime: number;
   steps: PlannedStep[];
   inventoryChanges: Map<string, number>;
-  workerCount: number;
+  trainCount: number;
   isOverCapacity: boolean;
   description: string;
   estimatedTime: number;
@@ -99,7 +101,6 @@ export interface PlanningLevel {
 export interface ProductionPlan {
   levels: PlanningLevel[];
   totalTime: number;
-  workerAssignments: Map<string, string>;
   maxConcurrentWorkers: number;
   inventorySnapshot: Map<string, number>;
   activeLevel: number;
