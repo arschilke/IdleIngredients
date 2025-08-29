@@ -1,113 +1,31 @@
-import { useState, useEffect } from 'react';
-import { Order, GameState, Recipe, Destination } from './types';
-import { ProductionCalculator } from './calculator';
+import React from 'react';
+import { ProductionPlan as ProductionPlanType, GameState, Order } from './types';
 
 interface ProductionPlanProps {
-  order: Order | null;
-  calculator: ProductionCalculator;
+  orders: Order[];
+  productionPlan: ProductionPlanType | null;
+  calculator: any;
   gameState: GameState;
   activeLevel: number;
   onActiveLevelChange: (level: number) => void;
+  onProductionPlanChange: (newPlan: ProductionPlanType) => void;
+  onMarkLevelDone: (levelNumber: number) => void;
+  onRemoveLevel: (levelNumber: number) => void;
+  onClearPlan: () => void;
 }
 
-interface ProductionJob {
-  id: string;
-  type: 'factory' | 'destination' | 'delivery';
-  level: number;
-  recipe?: Recipe;
-  destination?: Destination;
-  orderId?: string;
-  orderName?: string;
-  timeRequired: number;
-  timeRemaining?: number;
-  status: 'waiting' | 'in-progress' | 'completed';
-  inputResources?: Array<{ resourceId: string; amount: number }>;
-  outputResources?: Array<{ resourceId: string; amount: number }>;
-  deliveryAmount?: number;
-  deliveryRemaining?: number;
-}
-
-export function ProductionPlan({ 
-  order, 
-  gameState, 
-  activeLevel, 
-  onActiveLevelChange 
-}: ProductionPlanProps) {
-  const [jobs, setJobs] = useState<ProductionJob[]>([]);
-  const [draggedJob, setDraggedJob] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (order) {
-      // Generate sample jobs for the order
-      generateJobsForOrder(order);
-    }
-  }, [order]);
-
-  const generateJobsForOrder = (order: Order) => {
-    const newJobs: ProductionJob[] = [];
-    
-    // Generate factory jobs for each resource
-    order.resources.forEach((resourceReq, index) => {
-      const recipe = findRecipeForResource(resourceReq.resourceId);
-      if (recipe) {
-        newJobs.push({
-          id: `factory_${resourceReq.resourceId}_${index}`,
-          type: 'factory',
-          level: 2,
-          recipe,
-          timeRequired: recipe.timeRequired,
-          status: 'waiting',
-          inputResources: recipe.requires,
-          outputResources: [{ resourceId: resourceReq.resourceId, amount: recipe.outputAmount || 0 }]
-        });
-      }
-      
-      // Generate destination job if no recipe found
-      const destination = findDestinationForResource(resourceReq.resourceId);
-      if (destination && !recipe) {
-        newJobs.push({
-          id: `destination_${resourceReq.resourceId}_${index}`,
-          type: 'destination',
-          level: 1,
-          destination,
-          timeRequired: destination.travelTime,
-          status: 'waiting',
-          outputResources: [{ resourceId: resourceReq.resourceId, amount: resourceReq.amount }]
-        });
-      }
-    });
-    
-    // Add delivery job
-    newJobs.push({
-      id: `delivery_${order.id}`,
-      type: 'delivery',
-      level: 3,
-      orderId: order.id,
-      orderName: order.name,
-      timeRequired: 60, // 1 minute per unit
-      status: 'waiting',
-      deliveryAmount: order.resources.reduce((sum, req) => sum + req.amount, 0),
-      deliveryRemaining: order.resources.reduce((sum, req) => sum + req.amount, 0)
-    });
-    
-    setJobs(newJobs);
-  };
-
-  const findRecipeForResource = (resourceId: string): Recipe | undefined => {
-    for (const factory of gameState.factories) {
-      const recipe = factory.recipes.find(r => r.resourceId === resourceId);
-      if (recipe) return recipe;
-    }
-    return undefined;
-  };
-
-  const findDestinationForResource = (resourceId: string): Destination | undefined => {
-    return gameState.destinations.find(d => d.resourceId === resourceId);
-  };
-
+export const ProductionPlan: React.FC<ProductionPlanProps> = ({
+  productionPlan,
+  gameState,
+  activeLevel,
+  onActiveLevelChange,
+  onProductionPlanChange,
+  onMarkLevelDone,
+  onRemoveLevel,
+  onClearPlan
+}) => {
   const getResourceName = (resourceId: string): string => {
-    const resource = gameState.resources.find(r => r.id === resourceId);
-    return resource?.name || resourceId;
+    return gameState.resources.find(r => r.id === resourceId)?.name || resourceId;
   };
 
   const formatTime = (seconds: number): string => {
@@ -124,204 +42,164 @@ export function ProductionPlan({
     }
   };
 
-  const handleDragStart = (e: React.DragEvent, jobId: string) => {
-    setDraggedJob(jobId);
-    e.dataTransfer.effectAllowed = 'move';
+  const createNewLevel = () => {
+    if (!productionPlan) return;
+
+    const newLevelNumber = productionPlan.levels.length + 1;
+    const newLevel = {
+      level: newLevelNumber,
+      steps: [],
+      inventoryChanges: new Map(),
+      workerCount: 0,
+      isOverCapacity: false,
+      description: 'New Level',
+      estimatedTime: 0,
+      done: false
+    };
+
+    const newPlan = {
+      ...productionPlan,
+      levels: [...productionPlan.levels, newLevel]
+    };
+
+    onProductionPlanChange(newPlan);
   };
 
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
+  const handleLevelClick = (levelNumber: number) => {
+    onActiveLevelChange(levelNumber);
   };
 
-  const handleDrop = (e: React.DragEvent, targetLevel: number) => {
-    e.preventDefault();
-    if (draggedJob) {
-      setJobs(prevJobs => 
-        prevJobs.map(job => 
-          job.id === draggedJob ? { ...job, level: targetLevel } : job
-        )
-      );
-      setDraggedJob(null);
-    }
-  };
-
-  const handleDragEnd = () => {
-    setDraggedJob(null);
-  };
-
-  const handleResourceClick = (resourceId: string, currentLevel: number) => {
-    const targetLevel = Math.max(1, currentLevel - 1);
-    
-    // Check if job already exists for this resource
-    const existingJob = jobs.find(job => 
-      (job.type === 'factory' && job.recipe?.resourceId === resourceId) ||
-      (job.type === 'destination' && job.destination?.resourceId === resourceId)
-    );
-    
-    if (existingJob) {
-      // Move existing job to previous level
-      setJobs(prevJobs => 
-        prevJobs.map(job => 
-          job.id === existingJob.id ? { ...job, level: targetLevel } : job
-        )
-      );
-    } else {
-      // Create new job for this resource
-      const recipe = findRecipeForResource(resourceId);
-      const destination = findDestinationForResource(resourceId);
-      
-      if (recipe) {
-        const newJob: ProductionJob = {
-          id: `factory_${resourceId}_${Date.now()}`,
-          type: 'factory',
-          level: targetLevel,
-          recipe,
-          timeRequired: recipe.timeRequired,
-          status: 'waiting',
-          inputResources: recipe.requires,
-          outputResources: [{ resourceId, amount: recipe.outputAmount || 0 }]
-        };
-        setJobs(prevJobs => [...prevJobs, newJob]);
-      } else if (destination) {
-        const newJob: ProductionJob = {
-          id: `destination_${resourceId}_${Date.now()}`,
-          type: 'destination',
-          level: targetLevel,
-          destination,
-          timeRequired: destination.travelTime,
-          status: 'waiting',
-          outputResources: [{ resourceId, amount: 100 }] // Default amount
-        };
-        setJobs(prevJobs => [...prevJobs, newJob]);
-      }
-    }
-  };
-
-  const getJobsByLevel = (level: number) => {
-    return jobs.filter(job => job.level === level);
-  };
-
-  const getLevels = () => {
-    const levels = new Set(jobs.map(job => job.level));
-    return Array.from(levels).sort((a, b) => a - b);
-  };
-
-  if (!order) {
+  if (!productionPlan) {
     return (
-      <div className="card h-100">
+      <div className="card">
         <div className="card-header">
-          <h2 className="h4 mb-0">Production Plan</h2>
+          <h3 className="card-title">Production Plan</h3>
         </div>
-        <div className="card-body text-center">
-          <p className="text-muted mb-0">Select an order to view production plan</p>
+        <div className="card-body text-center py-5">
+          <p className="text-muted">No production plan created yet.</p>
+          <button 
+            className="btn btn-primary"
+            onClick={createNewLevel}
+          >
+            Create First Level
+          </button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="card h-100">
-      <div className="card-header">
-        <h2 className="h4 mb-0">Production Plan</h2>
+    <div className="card">
+      <div className="card-header d-flex justify-content-between align-items-center">
+        <h3 className="card-title mb-0">Production Plan</h3>
+        <div className="d-flex gap-2">
+          <button 
+            className="btn btn-success btn-sm"
+            onClick={createNewLevel}
+          >
+            <i className="bi bi-plus-circle"></i> Add Level
+          </button>
+          <button 
+            className="btn btn-danger btn-sm"
+            onClick={onClearPlan}
+          >
+            <i className="bi bi-trash"></i> Clear Plan
+          </button>
+        </div>
       </div>
       <div className="card-body">
-        <div className="alert alert-info mb-3">
-          <h3 className="h6 mb-1">{order.name}</h3>
-          <p className="small mb-0">Type: {order.type}</p>
-        </div>
-        
-        <div className="d-flex flex-column gap-3">
-          {getLevels().map(level => (
-            <div 
-              key={level}
-              className={`card ${level === activeLevel ? 'border-primary' : ''}`}
-              onDragOver={(e) => handleDragOver(e)}
-              onDrop={(e) => handleDrop(e, level)}
-              onClick={() => onActiveLevelChange(level)}
-            >
-              <div className="card-header d-flex justify-content-between align-items-center">
-                <h4 className="h6 mb-0">Level {level}</h4>
-                <span className="badge bg-success">{getJobsByLevel(level).length} jobs</span>
+        {productionPlan.levels.map((level) => (
+          <div 
+            key={level.level} 
+            className={`level-container mb-3 p-3 border rounded ${
+              level.done ? 'bg-success bg-opacity-10 border-success' : 
+              level.isOverCapacity ? 'bg-danger bg-opacity-10 border-danger' : 
+              'bg-light'
+            } ${activeLevel === level.level ? 'border-primary border-2' : ''}`}
+          >
+            <div className="level-header d-flex justify-content-between align-items-center mb-2">
+              <div className="d-flex align-items-center gap-2">
+                <h5 
+                  className={`mb-0 cursor-pointer ${activeLevel === level.level ? 'text-primary fw-bold' : ''}`}
+                  onClick={() => handleLevelClick(level.level)}
+                >
+                  Level {level.level}
+                </h5>
+                {level.done && (
+                  <span className="badge bg-success">
+                    <i className="bi bi-check-circle"></i> Done
+                  </span>
+                )}
+                {level.isOverCapacity && (
+                  <span className="badge bg-danger">
+                    <i className="bi bi-exclamation-triangle"></i> Over Capacity
+                  </span>
+                )}
               </div>
-              
-              <div className="card-body">
-                <div className="d-flex flex-column gap-2">
-                  {getJobsByLevel(level).map(job => (
-                    <div 
-                      key={job.id}
-                      className={`card ${draggedJob === job.id ? 'opacity-50' : ''}`}
-                      draggable
-                      onDragStart={(e) => handleDragStart(e, job.id)}
-                      onDragEnd={handleDragEnd}
-                    >
-                      <div className="card-body">
-                        {job.type === 'factory' && job.recipe && (
-                          <div>
-                            <h5 className="h6 mb-2">
-                              <i className="bi bi-gear me-2"></i>
-                              {job.recipe.resourceId}
-                            </h5>
-                            <p className="small text-muted mb-2">Time: {formatTime(job.timeRequired)}</p>
-                            <div className="row">
-                              <div className="col-6">
-                                <small className="text-muted d-block mb-1">Inputs:</small>
-                                {job.inputResources?.map((input, idx) => (
-                                  <span 
-                                    key={idx} 
-                                    className="badge bg-outline-primary me-1 mb-1 cursor-pointer"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleResourceClick(input.resourceId, level);
-                                    }}
-                                  >
-                                    {getResourceName(input.resourceId)}: {input.amount}
-                                  </span>
-                                ))}
-                              </div>
-                              <div className="col-6">
-                                <small className="text-muted d-block mb-1">Outputs:</small>
-                                {job.outputResources?.map((output, idx) => (
-                                  <span key={idx} className="badge bg-success me-1 mb-1">
-                                    {getResourceName(output.resourceId)}: {output.amount}
-                                  </span>
-                                ))}
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                        
-                        {job.type === 'destination' && job.destination && (
-                          <div>
-                            <h5 className="h6 mb-2">
-                              <i className="bi bi-geo-alt me-2"></i>
-                              {job.destination.id}
-                            </h5>
-                            <p className="small text-muted mb-1">Travel: {formatTime(job.timeRequired)}</p>
-                            <p className="small text-muted mb-0">Resource: {getResourceName(job.destination.resourceId)}</p>
-                          </div>
-                        )}
-                        
-                        {job.type === 'delivery' && (
-                          <div>
-                            <h5 className="h6 mb-2">
-                              <i className="bi bi-box me-2"></i>
-                              Delivery
-                            </h5>
-                            <p className="small text-muted mb-1">Order: {job.orderName}</p>
-                            <p className="small text-muted mb-0">
-                              Remaining: {job.deliveryRemaining}/{job.deliveryAmount}
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
+              <div className="d-flex gap-2">
+                <button
+                  className={`btn btn-sm ${level.done ? 'btn-outline-success' : 'btn-success'}`}
+                  onClick={() => onMarkLevelDone(level.level)}
+                  disabled={level.done}
+                >
+                  {level.done ? (
+                    <>
+                      <i className="bi bi-check-circle"></i> Done
+                    </>
+                  ) : (
+                    <>
+                      <i className="bi bi-check"></i> Mark Done
+                    </>
+                  )}
+                </button>
+                <button
+                  className="btn btn-outline-danger btn-sm"
+                  onClick={() => onRemoveLevel(level.level)}
+                >
+                  <i className="bi bi-trash"></i>
+                </button>
               </div>
             </div>
-          ))}
-        </div>
+            
+            <div className="level-info mb-2">
+              <small className="text-muted">
+                {level.description} • {level.workerCount} trains • {formatTime(level.estimatedTime)}
+              </small>
+            </div>
+
+            <div className="level-steps">
+              {level.steps.length === 0 ? (
+                <p className="text-muted fst-italic">No steps in this level</p>
+              ) : (
+                level.steps.map((step) => (
+                  <div key={step.id} className="job-item p-2 mb-1 border rounded bg-white">
+                    <div className="d-flex justify-content-between align-items-center">
+                      <div>
+                        <strong>{step.resourceName}</strong>
+                        <span className="badge bg-secondary ms-2">{step.stepType}</span>
+                        {step.recipe && (
+                          <small className="d-block text-muted">
+                            Recipe: {step.recipe.requires.map(r => `${r.amount} ${getResourceName(r.resourceId)}`).join(', ')}
+                          </small>
+                        )}
+                        {step.destination && (
+                          <small className="d-block text-muted">
+                            Travel time: {formatTime(step.destination.travelTime)}
+                          </small>
+                        )}
+                      </div>
+                      <div className="text-end">
+                        <div className="text-muted small">{formatTime(step.timeRequired)}</div>
+                        <div className="text-muted small">Amount: {step.amountProcessed}</div>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
-}
+};

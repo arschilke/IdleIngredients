@@ -39,10 +39,6 @@ export class ProductionCalculator {
     }
     visited.add(resourceId);
 
-    // Get the resource name
-    const resource = this.gameState.resources.find(r => r.id === resourceId);
-    const resourceName = resource?.name || resourceId;
-
     // Find all available recipes and destinations
     const availableRecipes: Recipe[] = [];
     const availableDestinations: any[] = [];
@@ -84,12 +80,9 @@ export class ProductionCalculator {
 
     return {
       resourceId,
-      resourceName,
       requiredAmount,
       availableRecipes,
       availableDestinations,
-      craftsRequired: 0,
-      totalTime: 0,
       children
     };
   }
@@ -117,7 +110,8 @@ export class ProductionCalculator {
       totalTime,
       workerAssignments: new Map(),
       maxConcurrentWorkers: MAX_CONCURRENT_WORKERS,
-      inventorySnapshot: this.getCurrentInventory()
+      inventorySnapshot: this.getCurrentInventory(),
+      activeLevel: 1
     };
   }
 
@@ -148,7 +142,8 @@ export class ProductionCalculator {
         estimatedTime: this.calculateLevelTime(levelSteps),
         inventoryChanges: new Map(),
         workerCount,
-        isOverCapacity
+        isOverCapacity,
+        done: false
       });
     }
     
@@ -353,7 +348,8 @@ export class ProductionCalculator {
         estimatedTime: step.timeRequired,
         inventoryChanges: new Map(),
         workerCount: this.countWorkersNeeded([step]),
-        isOverCapacity: false
+        isOverCapacity: false,
+        done: false
       });
     } else {
       plan.levels[levelIndex].steps.push(step);

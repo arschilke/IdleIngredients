@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { Worker } from './types';
+import { Train } from './types';
 
-interface WorkerManagerProps {
-  workers: Worker[];
-  onWorkersChange: (workers: Worker[]) => void;
+interface TrainManagerProps {
+  trains: Train[];
+  onTrainsChange: (trains: Train[]) => void;
 }
 
-export const WorkerManager: React.FC<WorkerManagerProps> = ({ workers, onWorkersChange }) => {
+export const TrainManager: React.FC<TrainManagerProps> = ({ trains, onTrainsChange }) => {
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
@@ -27,66 +27,66 @@ export const WorkerManager: React.FC<WorkerManagerProps> = ({ workers, onWorkers
     e.preventDefault();
     
     if (!formData.name) {
-      alert('Please fill in the worker name.');
+      alert('Please fill in the train name.');
       return;
     }
 
-    const worker: Worker = {
-      id: editingId || `worker_${Date.now()}`,
+    const train: Train = {
+      id: editingId || `train_${Date.now()}`,
       name: formData.name.trim(),
       capacity: formData.capacity,
       availableAt: 0
     };
 
     if (editingId) {
-      onWorkersChange(workers.map(w => w.id === editingId ? worker : w));
+      onTrainsChange(trains.map(t => t.id === editingId ? train : t));
     } else {
-      onWorkersChange([...workers, worker]);
+      onTrainsChange([...trains, train]);
     }
 
     resetForm();
   };
 
-  const startEdit = (worker: Worker) => {
+  const startEdit = (train: Train) => {
     setFormData({
-      name: worker.name,
-      capacity: worker.capacity
+      name: train.name,
+      capacity: train.capacity
     });
-    setEditingId(worker.id);
+    setEditingId(train.id);
     setIsAdding(true);
   };
 
-  const deleteWorker = (id: string) => {
-    if (confirm('Are you sure you want to delete this worker?')) {
-      onWorkersChange(workers.filter(w => w.id !== id));
+  const deleteTrain = (id: string) => {
+    if (confirm('Are you sure you want to delete this train?')) {
+      onTrainsChange(trains.filter(t => t.id !== id));
     }
   };
 
   return (
-    <div className="worker-manager">
-      <h2>👥 Worker Manager</h2>
+    <div className="train-manager">
+      <h2>🚂 Train Manager</h2>
       
       <button 
         className="btn btn-primary"
         onClick={() => setIsAdding(true)}
         disabled={isAdding}
       >
-        Add New Worker
+        Add New Train
       </button>
 
       {isAdding && (
         <div className="card">
-          <h3>{editingId ? 'Edit Worker' : 'Add New Worker'}</h3>
+          <h3>{editingId ? 'Edit Train' : 'Add New Train'}</h3>
           
           <form onSubmit={handleSubmit} className="form">
             <div className="form-group">
-              <label htmlFor="workerName">Worker Name:</label>
+              <label htmlFor="trainName">Train Name:</label>
               <input
-                id="workerName"
+                id="trainName"
                 type="text"
                 value={formData.name}
                 onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                placeholder="e.g., Alice, Bob, Charlie"
+                placeholder="e.g., Express 1, Freight 2, Local 3"
                 required
               />
             </div>
@@ -102,12 +102,12 @@ export const WorkerManager: React.FC<WorkerManagerProps> = ({ workers, onWorkers
                 min="1"
                 required
               />
-              <small>Capacity determines how much a worker can carry or produce per trip</small>
+              <small>Capacity determines how much a train can carry or produce per trip</small>
             </div>
 
             <div className="form-actions">
               <button type="submit" className="btn btn-primary">
-                {editingId ? 'Update Worker' : 'Add Worker'}
+                {editingId ? 'Update Train' : 'Add Train'}
               </button>
               <button 
                 type="button" 
@@ -121,26 +121,26 @@ export const WorkerManager: React.FC<WorkerManagerProps> = ({ workers, onWorkers
         </div>
       )}
 
-      <div className="workers-list">
-        <h3>Current Workers</h3>
-        <div className="workers-grid">
-          {workers.map(worker => (
-            <div key={worker.id} className="worker-card">
-              <div className="worker-info">
-                <h4>{worker.name}</h4>
-                <p>Capacity: {worker.capacity}</p>
-                <p>Available at: {worker.availableAt}s</p>
+      <div className="trains-list">
+        <h3>Current Trains</h3>
+        <div className="trains-grid">
+          {trains.map(train => (
+            <div key={train.id} className="train-card">
+              <div className="train-info">
+                <h4>{train.name}</h4>
+                <p>Capacity: {train.capacity}</p>
+                <p>Available at: {train.availableAt}s</p>
               </div>
               
-              <div className="worker-actions">
+              <div className="train-actions">
                 <button
-                  onClick={() => startEdit(worker)}
+                  onClick={() => startEdit(train)}
                   className="btn"
                 >
                   Edit
                 </button>
                 <button
-                  onClick={() => deleteWorker(worker.id)}
+                  onClick={() => deleteTrain(train.id)}
                   className="btn btn-danger"
                 >
                   Delete

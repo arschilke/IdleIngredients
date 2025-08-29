@@ -1,14 +1,21 @@
-import { GameState } from './types';
+import React from 'react';
+import { GameState, ProductionPlan } from './types';
 
 interface CurrentInventoryProps {
   gameState: GameState;
   activeLevel: number;
+  productionPlan: ProductionPlan | null;
 }
 
-export function CurrentInventory({ gameState, activeLevel }: CurrentInventoryProps) {
+export const CurrentInventory: React.FC<CurrentInventoryProps> = ({ 
+  gameState, 
+  activeLevel, 
+  productionPlan 
+}) => {
   const getCurrentInventory = () => {
     const inventory = new Map<string, number>();
     
+    // Start with current warehouse inventory
     for (const warehouse of gameState.warehouses) {
       for (const [resourceId, amount] of warehouse.inventory) {
         const current = inventory.get(resourceId) || 0;
@@ -16,47 +23,101 @@ export function CurrentInventory({ gameState, activeLevel }: CurrentInventoryPro
       }
     }
     
+    // Apply inventory changes from completed levels
+    if (productionPlan) {
+      for (const level of productionPlan.levels) {
+        if (level.level < activeLevel && level.done) {
+          for (const [resourceId, change] of level.inventoryChanges) {
+            const current = inventory.get(resourceId) || 0;
+            inventory.set(resourceId, current + change);
+          }
+        }
+      }
+    }
+    
     return inventory;
   };
 
   const getResourceName = (resourceId: string): string => {
-    const resource = gameState.resources.find(r => r.id === resourceId);
-    return resource?.name || resourceId;
+    return gameState.resources.find(r => r.id === resourceId)?.name || resourceId;
+  };
+
+  const getInventoryStatus = (amount: number): { class: string; text: string } => {
+    if (amount === 0) return { class: 'text-danger', text: 'Empty' };
+    if (amount < 10) return { class: 'text-warning', text: 'Low' };
+    return { class: 'text-success', text: 'OK' };
+  };
+
+  const getActiveLevelInventoryChanges = () => {
+    if (!productionPlan) return new Map();
+    
+    const activeLevelData = productionPlan.levels.find(level => level.level === activeLevel);
+    return activeLevelData?.inventoryChanges || new Map();
   };
 
   const currentInventory = getCurrentInventory();
+  const activeLevelChanges = getActiveLevelInventoryChanges();
 
   return (
-    <div className="card h-100">
+    <div className="card">
       <div className="card-header">
-        <h2 className="h4 mb-0">Current Inventory</h2>
+        <h3 className="card-title mb-0">
+          <i className="bi bi-box-seam"></i> Current Inventory
+        </h3>
       </div>
       <div className="card-body">
-        <div className="alert alert-success text-center mb-3">
-          <strong>Active Level: {activeLevel}</strong>
-        </div>
-        
-        <div className="d-flex flex-column gap-2 mb-3">
-          {Array.from(currentInventory.entries()).map(([resourceId, amount]) => (
-            <div key={resourceId} className="d-flex justify-content-between align-items-center p-2 border rounded">
-              <div className="d-flex flex-column">
-                <span className="fw-medium">{getResourceName(resourceId)}</span>
-                <span className="text-warning fw-bold">{amount}</span>
-              </div>
-              <div>
-                {amount === 0 && <span className="badge bg-danger">Empty</span>}
-                {amount > 0 && amount < 50 && <span className="badge bg-warning">Low</span>}
-                {amount >= 50 && <span className="badge bg-success">OK</span>}
-              </div>
+        <div className="mb-3">
+          <h6 className="text-muted">Active Level: {activeLevel}</h6>
+          {productionPlan && (
+            <div className="alert alert-info">
+              <small>
+                <i className="bi bi-info-circle"></i> 
+                Showing inventory after completing levels 1-{activeLevel - 1}
+              </small>
             </div>
-          ))}
+          )}
         </div>
-        
-        <div className="border-top pt-3 text-center">
-          <p className="small text-muted mb-1">Total Resources: {currentInventory.size}</p>
-          <p className="small text-muted mb-0">Total Items: {Array.from(currentInventory.values()).reduce((sum, amount) => sum + amount, 0)}</p>
+
+        {activeLevelChanges.size > 0 && (
+          <div className="mb-3">
+            <h6 className="text-muted">Level {activeLevel} Changes:</h6>
+            <div className="d-flex flex-wrap gap-1">
+              {Array.from(activeLevelChanges.entries()).map(([resourceId, change]) => (
+                <span 
+                  key={resourceId}
+                  className={`badge ${change > 0 ? 'bg-success' : 'bg-danger'}`}
+                >
+                  {getResourceName(resourceId)} {change > 0 ? '+' : ''}{change}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="inventory-list">
+          {Array.from(currentInventory.entries()).map(([resourceId, amount]) => {
+            const status = getInventoryStatus(amount);
+            return (
+              <div key={resourceId} className="d-flex justify-content-between align-items-center py-2 border-bottom">
+                <div>
+                  <span className="fw-medium">{getResourceName(resourceId)}</span>
+                  <span className={`badge ms-2 ${status.class.replace('text-', 'bg-')}`}>
+                    {status.text}
+                  </span>
+                </div>
+                <span className="fw-bold">{amount}</span>
+              </div>
+            );
+          })}
         </div>
+
+        {currentInventory.size === 0 && (
+          <div className="text-center text-muted py-4">
+            <i className="bi bi-inbox display-4"></i>
+            <p>No inventory found</p>
+          </div>
+        )}
       </div>
     </div>
   );
-}
+};

@@ -4,11 +4,11 @@ import { ProductionPlan } from './ProductionPlan';
 import { CurrentInventory } from './CurrentInventory';
 import { CurrentOrders } from './CurrentOrders';
 import { ProductionCalculator } from './calculator';
-import { Order, Resource, Train, Factory, Destination, Warehouse, GameState } from './types';
+import { Order, Resource, Train, Factory, Destination, Warehouse, GameState, ProductionPlan as ProductionPlanType } from './types';
 import './styles.scss';
 
 function App() {
-  const [resources, setResources] = useState<Resource[]>([
+  const [resources] = useState<Resource[]>([
     { id: 'coal', name: 'Coal' },
     { id: 'iron', name: 'Iron' },
     { id: 'oakwood', name: 'Oakwood'  },
@@ -20,7 +20,7 @@ function App() {
     { id: 'copper', name: 'Copper'}
   ]);
 
-  const [trains, setTrains] = useState<Train[]>([
+  const [trains] = useState<Train[]>([
     { id: 'train1', name: 'Train 1', capacity: 10, availableAt: 0 },
     { id: 'train2', name: 'Train 2', capacity: 15, availableAt: 0 },
     { id: 'train3', name: 'Train 3', capacity: 12, availableAt: 0 },
@@ -31,7 +31,7 @@ function App() {
     { id: 'train8', name: 'Train 8', capacity: 11, availableAt: 0 }
   ]);
 
-  const [factories, setFactories] = useState<Factory[]>([
+  const [factories] = useState<Factory[]>([
     {
       id: 'factory1',
       name: 'Smelting Plant',
@@ -103,14 +103,14 @@ function App() {
     }
   ]);
 
-  const [destinations, setDestinations] = useState<Destination[]>([
+  const [destinations] = useState<Destination[]>([
     { id: 'coal_mine', travelTime: 120, resourceId: 'coal' },
     { id: 'iron_mine', travelTime: 180, resourceId: 'iron' },
     { id: 'oak_forest', travelTime: 90, resourceId: 'oakwood' },
     { id: 'copper_mine', travelTime: 240, resourceId: 'copper_ore' }
   ]);
 
-  const [warehouses, setWarehouses] = useState<Warehouse[]>([
+  const [warehouses] = useState<Warehouse[]>([
     {
       id: 'main_warehouse',
       name: 'Main Warehouse',
@@ -130,7 +130,7 @@ function App() {
   ]);
 
   const [orders, setOrders] = useState<Order[]>([]);
-  const [currentOrder, setCurrentOrder] = useState<Order | null>(null);
+  const [productionPlan, setProductionPlan] = useState<ProductionPlanType | null>(null);
   const [activeLevel, setActiveLevel] = useState<number>(1);
 
   // Create game state for calculator
@@ -147,7 +147,52 @@ function App() {
 
   const handleOrderSubmit = (order: Order) => {
     setOrders([...orders, order]);
-    setCurrentOrder(order);
+  };
+
+  const handleProductionPlanChange = (plan: ProductionPlanType) => {
+    setProductionPlan(plan);
+  };
+
+  const handleActiveLevelChange = (level: number) => {
+    setActiveLevel(level);
+  };
+
+  const markLevelAsDone = (levelNumber: number) => {
+    if (!productionPlan) return;
+    
+    const updatedLevels = productionPlan.levels.map(level => 
+      level.level === levelNumber ? { ...level, done: true } : level
+    );
+    
+    setProductionPlan({
+      ...productionPlan,
+      levels: updatedLevels
+    });
+  };
+
+  const removeLevel = (levelNumber: number) => {
+    if (!productionPlan) return;
+    
+    const updatedLevels = productionPlan.levels
+      .filter(level => level.level !== levelNumber)
+      .map((level, index) => ({ ...level, level: index + 1 }));
+    
+    setProductionPlan({
+      ...productionPlan,
+      levels: updatedLevels
+    });
+    
+    // Adjust active level if needed
+    if (activeLevel === levelNumber) {
+      setActiveLevel(updatedLevels.length > 0 ? 1 : 1);
+    } else if (activeLevel > levelNumber) {
+      setActiveLevel(activeLevel - 1);
+    }
+  };
+
+  const clearProductionPlan = () => {
+    setProductionPlan(null);
+    setActiveLevel(1);
   };
 
   return (
@@ -164,7 +209,7 @@ function App() {
             <CurrentOrders 
               orders={orders}
               resources={resources}
-              onOrderSelect={setCurrentOrder}
+              onOrderSelect={() => {}} // No longer needed for single plan
             />
           </div>
           <div className="col-lg-6">
@@ -181,17 +226,23 @@ function App() {
         <div className="row g-4">
           <div className="col-lg-8">
             <ProductionPlan
-              order={currentOrder}
+              orders={orders}
               calculator={calculator}
               gameState={gameState}
+              productionPlan={productionPlan}
               activeLevel={activeLevel}
-              onActiveLevelChange={setActiveLevel}
+              onProductionPlanChange={handleProductionPlanChange}
+              onActiveLevelChange={handleActiveLevelChange}
+              onMarkLevelDone={markLevelAsDone}
+              onRemoveLevel={removeLevel}
+              onClearPlan={clearProductionPlan}
             />
           </div>
           <div className="col-lg-4">
             <CurrentInventory
               gameState={gameState}
               activeLevel={activeLevel}
+              productionPlan={productionPlan}
             />
           </div>
         </div>

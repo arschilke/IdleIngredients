@@ -69,7 +69,13 @@ export type Order = BoatOrder | StoryOrder | BuildingOrder;
 export interface PlannedStep {
   id: string;
   type: 'factory' | 'destination' | 'delivery';
+  stepType: 'factory' | 'destination' | 'delivery';
   resourceName: string;
+  resourceId: string;
+  level: number;
+  timeRequired: number;
+  amountProcessed: number;
+  dependencies: string[];
   recipe?: Recipe;
   destination?: Destination;
   startTime?: number;
@@ -85,11 +91,16 @@ export interface PlanningLevel {
   isOverCapacity: boolean;
   description: string;
   estimatedTime: number;
+  done: boolean;
 }
 
 export interface ProductionPlan {
   levels: PlanningLevel[];
+  totalTime: number;
+  workerAssignments: Map<string, string>;
+  maxConcurrentWorkers: number;
   inventorySnapshot: Map<string, number>;
+  activeLevel: number;
 }
 
 export interface RecipeTreeNode {

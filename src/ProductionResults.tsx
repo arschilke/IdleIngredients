@@ -26,6 +26,7 @@ export function ProductionResults({ order, calculator, gameState, onPlanChange }
     
     return {
       id: `step_${Date.now()}_${Math.random()}`,
+      type: 'factory',
       resourceId,
       resourceName: resource?.name || resourceId,
       timeRequired: recipe.timeRequired,
@@ -43,6 +44,7 @@ export function ProductionResults({ order, calculator, gameState, onPlanChange }
     
     return {
       id: `step_${Date.now()}_${Math.random()}`,
+      type: 'destination',
       resourceId: destination.resourceId,
       resourceName: resource?.name || destination.resourceId,
       timeRequired: destination.travelTime,
