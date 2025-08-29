@@ -108,7 +108,6 @@ export class ProductionCalculator {
     return {
       levels,
       totalTime,
-      workerAssignments: new Map(),
       maxConcurrentWorkers: MAX_CONCURRENT_WORKERS,
       inventorySnapshot: this.getCurrentInventory(),
       activeLevel: 1
@@ -141,9 +140,11 @@ export class ProductionCalculator {
         description: this.generateLevelDescription(levelSteps),
         estimatedTime: this.calculateLevelTime(levelSteps),
         inventoryChanges: new Map(),
-        workerCount,
+        trainCount: workerCount,
         isOverCapacity,
-        done: false
+        done: false,
+        startTime: 0,
+        endTime: 0
       });
     }
     
@@ -158,7 +159,7 @@ export class ProductionCalculator {
     let workerCount = 0;
     
     for (const step of steps) {
-      if (step.stepType === 'destination') {
+      if (step.type === 'destination') {
         // Destinations need workers
         workerCount++;
       }
@@ -172,8 +173,8 @@ export class ProductionCalculator {
    * Generates a description for a planning level
    */
   private generateLevelDescription(steps: PlannedStep[]): string {
-    const destinationCount = steps.filter(s => s.stepType === 'destination').length;
-    const factoryCount = steps.filter(s => s.stepType === 'factory').length;
+    const destinationCount = steps.filter(s => s.type === 'destination').length;
+    const factoryCount = steps.filter(s => s.type === 'factory').length;
     
     if (destinationCount > 0 && factoryCount > 0) {
       return `${destinationCount} gathering, ${factoryCount} production`;
@@ -207,11 +208,11 @@ export class ProductionCalculator {
       
       for (const step of level.steps) {
         // Calculate what this step produces or consumes
-        if (step.stepType === 'destination') {
+        if (step.type === 'destination') {
           // Destinations produce resources
           const current = levelChanges.get(step.resourceId) || 0;
           levelChanges.set(step.resourceId, current + step.amountProcessed);
-        } else if (step.stepType === 'factory' && step.recipe) {
+        } else if (step.type === 'factory' && step.recipe) {
           // Factories consume inputs and produce outputs
           // Consume inputs
           for (const requirement of step.recipe.requires) {
@@ -282,7 +283,7 @@ export class ProductionCalculator {
     // Check for over-capacity levels
     for (const level of plan.levels) {
       if (level.isOverCapacity) {
-        errors.push(`Level ${level.level} requires ${level.workerCount} workers but only ${plan.maxConcurrentWorkers} are available`);
+        errors.push(`Level ${level.level} requires ${level.trainCount} workers but only ${plan.maxConcurrentWorkers} are available`);
       }
     }
     
@@ -346,9 +347,11 @@ export class ProductionCalculator {
         description: this.generateLevelDescription([step]),
         estimatedTime: step.timeRequired,
         inventoryChanges: new Map(),
-        workerCount: this.countWorkersNeeded([step]),
+        trainCount: this.countWorkersNeeded([step]),
         isOverCapacity: false,
-        done: false
+        done: false,
+        startTime: 0,
+        endTime: 0
       });
     } else {
       plan.levels[levelIndex].steps.push(step);

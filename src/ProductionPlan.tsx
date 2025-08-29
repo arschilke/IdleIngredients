@@ -64,11 +64,13 @@ export const ProductionPlan: React.FC<ProductionPlanProps> = ({
       level: newLevelNumber,
       steps: [],
       inventoryChanges: new Map(),
-      workerCount: 0,
+      trainCount: 0,
       isOverCapacity: false,
       description: 'New Level',
       estimatedTime: 0,
-      done: false
+      done: false,
+      startTime: 0,
+      endTime: 0
     };
 
     const newPlan = {
@@ -130,8 +132,6 @@ export const ProductionPlan: React.FC<ProductionPlanProps> = ({
       const newStep: PlannedStep = {
         id: `step_${Date.now()}_${Math.random()}`,
         type: 'factory',
-        stepType: 'factory',
-        resourceName: getResourceName(resourceId),
         resourceId,
         level: targetLevel,
         timeRequired: recipe.timeRequired,
@@ -181,11 +181,13 @@ export const ProductionPlan: React.FC<ProductionPlanProps> = ({
         level: targetLevel,
         steps: [newStep],
         inventoryChanges: new Map(),
-        workerCount: newStep.type === 'destination' ? 1 : 0,
+        trainCount: newStep.type === 'destination' ? 1 : 0,
         isOverCapacity: false,
         description: `${newStep.type === 'factory' ? 'Production' : 'Gathering'} Level`,
         estimatedTime: newStep.timeRequired,
-        done: false
+        done: false,
+        startTime: 0,
+        endTime: 0
       };
 
       // Insert the new level and renumber existing levels
@@ -210,7 +212,7 @@ export const ProductionPlan: React.FC<ProductionPlanProps> = ({
 
     return (
       <div className="job-edit-form p-3 border rounded mt-2">
-        <h6 className="mb-3">Edit Job: {job.resourceName}</h6>
+        <h6 className="mb-3">Edit Job: {getResourceName(job.resourceId)}</h6>
         
         {/* Train Assignment */}
         {job.type === 'destination' && (
@@ -302,8 +304,8 @@ export const ProductionPlan: React.FC<ProductionPlanProps> = ({
       <div className="job-details">
         <div className="d-flex justify-content-between align-items-center">
           <div>
-            <strong>{job.resourceName}</strong>
-            <span className="badge bg-secondary ms-2">{job.stepType}</span>
+            <strong>{getResourceName(job.resourceId)}</strong>
+            <span className="badge bg-secondary ms-2">{job.type}</span>
             
             {/* Train Assignment Display */}
             {job.trainId && (
@@ -454,7 +456,7 @@ export const ProductionPlan: React.FC<ProductionPlanProps> = ({
             
             <div className="level-info mb-2">
               <small className="text-muted">
-                {level.description} • {level.workerCount} trains • {formatTime(level.estimatedTime)}
+                {level.description} • {level.trainCount} trains • {formatTime(level.estimatedTime)}
               </small>
             </div>
 

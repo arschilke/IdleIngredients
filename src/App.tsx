@@ -31,6 +31,8 @@ function App() {
     { id: 'train8', name: 'Train 8', capacity: 11, availableAt: 0, class: 'legendary' }
   ]);
 
+  const maxConcurrentTrains = 5; // Maximum number of trains that can work simultaneously
+
   const [factories] = useState<Factory[]>([
     {
       id: 'factory1',
@@ -211,15 +213,16 @@ function App() {
             <CurrentOrders 
               orders={orders}
               resources={resources}
+              trains={trains}
               productionPlan={productionPlan}
               onProductionPlanChange={handleProductionPlanChange}
+              maxConcurrentTrains={maxConcurrentTrains}
             />
           </div>
           <div className="col-md-5">
             <OrderForm
               resources={resources}
               onSubmit={handleOrderSubmit}
-              existingOrders={orders}
               onOrdersChange={setOrders}
             />
           </div>

@@ -21,17 +21,14 @@ export function ProductionResults({ order, calculator, gameState, onPlanChange }
   }, [order, calculator]);
 
   const createStepFromRecipe = (resourceId: string, recipe: Recipe, level: number): PlannedStep => {
-    const resource = gameState.resources.find(r => r.id === resourceId);
     const orderResource = order.resources.find(r => r.resourceId === resourceId);
     
     return {
       id: `step_${Date.now()}_${Math.random()}`,
       type: 'factory',
       resourceId,
-      resourceName: resource?.name || resourceId,
       timeRequired: recipe.timeRequired,
       dependencies: [],
-      stepType: 'factory',
       level,
       amountProcessed: orderResource?.amount || 0,
       recipe
@@ -39,17 +36,14 @@ export function ProductionResults({ order, calculator, gameState, onPlanChange }
   };
 
   const createStepFromDestination = (destination: Destination, level: number): PlannedStep => {
-    const resource = gameState.resources.find(r => r.id === destination.resourceId);
     const orderResource = order.resources.find(r => r.resourceId === destination.resourceId);
     
     return {
       id: `step_${Date.now()}_${Math.random()}`,
       type: 'destination',
       resourceId: destination.resourceId,
-      resourceName: resource?.name || destination.resourceId,
       timeRequired: destination.travelTime,
       dependencies: [],
-      stepType: 'destination',
       level,
       amountProcessed: orderResource?.amount || 0,
       destination
@@ -207,7 +201,7 @@ export function ProductionResults({ order, calculator, gameState, onPlanChange }
               <h3>Level {level.level}</h3>
               <div className="level-info">
                 <span className={`worker-count ${level.isOverCapacity ? 'over-capacity' : ''}`}>
-                  Workers: {level.workerCount}/{productionPlan.maxConcurrentWorkers}
+                  Workers: {level.trainCount}/{productionPlan.maxConcurrentWorkers}
                 </span>
                 <span className="level-time">Time: {formatTime(level.estimatedTime)}</span>
               </div>
@@ -219,8 +213,8 @@ export function ProductionResults({ order, calculator, gameState, onPlanChange }
               {level.steps.map((step) => (
                 <div key={step.id} className="planning-step">
                   <div className="step-info">
-                    <span className="step-type">{step.stepType}</span>
-                    <span className="step-resource">{step.resourceName}</span>
+                    <span className="step-type">{step.type}</span>
+                    <span className="step-resource">{getResourceName(step.resourceId)}</span>
                     <span className="step-time">{formatTime(step.timeRequired)}</span>
                     <span className="step-amount">Amount: {step.amountProcessed}</span>
                   </div>

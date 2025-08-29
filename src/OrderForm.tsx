@@ -1,14 +1,13 @@
 import { useState } from 'react';
-import { Order, Resource, ResourceRequirement, BoatOrder, StoryOrder } from './types';
+import { Order, Resource, ResourceRequirement } from './types';
 
 interface OrderFormProps {
   resources: Resource[];
   onSubmit: (order: Order) => void;
-  existingOrders: Order[];
   onOrdersChange: (orders: Order[]) => void;
 }
 
-export function OrderForm({ resources, onSubmit, existingOrders }: OrderFormProps) {
+export function OrderForm({ resources, onSubmit }: OrderFormProps) {
   const [orderType, setOrderType] = useState<'boat' | 'story' | 'building'>('building');
   const [orderName, setOrderName] = useState('');
   const [orderResources, setOrderResources] = useState<ResourceRequirement[]>([

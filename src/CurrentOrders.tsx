@@ -1,11 +1,10 @@
-import { Plan } from './plan';
 import { Order, Resource, ProductionPlan, PlannedStep, BoatOrder, StoryOrder, Train } from './types';
 
 interface CurrentOrdersProps {
     orders: Order[];
     resources: Resource[];
     trains: Train[];
-    productionPlan: Plan | null;
+    productionPlan: ProductionPlan | null;
     onProductionPlanChange: (plan: ProductionPlan) => void;
     maxConcurrentTrains: number;
 }
@@ -36,27 +35,33 @@ export function CurrentOrders({
 
         if (!productionPlan) {
             // Create new production plan with Level 1
-            const newPlan: Plan = new Plan(maxConcurrentTrains);
+            const newPlan: ProductionPlan = {
+                levels: [{
+                    level: 0,
+                    steps: [],
+                    inventoryChanges: new Map(),
+                    trainCount: 1,
+                    isOverCapacity: false,
+                    description: '',
+                    estimatedTime: 0,
+                    done: false,
+                    startTime: 0,
+                    endTime: 0
+                }],
+                totalTime: 0,
+                maxConcurrentWorkers: maxConcurrentTrains,
+                inventorySnapshot: new Map(),
+                activeLevel: 0
+            };
 
-            newPlan.addLevel({
-                level: 0,
-                steps: [],
-                inventoryChanges: new Map(),
-                trainCount: 1,
-                isOverCapacity: false,
-                description: '',
-                estimatedTime: 0,
-                done: false,
-                startTime: 0,
-                endTime: 0
-            });
-
-            newPlan.setActiveLevel(0);
-            productionPlan = newPlan;
+            onProductionPlanChange(newPlan);
+            return; // Exit early after creating new plan
         }
 
         // Add to existing active level
-        const activeLevel = productionPlan.getActiveLevel();
+        const activeLevelIndex = productionPlan.activeLevel;
+        const activeLevel = productionPlan.levels[activeLevelIndex];
+        if (!activeLevel) return; // Guard clause for null check
 
         const deliveryJob: PlannedStep = {
             id: `delivery_${order.id}_${Date.now()}`,
@@ -69,19 +74,22 @@ export function CurrentOrders({
             amountProcessed: 0,
             dependencies: []
         };
-        if (activeLevel) {
-            // Add to existing Level
-            const updatedLevel = {
-                ...activeLevel,
-                steps: [...activeLevel.steps, deliveryJob],
-                estimatedTime: Math.max(activeLevel.estimatedTime, deliveryJob.timeRequired)
-            };
 
-            productionPlan.updateLevel(activeLevel.level, updatedLevel);
+        // Add to existing Level
+        const updatedLevel = {
+            ...activeLevel,
+            steps: [...activeLevel.steps, deliveryJob],
+            estimatedTime: Math.max(activeLevel.estimatedTime, deliveryJob.timeRequired)
+        };
 
-            onProductionPlanChange(productionPlan);
-        }
+        const updatedPlan = {
+            ...productionPlan,
+            levels: productionPlan.levels.map((level, index) => 
+                index === activeLevelIndex ? updatedLevel : level
+            )
+        };
 
+        onProductionPlanChange(updatedPlan);
     };
 
     const calculateDeliveryTime = (order: Order): number => {
@@ -175,10 +183,25 @@ export function CurrentOrders({
     );
 
 
-    function getBestTrain(plan: Plan, amount: number): string | undefined {
-        var busyTrains = plan.getBusyTrains(plan.activeLevel);
-        var applicableTrains = trains.filter(t => !busyTrains.includes(t.id) && t.capacity >= amount && t.availableAt <= plan.levels[plan.activeLevel].startTime);
-        var bestTrain = applicableTrains.sort((a, b) => Math.abs(a.capacity - amount) - Math.abs(b.capacity - amount))[0];
+    function getBestTrain(plan: ProductionPlan, amount: number): string | undefined {
+        const activeLevel = plan.levels[plan.activeLevel];
+        if (!activeLevel) return undefined;
+        
+        const busyTrains = activeLevel.steps
+            .filter(step => step.trainId)
+            .map(step => step.trainId!)
+            .filter(id => id !== undefined);
+            
+        const applicableTrains = trains.filter(t => 
+            !busyTrains.includes(t.id) && 
+            t.capacity >= amount && 
+            t.availableAt <= activeLevel.startTime
+        );
+        
+        const bestTrain = applicableTrains.sort((a, b) => 
+            Math.abs(a.capacity - amount) - Math.abs(b.capacity - amount)
+        )[0];
+        
         return bestTrain?.id;
     }
 }

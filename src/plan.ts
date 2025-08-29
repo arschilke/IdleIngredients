@@ -57,14 +57,16 @@ export class Job implements PlannedStep {
     trainId?: string | undefined;
     order?: Order | undefined;
 
-    constructor(id: string, type: PlannedStepType, resource: Resource, level: number, timeRequired: number, amountProcessed: number, dependencies: string[], trainId: string) {
+    constructor(id: string, type: PlannedStepType, resource: Resource, level: number, timeRequired: number, dependencies: string[], trainId: string) {
         this.id = id;
         this.type = type;
         this.resource = resource;
         this.level = level;
         this.timeRequired = timeRequired;
+        this.dependencies = dependencies;
+        this.resourceId = resource.id;
+        this.trainId = trainId;
     }
-
 
     getTimeRequired() {
         return this.timeRequired;
@@ -73,6 +75,4 @@ export class Job implements PlannedStep {
     get amountProcessed() {
         return Math.min(this.order?.resources[0].amount || Infinity, this.train?.capacity || 0);
     }
-
-
 }
