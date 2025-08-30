@@ -86,6 +86,11 @@ export interface PlannedStep {
   endTime?: number;
   trainId?: string;
   order?: Order; // For delivery jobs
+  resourceStatus?: {
+    isSufficient: boolean;
+    healthScore: number;
+    insufficientResources: string[];
+  };
 }
 
 export interface PlanningLevel {

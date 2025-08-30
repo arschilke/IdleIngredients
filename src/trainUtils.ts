@@ -1,4 +1,4 @@
-import { Train, PlanningLevel, PlannedStep } from './types';
+import { Train, PlanningLevel } from './types';
 
 /**
  * Get the best available trains for a given amount of resources
