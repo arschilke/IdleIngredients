@@ -256,15 +256,9 @@ export const ProductionPlan: React.FC<ProductionPlanProps> = ({
               onReorderJob={handleReorderJob}
               onMoveJobToLevel={handleMoveJobToLevel}
               onAddStepToLevel={(step: PlannedStep, targetLevel: number) => {
-                console.log('onAddStepToLevel called with:', {
-                  step,
-                  targetLevel,
-                  currentLevels: productionPlan.levels.length,
-                });
                 let updatedLevels = [...productionPlan.levels];
 
                 if (targetLevel === -1) {
-                  console.log('Creating new level at beginning');
                   // Create a new level at the beginning of the plan
                   const newLevel: PlanningLevel = {
                     level: 1,
@@ -306,14 +300,6 @@ export const ProductionPlan: React.FC<ProductionPlanProps> = ({
                       gameState.warehouse.inventory
                     );
 
-                  console.log(
-                    'New levels after renumbering:',
-                    updatedLevels.map(l => ({
-                      level: l.level,
-                      description: l.description,
-                    }))
-                  );
-
                   // Update the production plan with renumbered levels
                   onProductionPlanChange({
                     ...productionPlan,
@@ -321,7 +307,6 @@ export const ProductionPlan: React.FC<ProductionPlanProps> = ({
                     activeLevel: currentActiveLevel + 1, // Adjust active level for renumbering
                   });
                 } else if (targetLevel > 0) {
-                  console.log('Adding step to existing level:', targetLevel);
                   // Find the target level and add the step to it
                   const targetLevelIndex = updatedLevels.findIndex(
                     l => l.level === targetLevel
@@ -346,11 +331,7 @@ export const ProductionPlan: React.FC<ProductionPlanProps> = ({
                       ...productionPlan,
                       levels: updatedLevelsWithInventory,
                     });
-                  } else {
-                    console.log('Target level not found:', targetLevel);
                   }
-                } else {
-                  console.log('Invalid target level:', targetLevel);
                 }
               }}
             />

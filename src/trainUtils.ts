@@ -15,7 +15,7 @@ export function getBestTrains(
   // Get busy train IDs from the level
   const busyTrainIds = level.steps
     .filter(step => step.trainId !== undefined)
-    .map(step => step.trainId!);
+    .map(step => step.trainId);
 
   // Filter out busy trains and get available ones
   const applicableTrains = trains.filter(

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, FormEvent } from 'react';
 import { Order, Resource, ResourceRequirement } from './types';
 import { formatTime } from './utils';
 
@@ -44,7 +44,7 @@ export function OrderForm({ resources, onSubmit }: OrderFormProps) {
     setOrderResources(newResources);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
 
     if (!orderName.trim()) {

@@ -41,6 +41,23 @@ module.exports = [
           jsx: true,
         },
       },
+      globals: {
+        // Browser globals
+        window: 'readonly',
+        document: 'readonly',
+        console: 'readonly',
+        alert: 'readonly',
+        confirm: 'readonly',
+        prompt: 'readonly',
+        // DOM types
+        HTMLDivElement: 'readonly',
+        HTMLElement: 'readonly',
+        Element: 'readonly',
+        Event: 'readonly',
+        // Node.js globals (if needed)
+        process: 'readonly',
+        Buffer: 'readonly',
+      },
     },
     plugins: {
       '@typescript-eslint': typescript,
@@ -69,6 +86,7 @@ module.exports = [
       // General rules
       'no-console': 'warn',
       'no-debugger': 'error',
+      'no-undef': 'error',
     },
     settings: {
       react: {
@@ -92,6 +110,9 @@ module.exports = [
       ...react.configs.recommended.rules,
       ...reactHooks.configs.recommended.rules,
       ...reactRefresh.configs.recommended.rules,
+      // Override JSX scope rule for new JSX Transform
+      'react/react-in-jsx-scope': 'off',
+      'react/jsx-uses-react': 'off',
     },
   },
 ];

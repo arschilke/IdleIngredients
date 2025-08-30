@@ -11,7 +11,7 @@ interface ProductionJobProps {
   onReorderJob?: (jobId: string, newIndex: number) => void;
   onMoveToLevel?: (jobId: string, targetLevel: number) => void;
   isDragging?: boolean;
-  dragHandleProps?: any;
+  dragHandleProps?: React.HTMLAttributes<HTMLDivElement>;
 }
 
 export const ProductionJob: React.FC<ProductionJobProps> = ({

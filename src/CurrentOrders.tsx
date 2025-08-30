@@ -66,7 +66,6 @@ export function CurrentOrders({
     );
 
     if (!activeLevel) {
-      console.error('Active level not found:', activeLevelIndex);
       return;
     }
 
