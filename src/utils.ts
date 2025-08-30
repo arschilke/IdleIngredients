@@ -9,7 +9,7 @@ export const formatTime = (seconds: number): string => {
   const hours = Math.floor(seconds / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);
   const secs = seconds % 60;
-  
+
   if (hours > 0) {
     return `${hours}h ${minutes}m ${secs}s`;
   } else if (minutes > 0) {
@@ -25,7 +25,10 @@ export const formatTime = (seconds: number): string => {
  * @param gameState - The current game state containing resources
  * @returns The resource name or the ID if not found
  */
-export const getResourceName = (resourceId: string, gameState: GameState): string => {
+export const getResourceName = (
+  resourceId: string,
+  gameState: GameState
+): string => {
   return gameState.resources.find(r => r.id === resourceId)?.name || resourceId;
 };
 
@@ -54,4 +57,3 @@ export const formatNumber = (num: number): string => {
 export const generateId = (prefix: string = 'id'): string => {
   return `${prefix}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 };
-

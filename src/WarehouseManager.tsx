@@ -7,16 +7,16 @@ interface WarehouseManagerProps {
   resources: Resource[];
 }
 
-export const WarehouseManager: React.FC<WarehouseManagerProps> = ({ 
-  warehouses, 
-  onWarehousesChange, 
-  resources 
+export const WarehouseManager: React.FC<WarehouseManagerProps> = ({
+  warehouses,
+  onWarehousesChange,
+  resources,
 }) => {
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: '',
-    maxCapacity: 1000
+    maxCapacity: 1000,
   });
 
   const resetForm = () => {
@@ -27,7 +27,7 @@ export const WarehouseManager: React.FC<WarehouseManagerProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.name) {
       alert('Please fill in the warehouse name.');
       return;
@@ -37,11 +37,13 @@ export const WarehouseManager: React.FC<WarehouseManagerProps> = ({
       id: editingId || `warehouse_${Date.now()}`,
       name: formData.name.trim(),
       maxCapacity: formData.maxCapacity,
-      inventory: new Map()
+      inventory: new Map(),
     };
 
     if (editingId) {
-      onWarehousesChange(warehouses.map(w => w.id === editingId ? warehouse : w));
+      onWarehousesChange(
+        warehouses.map(w => (w.id === editingId ? warehouse : w))
+      );
     } else {
       onWarehousesChange([...warehouses, warehouse]);
     }
@@ -61,22 +63,26 @@ export const WarehouseManager: React.FC<WarehouseManagerProps> = ({
     setIsAdding(true);
   };
 
-  const updateInventory = (warehouseId: string, resourceId: string, change: number) => {
+  const updateInventory = (
+    warehouseId: string,
+    resourceId: string,
+    change: number
+  ) => {
     const updatedWarehouses = warehouses.map(warehouse => {
       if (warehouse.id === warehouseId) {
         const current = warehouse.inventory.get(resourceId) || 0;
         const newAmount = Math.max(0, current + change);
         const newInventory = new Map(warehouse.inventory);
         newInventory.set(resourceId, newAmount);
-        
+
         return {
           ...warehouse,
-          inventory: newInventory
+          inventory: newInventory,
         };
       }
       return warehouse;
     });
-    
+
     onWarehousesChange(updatedWarehouses);
   };
 
@@ -93,8 +99,8 @@ export const WarehouseManager: React.FC<WarehouseManagerProps> = ({
   return (
     <div className="warehouse-manager">
       <h2>🏪 Warehouse Management</h2>
-      
-      <button 
+
+      <button
         className="btn btn-primary"
         onClick={() => setIsAdding(true)}
         disabled={isAdding}
@@ -105,7 +111,7 @@ export const WarehouseManager: React.FC<WarehouseManagerProps> = ({
       {isAdding && (
         <div className="card">
           <h3>{editingId ? 'Edit Warehouse' : 'Add New Warehouse'}</h3>
-          
+
           <form onSubmit={handleSubmit} className="form">
             <div className="form-group">
               <label htmlFor="warehouseName">Warehouse Name:</label>
@@ -113,7 +119,9 @@ export const WarehouseManager: React.FC<WarehouseManagerProps> = ({
                 id="warehouseName"
                 type="text"
                 value={formData.name}
-                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                onChange={e =>
+                  setFormData(prev => ({ ...prev, name: e.target.value }))
+                }
                 placeholder="e.g., Main Warehouse, Storage Depot"
                 required
               />
@@ -125,7 +133,12 @@ export const WarehouseManager: React.FC<WarehouseManagerProps> = ({
                 id="maxCapacity"
                 type="number"
                 value={formData.maxCapacity}
-                onChange={(e) => setFormData(prev => ({ ...prev, maxCapacity: parseInt(e.target.value) || 1000 }))}
+                onChange={e =>
+                  setFormData(prev => ({
+                    ...prev,
+                    maxCapacity: parseInt(e.target.value) || 1000,
+                  }))
+                }
                 placeholder="e.g., 1000"
                 min="1"
                 required
@@ -136,11 +149,7 @@ export const WarehouseManager: React.FC<WarehouseManagerProps> = ({
               <button type="submit" className="btn btn-primary">
                 {editingId ? 'Update Warehouse' : 'Add Warehouse'}
               </button>
-              <button 
-                type="button" 
-                onClick={resetForm}
-                className="btn"
-              >
+              <button type="button" onClick={resetForm} className="btn">
                 Cancel
               </button>
             </div>
@@ -156,10 +165,7 @@ export const WarehouseManager: React.FC<WarehouseManagerProps> = ({
               <div className="warehouse-header">
                 <h4>{warehouse.name}</h4>
                 <div className="warehouse-actions">
-                  <button
-                    onClick={() => startEdit(warehouse)}
-                    className="btn"
-                  >
+                  <button onClick={() => startEdit(warehouse)} className="btn">
                     Edit
                   </button>
                   <button
@@ -170,51 +176,70 @@ export const WarehouseManager: React.FC<WarehouseManagerProps> = ({
                   </button>
                 </div>
               </div>
-              
+
               <div className="warehouse-info">
                 <p>Max Capacity: {warehouse.maxCapacity.toLocaleString()}</p>
-                <p>Current Usage: {Array.from(warehouse.inventory.values()).reduce((sum, amount) => sum + amount, 0).toLocaleString()}</p>
+                <p>
+                  Current Usage:{' '}
+                  {Array.from(warehouse.inventory.values())
+                    .reduce((sum, amount) => sum + amount, 0)
+                    .toLocaleString()}
+                </p>
               </div>
 
               <div className="inventory-section">
                 <h5>Inventory</h5>
                 <div className="inventory-list">
-                  {Array.from(warehouse.inventory.entries()).map(([resourceId, amount]) => (
-                    <div key={resourceId} className="inventory-item">
-                      <span className="resource-name">{getResourceName(resourceId)}</span>
-                      <span className="resource-amount">{amount.toLocaleString()}</span>
-                      <div className="inventory-controls">
-                        <button
-                          className="btn btn-small"
-                          onClick={() => updateInventory(warehouse.id, resourceId, 1)}
-                          title="Add 1"
-                        >
-                          +
-                        </button>
-                        <button
-                          className="btn btn-small"
-                          onClick={() => updateInventory(warehouse.id, resourceId, -1)}
-                          title="Remove 1"
-                        >
-                          -
-                        </button>
-                        <button
-                          className="btn btn-small"
-                          onClick={() => updateInventory(warehouse.id, resourceId, 10)}
-                          title="Add 10"
-                        >
-                          +10
-                        </button>
-                        <button
-                          className="btn btn-small"
-                          onClick={() => updateInventory(warehouse.id, resourceId, -10)}
-                          title="Remove 10"
-                        >
-                          -10
-                        </button>
+                  {Array.from(warehouse.inventory.entries()).map(
+                    ([resourceId, amount]) => (
+                      <div key={resourceId} className="inventory-item">
+                        <span className="resource-name">
+                          {getResourceName(resourceId)}
+                        </span>
+                        <span className="resource-amount">
+                          {amount.toLocaleString()}
+                        </span>
+                        <div className="inventory-controls">
+                          <button
+                            className="btn btn-small"
+                            onClick={() =>
+                              updateInventory(warehouse.id, resourceId, 1)
+                            }
+                            title="Add 1"
+                          >
+                            +
+                          </button>
+                          <button
+                            className="btn btn-small"
+                            onClick={() =>
+                              updateInventory(warehouse.id, resourceId, -1)
+                            }
+                            title="Remove 1"
+                          >
+                            -
+                          </button>
+                          <button
+                            className="btn btn-small"
+                            onClick={() =>
+                              updateInventory(warehouse.id, resourceId, 10)
+                            }
+                            title="Add 10"
+                          >
+                            +10
+                          </button>
+                          <button
+                            className="btn btn-small"
+                            onClick={() =>
+                              updateInventory(warehouse.id, resourceId, -10)
+                            }
+                            title="Remove 10"
+                          >
+                            -10
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    )
+                  )}
                 </div>
               </div>
             </div>
@@ -230,10 +255,16 @@ export const WarehouseManager: React.FC<WarehouseManagerProps> = ({
             return (
               <div key={resource.id} className="global-inventory-item">
                 <span className="resource-name">{resource.name}</span>
-                <span className="resource-amount">{totalAmount.toLocaleString()}</span>
+                <span className="resource-amount">
+                  {totalAmount.toLocaleString()}
+                </span>
                 <div className="resource-status">
-                  {totalAmount === 0 && <span className="status-empty">Empty</span>}
-                  {totalAmount > 0 && totalAmount < 100 && <span className="status-low">Low</span>}
+                  {totalAmount === 0 && (
+                    <span className="status-empty">Empty</span>
+                  )}
+                  {totalAmount > 0 && totalAmount < 100 && (
+                    <span className="status-low">Low</span>
+                  )}
                   {totalAmount >= 100 && <span className="status-ok">OK</span>}
                 </div>
               </div>

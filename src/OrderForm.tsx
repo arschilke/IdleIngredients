@@ -9,16 +9,23 @@ interface OrderFormProps {
 }
 
 export function OrderForm({ resources, onSubmit }: OrderFormProps) {
-  const [orderType, setOrderType] = useState<'boat' | 'story' | 'building'>('story');
-  const [orderName, setOrderName] = useState('Story Order ' + new Date().toISOString());
+  const [orderType, setOrderType] = useState<'boat' | 'story' | 'building'>(
+    'story'
+  );
+  const [orderName, setOrderName] = useState(
+    'Story Order ' + new Date().toISOString()
+  );
   const [orderResources, setOrderResources] = useState<ResourceRequirement[]>([
-    { resourceId: 'saw_blade', amount: 75 , delivered: 0}
+    { resourceId: 'saw_blade', amount: 75, delivered: 0 },
   ]);
   const [expirationTime, setExpirationTime] = useState(3600); // 1 hour in seconds
   const [travelTime, setTravelTime] = useState(1800); // 30 minutes in seconds
 
   const addResource = () => {
-    setOrderResources([...orderResources, { resourceId: '', amount: 0 , delivered: 0}]);
+    setOrderResources([
+      ...orderResources,
+      { resourceId: '', amount: 0, delivered: 0 },
+    ]);
   };
 
   const removeResource = (index: number) => {
@@ -27,7 +34,11 @@ export function OrderForm({ resources, onSubmit }: OrderFormProps) {
     }
   };
 
-  const updateResource = (index: number, field: keyof ResourceRequirement, value: string | number) => {
+  const updateResource = (
+    index: number,
+    field: keyof ResourceRequirement,
+    value: string | number
+  ) => {
     const newResources = [...orderResources];
     newResources[index] = { ...newResources[index], [field]: value };
     setOrderResources(newResources);
@@ -35,7 +46,7 @@ export function OrderForm({ resources, onSubmit }: OrderFormProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!orderName.trim()) {
       alert('Please enter an order name');
       return;
@@ -52,17 +63,20 @@ export function OrderForm({ resources, onSubmit }: OrderFormProps) {
       resources: orderResources.filter(r => r.resourceId && r.amount > 0),
       ...(orderType === 'boat' && { type: 'boat', expirationTime }),
       ...(orderType === 'story' && { type: 'story', travelTime }),
-      ...(orderType === 'building' && { type: 'building' })
+      ...(orderType === 'building' && { type: 'building' }),
     } as Order;
 
     onSubmit(newOrder);
-    
+
     // Reset form
     setOrderName('');
-    setOrderResources([{
-      resourceId: '', amount: 0,
-      delivered: 0
-    }]);
+    setOrderResources([
+      {
+        resourceId: '',
+        amount: 0,
+        delivered: 0,
+      },
+    ]);
     setExpirationTime(3600);
     setTravelTime(1800);
   };
@@ -75,12 +89,16 @@ export function OrderForm({ resources, onSubmit }: OrderFormProps) {
       <div className="card-body py-3">
         <form onSubmit={handleSubmit}>
           <div className="mb-2">
-            <label htmlFor="orderType" className="form-label">Order Type:</label>
+            <label htmlFor="orderType" className="form-label">
+              Order Type:
+            </label>
             <select
               id="orderType"
               className="form-select form-select-sm"
               value={orderType}
-              onChange={(e) => setOrderType(e.target.value as 'boat' | 'story' | 'building')}
+              onChange={e =>
+                setOrderType(e.target.value as 'boat' | 'story' | 'building')
+              }
               required
             >
               <option value="story">Story Order</option>
@@ -90,13 +108,15 @@ export function OrderForm({ resources, onSubmit }: OrderFormProps) {
           </div>
 
           <div className="mb-2">
-            <label htmlFor="orderName" className="form-label">Order Name:</label>
+            <label htmlFor="orderName" className="form-label">
+              Order Name:
+            </label>
             <input
               id="orderName"
               type="text"
               className="form-control form-control-sm"
               value={orderName}
-              onChange={(e) => setOrderName(e.target.value)}
+              onChange={e => setOrderName(e.target.value)}
               placeholder="Enter order name"
               required
             />
@@ -104,7 +124,9 @@ export function OrderForm({ resources, onSubmit }: OrderFormProps) {
 
           {orderType === 'boat' && (
             <div className="mb-2">
-              <label htmlFor="expirationTime" className="form-label">Boat Expiration Time:</label>
+              <label htmlFor="expirationTime" className="form-label">
+                Boat Expiration Time:
+              </label>
               <div className="d-flex align-items-center gap-2">
                 <input
                   id="expirationTime"
@@ -114,16 +136,20 @@ export function OrderForm({ resources, onSubmit }: OrderFormProps) {
                   max="36000"
                   step="1800"
                   value={expirationTime}
-                  onChange={(e) => setExpirationTime(Number(e.target.value))}
+                  onChange={e => setExpirationTime(Number(e.target.value))}
                 />
-                <span className="badge bg-warning">{formatTime(expirationTime)}</span>
+                <span className="badge bg-warning">
+                  {formatTime(expirationTime)}
+                </span>
               </div>
             </div>
           )}
 
           {orderType === 'story' && (
             <div className="mb-1">
-              <label htmlFor="travelTime" className="form-label">Story Travel Time:</label>
+              <label htmlFor="travelTime" className="form-label">
+                Story Travel Time:
+              </label>
               <div className="d-flex align-items-center gap-2">
                 <input
                   id="travelTime"
@@ -133,7 +159,7 @@ export function OrderForm({ resources, onSubmit }: OrderFormProps) {
                   max="3600"
                   step="300"
                   value={travelTime}
-                  onChange={(e) => setTravelTime(Number(e.target.value))}
+                  onChange={e => setTravelTime(Number(e.target.value))}
                 />
                 <span className="badge bg-info">{formatTime(travelTime)}</span>
               </div>
@@ -147,11 +173,13 @@ export function OrderForm({ resources, onSubmit }: OrderFormProps) {
                 <select
                   className="form-select form-select-sm flex-grow-1"
                   value={resource.resourceId}
-                  onChange={(e) => updateResource(index, 'resourceId', e.target.value)}
+                  onChange={e =>
+                    updateResource(index, 'resourceId', e.target.value)
+                  }
                   required
                 >
                   <option value="">Select resource</option>
-                  {resources.map((r) => (
+                  {resources.map(r => (
                     <option key={r.id} value={r.id}>
                       {r.name}
                     </option>
@@ -163,7 +191,9 @@ export function OrderForm({ resources, onSubmit }: OrderFormProps) {
                   style={{ width: '100px' }}
                   min="1"
                   value={resource.amount}
-                  onChange={(e) => updateResource(index, 'amount', Number(e.target.value))}
+                  onChange={e =>
+                    updateResource(index, 'amount', Number(e.target.value))
+                  }
                   placeholder="Amount"
                   required
                 />
@@ -178,7 +208,11 @@ export function OrderForm({ resources, onSubmit }: OrderFormProps) {
                 )}
               </div>
             ))}
-            <button type="button" onClick={addResource} className="btn btn-outline-secondary btn-sm">
+            <button
+              type="button"
+              onClick={addResource}
+              className="btn btn-outline-secondary btn-sm"
+            >
               <i className="bi bi-plus me-1"></i>
               Add Resource
             </button>

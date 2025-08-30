@@ -1,0 +1,25 @@
+# Dependencies
+node_modules/
+dist/
+build/
+
+# Package files
+package-lock.json
+yarn.lock
+
+# Build outputs
+*.min.js
+*.min.css
+
+# Generated files
+*.d.ts
+
+# Logs
+*.log
+
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local

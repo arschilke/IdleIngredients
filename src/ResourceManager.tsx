@@ -1,5 +1,11 @@
 import React, { useState } from 'react';
-import { Resource, Factory, Destination, Recipe, ResourceRequirement } from './types';
+import {
+  Resource,
+  Factory,
+  Destination,
+  Recipe,
+  ResourceRequirement,
+} from './types';
 
 interface ResourceManagerProps {
   resources: Resource[];
@@ -16,23 +22,25 @@ export const ResourceManager: React.FC<ResourceManagerProps> = ({
   factories,
   onFactoriesChange,
   destinations,
-  onDestinationsChange
+  onDestinationsChange,
 }) => {
-  const [activeTab, setActiveTab] = useState<'resources' | 'factories' | 'destinations'>('resources');
+  const [activeTab, setActiveTab] = useState<
+    'resources' | 'factories' | 'destinations'
+  >('resources');
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [resourceFormData, setResourceFormData] = useState({
-    name: ''
+    name: '',
   });
   const [factoryFormData, setFactoryFormData] = useState({
     name: '',
-    queueMaxSize: 10
+    queueMaxSize: 10,
   });
   const [destinationFormData, setDestinationFormData] = useState({
     resourceId: '',
-    travelTime: 60
+    travelTime: 60,
   });
-  
+
   // Recipe management state
   const [selectedFactory, setSelectedFactory] = useState<Factory | null>(null);
   const [isAddingRecipe, setIsAddingRecipe] = useState(false);
@@ -41,7 +49,7 @@ export const ResourceManager: React.FC<ResourceManagerProps> = ({
     resourceId: '',
     timeRequired: 60,
     outputAmount: 1,
-    requirements: [] as ResourceRequirement[]
+    requirements: [] as ResourceRequirement[],
   });
 
   const resetResourceForm = () => {
@@ -67,7 +75,7 @@ export const ResourceManager: React.FC<ResourceManagerProps> = ({
       resourceId: '',
       timeRequired: 60,
       outputAmount: 1,
-      requirements: []
+      requirements: [],
     });
     setIsAddingRecipe(false);
     setEditingRecipeId(null);
@@ -75,7 +83,7 @@ export const ResourceManager: React.FC<ResourceManagerProps> = ({
 
   const handleResourceSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!resourceFormData.name) {
       alert('Please fill in the resource name.');
       return;
@@ -83,11 +91,13 @@ export const ResourceManager: React.FC<ResourceManagerProps> = ({
 
     const resource: Resource = {
       id: editingId || `resource_${Date.now()}`,
-      name: resourceFormData.name.trim()
+      name: resourceFormData.name.trim(),
     };
 
     if (editingId) {
-      onResourcesChange(resources.map(r => r.id === editingId ? resource : r));
+      onResourcesChange(
+        resources.map(r => (r.id === editingId ? resource : r))
+      );
     } else {
       onResourcesChange([...resources, resource]);
     }
@@ -97,7 +107,7 @@ export const ResourceManager: React.FC<ResourceManagerProps> = ({
 
   const handleFactorySubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!factoryFormData.name) {
       alert('Please fill in the factory name.');
       return;
@@ -109,11 +119,11 @@ export const ResourceManager: React.FC<ResourceManagerProps> = ({
       availableAt: 0,
       queue: [],
       queueMaxSize: factoryFormData.queueMaxSize,
-      recipes: []
+      recipes: [],
     };
 
     if (editingId) {
-      onFactoriesChange(factories.map(f => f.id === editingId ? factory : f));
+      onFactoriesChange(factories.map(f => (f.id === editingId ? factory : f)));
     } else {
       onFactoriesChange([...factories, factory]);
     }
@@ -123,7 +133,7 @@ export const ResourceManager: React.FC<ResourceManagerProps> = ({
 
   const handleDestinationSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!destinationFormData.resourceId) {
       alert('Please select a resource.');
       return;
@@ -133,11 +143,13 @@ export const ResourceManager: React.FC<ResourceManagerProps> = ({
       id: editingId || `destination_${Date.now()}`,
       resourceId: destinationFormData.resourceId,
       travelTime: destinationFormData.travelTime,
-      classes: ['common', 'rare', 'epic', 'legendary'] // Default to all classes
+      classes: ['common', 'rare', 'epic', 'legendary'], // Default to all classes
     };
 
     if (editingId) {
-      onDestinationsChange(destinations.map(d => d.id === editingId ? destination : d));
+      onDestinationsChange(
+        destinations.map(d => (d.id === editingId ? destination : d))
+      );
     } else {
       onDestinationsChange([...destinations, destination]);
     }
@@ -147,7 +159,7 @@ export const ResourceManager: React.FC<ResourceManagerProps> = ({
 
   const handleRecipeSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!recipeFormData.resourceId) {
       alert('Please select a resource to produce.');
       return;
@@ -162,42 +174,50 @@ export const ResourceManager: React.FC<ResourceManagerProps> = ({
       resourceId: recipeFormData.resourceId,
       timeRequired: recipeFormData.timeRequired,
       outputAmount: recipeFormData.outputAmount,
-      requires: [...recipeFormData.requirements]
+      requires: [...recipeFormData.requirements],
     };
 
     if (!selectedFactory) return;
 
     const updatedFactory: Factory = {
       ...selectedFactory,
-      recipes: editingRecipeId 
-        ? selectedFactory.recipes.map(r => r.resourceId === editingRecipeId ? recipe : r)
-        : [...selectedFactory.recipes, recipe]
+      recipes: editingRecipeId
+        ? selectedFactory.recipes.map(r =>
+            r.resourceId === editingRecipeId ? recipe : r
+          )
+        : [...selectedFactory.recipes, recipe],
     };
 
-    onFactoriesChange(factories.map(f => f.id === selectedFactory.id ? updatedFactory : f));
+    onFactoriesChange(
+      factories.map(f => (f.id === selectedFactory.id ? updatedFactory : f))
+    );
     resetRecipeForm();
   };
 
   const addRequirement = () => {
     setRecipeFormData(prev => ({
       ...prev,
-      requirements: [...prev.requirements, { resourceId: '', amount: 1 }]
+      requirements: [...prev.requirements, { resourceId: '', amount: 1 }],
     }));
   };
 
-  const updateRequirement = (index: number, field: keyof ResourceRequirement, value: string | number) => {
+  const updateRequirement = (
+    index: number,
+    field: keyof ResourceRequirement,
+    value: string | number
+  ) => {
     setRecipeFormData(prev => ({
       ...prev,
-      requirements: prev.requirements.map((req, i) => 
+      requirements: prev.requirements.map((req, i) =>
         i === index ? { ...req, [field]: value } : req
-      )
+      ),
     }));
   };
 
   const removeRequirement = (index: number) => {
     setRecipeFormData(prev => ({
       ...prev,
-      requirements: prev.requirements.filter((_, i) => i !== index)
+      requirements: prev.requirements.filter((_, i) => i !== index),
     }));
   };
 
@@ -224,13 +244,15 @@ export const ResourceManager: React.FC<ResourceManagerProps> = ({
 
   const deleteRecipe = (recipeId: string) => {
     if (!selectedFactory) return;
-    
+
     if (confirm('Are you sure you want to delete this recipe?')) {
       const updatedFactory: Factory = {
         ...selectedFactory,
-        recipes: selectedFactory.recipes.filter(r => r.resourceId !== recipeId)
+        recipes: selectedFactory.recipes.filter(r => r.resourceId !== recipeId),
       };
-      onFactoriesChange(factories.map(f => f.id === selectedFactory.id ? updatedFactory : f));
+      onFactoriesChange(
+        factories.map(f => (f.id === selectedFactory.id ? updatedFactory : f))
+      );
     }
   };
 
@@ -241,15 +263,18 @@ export const ResourceManager: React.FC<ResourceManagerProps> = ({
   };
 
   const startEditFactory = (factory: Factory) => {
-    setFactoryFormData({ name: factory.name, queueMaxSize: factory.queueMaxSize });
+    setFactoryFormData({
+      name: factory.name,
+      queueMaxSize: factory.queueMaxSize,
+    });
     setEditingId(factory.id);
     setIsAdding(true);
   };
 
   const startEditDestination = (destination: Destination) => {
-    setDestinationFormData({ 
-      resourceId: destination.resourceId, 
-      travelTime: destination.travelTime 
+    setDestinationFormData({
+      resourceId: destination.resourceId,
+      travelTime: destination.travelTime,
     });
     setEditingId(destination.id);
     setIsAdding(true);
@@ -260,7 +285,7 @@ export const ResourceManager: React.FC<ResourceManagerProps> = ({
       resourceId: recipe.resourceId,
       timeRequired: recipe.timeRequired,
       outputAmount: recipe.outputAmount || 1,
-      requirements: [...recipe.requires]
+      requirements: [...recipe.requires],
     });
     setEditingRecipeId(recipe.resourceId);
     setIsAddingRecipe(true);
@@ -273,19 +298,19 @@ export const ResourceManager: React.FC<ResourceManagerProps> = ({
   return (
     <div className="resource-manager">
       <div className="tabs">
-        <button 
+        <button
           className={`tab-button ${activeTab === 'resources' ? 'active' : ''}`}
           onClick={() => setActiveTab('resources')}
         >
           Resources
         </button>
-        <button 
+        <button
           className={`tab-button ${activeTab === 'factories' ? 'active' : ''}`}
           onClick={() => setActiveTab('factories')}
         >
           Factories
         </button>
-        <button 
+        <button
           className={`tab-button ${activeTab === 'destinations' ? 'active' : ''}`}
           onClick={() => setActiveTab('destinations')}
         >
@@ -296,10 +321,7 @@ export const ResourceManager: React.FC<ResourceManagerProps> = ({
       {activeTab === 'resources' && (
         <div className="tab-content">
           <h2>Resources</h2>
-          <button 
-            className="btn btn-primary"
-            onClick={() => setIsAdding(true)}
-          >
+          <button className="btn btn-primary" onClick={() => setIsAdding(true)}>
             Add Resource
           </button>
 
@@ -311,7 +333,7 @@ export const ResourceManager: React.FC<ResourceManagerProps> = ({
                   id="resourceName"
                   type="text"
                   value={resourceFormData.name}
-                  onChange={(e) => setResourceFormData({ name: e.target.value })}
+                  onChange={e => setResourceFormData({ name: e.target.value })}
                   placeholder="Enter resource name"
                   required
                 />
@@ -320,7 +342,11 @@ export const ResourceManager: React.FC<ResourceManagerProps> = ({
                 <button type="submit" className="btn btn-primary">
                   {editingId ? 'Update' : 'Add'} Resource
                 </button>
-                <button type="button" className="btn" onClick={resetResourceForm}>
+                <button
+                  type="button"
+                  className="btn"
+                  onClick={resetResourceForm}
+                >
                   Cancel
                 </button>
               </div>
@@ -335,13 +361,13 @@ export const ResourceManager: React.FC<ResourceManagerProps> = ({
                   <p>ID: {resource.id}</p>
                 </div>
                 <div className="resource-actions">
-                  <button 
+                  <button
                     className="btn"
                     onClick={() => startEditResource(resource)}
                   >
                     Edit
                   </button>
-                  <button 
+                  <button
                     className="btn btn-danger"
                     onClick={() => deleteResource(resource.id)}
                   >
@@ -357,10 +383,7 @@ export const ResourceManager: React.FC<ResourceManagerProps> = ({
       {activeTab === 'factories' && (
         <div className="tab-content">
           <h2>Factories</h2>
-          <button 
-            className="btn btn-primary"
-            onClick={() => setIsAdding(true)}
-          >
+          <button className="btn btn-primary" onClick={() => setIsAdding(true)}>
             Add Factory
           </button>
 
@@ -372,7 +395,12 @@ export const ResourceManager: React.FC<ResourceManagerProps> = ({
                   id="factoryName"
                   type="text"
                   value={factoryFormData.name}
-                  onChange={(e) => setFactoryFormData({ ...factoryFormData, name: e.target.value })}
+                  onChange={e =>
+                    setFactoryFormData({
+                      ...factoryFormData,
+                      name: e.target.value,
+                    })
+                  }
                   placeholder="Enter factory name"
                   required
                 />
@@ -383,7 +411,12 @@ export const ResourceManager: React.FC<ResourceManagerProps> = ({
                   id="queueMaxSize"
                   type="number"
                   value={factoryFormData.queueMaxSize}
-                  onChange={(e) => setFactoryFormData({ ...factoryFormData, queueMaxSize: parseInt(e.target.value) || 10 })}
+                  onChange={e =>
+                    setFactoryFormData({
+                      ...factoryFormData,
+                      queueMaxSize: parseInt(e.target.value) || 10,
+                    })
+                  }
                   min="1"
                   required
                 />
@@ -392,7 +425,11 @@ export const ResourceManager: React.FC<ResourceManagerProps> = ({
                 <button type="submit" className="btn btn-primary">
                   {editingId ? 'Update' : 'Add'} Factory
                 </button>
-                <button type="button" className="btn" onClick={resetFactoryForm}>
+                <button
+                  type="button"
+                  className="btn"
+                  onClick={resetFactoryForm}
+                >
                   Cancel
                 </button>
               </div>
@@ -408,19 +445,19 @@ export const ResourceManager: React.FC<ResourceManagerProps> = ({
                   <p>Recipes: {factory.recipes.length}</p>
                 </div>
                 <div className="factory-actions">
-                  <button 
+                  <button
                     className="btn"
                     onClick={() => startEditFactory(factory)}
                   >
                     Edit
                   </button>
-                  <button 
+                  <button
                     className="btn btn-primary"
                     onClick={() => setSelectedFactory(factory)}
                   >
                     Manage Recipes
                   </button>
-                  <button 
+                  <button
                     className="btn btn-danger"
                     onClick={() => deleteFactory(factory.id)}
                   >
@@ -437,7 +474,7 @@ export const ResourceManager: React.FC<ResourceManagerProps> = ({
               <div className="recipe-modal-content">
                 <div className="recipe-modal-header">
                   <h3>Manage Recipes for {selectedFactory.name}</h3>
-                  <button 
+                  <button
                     className="btn"
                     onClick={() => setSelectedFactory(null)}
                   >
@@ -453,18 +490,24 @@ export const ResourceManager: React.FC<ResourceManagerProps> = ({
                         <h5>Produces: {getResourceName(recipe.resourceId)}</h5>
                         <p>Time: {recipe.timeRequired}s</p>
                         <p>Output: {recipe.outputAmount || 1}</p>
-                        <p>Requires: {recipe.requires.map(req => 
-                          `${req.amount} ${getResourceName(req.resourceId)}`
-                        ).join(', ')}</p>
+                        <p>
+                          Requires:{' '}
+                          {recipe.requires
+                            .map(
+                              req =>
+                                `${req.amount} ${getResourceName(req.resourceId)}`
+                            )
+                            .join(', ')}
+                        </p>
                       </div>
                       <div className="recipe-actions">
-                        <button 
+                        <button
                           className="btn"
                           onClick={() => startEditRecipe(recipe)}
                         >
                           Edit
                         </button>
-                        <button 
+                        <button
                           className="btn btn-danger"
                           onClick={() => deleteRecipe(recipe.resourceId)}
                         >
@@ -477,7 +520,7 @@ export const ResourceManager: React.FC<ResourceManagerProps> = ({
 
                 <div className="add-recipe-section">
                   <h4>Add New Recipe</h4>
-                  <button 
+                  <button
                     className="btn btn-primary"
                     onClick={() => setIsAddingRecipe(true)}
                   >
@@ -487,11 +530,18 @@ export const ResourceManager: React.FC<ResourceManagerProps> = ({
                   {isAddingRecipe && (
                     <form onSubmit={handleRecipeSubmit} className="form">
                       <div className="form-group">
-                        <label htmlFor="recipeResource">Produces Resource:</label>
+                        <label htmlFor="recipeResource">
+                          Produces Resource:
+                        </label>
                         <select
                           id="recipeResource"
                           value={recipeFormData.resourceId}
-                          onChange={(e) => setRecipeFormData({ ...recipeFormData, resourceId: e.target.value })}
+                          onChange={e =>
+                            setRecipeFormData({
+                              ...recipeFormData,
+                              resourceId: e.target.value,
+                            })
+                          }
                           required
                         >
                           <option value="">Select a resource to produce</option>
@@ -504,12 +554,19 @@ export const ResourceManager: React.FC<ResourceManagerProps> = ({
                       </div>
 
                       <div className="form-group">
-                        <label htmlFor="recipeTime">Production Time (seconds):</label>
+                        <label htmlFor="recipeTime">
+                          Production Time (seconds):
+                        </label>
                         <input
                           id="recipeTime"
                           type="number"
                           value={recipeFormData.timeRequired}
-                          onChange={(e) => setRecipeFormData({ ...recipeFormData, timeRequired: parseInt(e.target.value) || 60 })}
+                          onChange={e =>
+                            setRecipeFormData({
+                              ...recipeFormData,
+                              timeRequired: parseInt(e.target.value) || 60,
+                            })
+                          }
                           min="1"
                           required
                         />
@@ -521,7 +578,12 @@ export const ResourceManager: React.FC<ResourceManagerProps> = ({
                           id="recipeOutput"
                           type="number"
                           value={recipeFormData.outputAmount}
-                          onChange={(e) => setRecipeFormData({ ...recipeFormData, outputAmount: parseInt(e.target.value) || 1 })}
+                          onChange={e =>
+                            setRecipeFormData({
+                              ...recipeFormData,
+                              outputAmount: parseInt(e.target.value) || 1,
+                            })
+                          }
                           min="1"
                           required
                         />
@@ -529,20 +591,26 @@ export const ResourceManager: React.FC<ResourceManagerProps> = ({
 
                       <div className="form-group">
                         <label>Resource Requirements:</label>
-                        <button 
-                          type="button" 
+                        <button
+                          type="button"
                           onClick={addRequirement}
                           className="btn"
                           style={{ marginBottom: '1rem' }}
                         >
                           Add Requirement
                         </button>
-                        
+
                         {recipeFormData.requirements.map((req, index) => (
                           <div key={index} className="requirement-row">
                             <select
                               value={req.resourceId}
-                              onChange={(e) => updateRequirement(index, 'resourceId', e.target.value)}
+                              onChange={e =>
+                                updateRequirement(
+                                  index,
+                                  'resourceId',
+                                  e.target.value
+                                )
+                              }
                               required
                             >
                               <option value="">Select resource...</option>
@@ -552,16 +620,22 @@ export const ResourceManager: React.FC<ResourceManagerProps> = ({
                                 </option>
                               ))}
                             </select>
-                            
+
                             <input
                               type="number"
                               value={req.amount}
-                              onChange={(e) => updateRequirement(index, 'amount', parseInt(e.target.value) || 1)}
+                              onChange={e =>
+                                updateRequirement(
+                                  index,
+                                  'amount',
+                                  parseInt(e.target.value) || 1
+                                )
+                              }
                               placeholder="Amount"
                               min="1"
                               required
                             />
-                            
+
                             <button
                               type="button"
                               onClick={() => removeRequirement(index)}
@@ -577,7 +651,11 @@ export const ResourceManager: React.FC<ResourceManagerProps> = ({
                         <button type="submit" className="btn btn-primary">
                           {editingRecipeId ? 'Update' : 'Add'} Recipe
                         </button>
-                        <button type="button" className="btn" onClick={resetRecipeForm}>
+                        <button
+                          type="button"
+                          className="btn"
+                          onClick={resetRecipeForm}
+                        >
                           Cancel
                         </button>
                       </div>
@@ -593,10 +671,7 @@ export const ResourceManager: React.FC<ResourceManagerProps> = ({
       {activeTab === 'destinations' && (
         <div className="tab-content">
           <h2>Destinations</h2>
-          <button 
-            className="btn btn-primary"
-            onClick={() => setIsAdding(true)}
-          >
+          <button className="btn btn-primary" onClick={() => setIsAdding(true)}>
             Add Destination
           </button>
 
@@ -607,7 +682,12 @@ export const ResourceManager: React.FC<ResourceManagerProps> = ({
                 <select
                   id="destinationResource"
                   value={destinationFormData.resourceId}
-                  onChange={(e) => setDestinationFormData({ ...destinationFormData, resourceId: e.target.value })}
+                  onChange={e =>
+                    setDestinationFormData({
+                      ...destinationFormData,
+                      resourceId: e.target.value,
+                    })
+                  }
                   required
                 >
                   <option value="">Select a resource</option>
@@ -624,7 +704,12 @@ export const ResourceManager: React.FC<ResourceManagerProps> = ({
                   id="travelTime"
                   type="number"
                   value={destinationFormData.travelTime}
-                  onChange={(e) => setDestinationFormData({ ...destinationFormData, travelTime: parseInt(e.target.value) || 60 })}
+                  onChange={e =>
+                    setDestinationFormData({
+                      ...destinationFormData,
+                      travelTime: parseInt(e.target.value) || 60,
+                    })
+                  }
                   min="1"
                   required
                 />
@@ -633,7 +718,11 @@ export const ResourceManager: React.FC<ResourceManagerProps> = ({
                 <button type="submit" className="btn btn-primary">
                   {editingId ? 'Update' : 'Add'} Destination
                 </button>
-                <button type="button" className="btn" onClick={resetDestinationForm}>
+                <button
+                  type="button"
+                  className="btn"
+                  onClick={resetDestinationForm}
+                >
                   Cancel
                 </button>
               </div>
@@ -642,7 +731,9 @@ export const ResourceManager: React.FC<ResourceManagerProps> = ({
 
           <div className="destinations-list">
             {destinations.map(destination => {
-              const resource = resources.find(r => r.id === destination.resourceId);
+              const resource = resources.find(
+                r => r.id === destination.resourceId
+              );
               return (
                 <div key={destination.id} className="destination-item">
                   <div className="destination-info">
@@ -651,13 +742,13 @@ export const ResourceManager: React.FC<ResourceManagerProps> = ({
                     <p>Travel Time: {destination.travelTime}s</p>
                   </div>
                   <div className="destination-actions">
-                    <button 
+                    <button
                       className="btn"
                       onClick={() => startEditDestination(destination)}
                     >
                       Edit
                     </button>
-                    <button 
+                    <button
                       className="btn btn-danger"
                       onClick={() => deleteDestination(destination.id)}
                     >

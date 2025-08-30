@@ -11,7 +11,7 @@ interface CurrentInventoryProps {
 export const CurrentInventory: React.FC<CurrentInventoryProps> = ({
   gameState,
   activeLevel,
-  productionPlan
+  productionPlan,
 }) => {
   const getCurrentInventory = () => {
     const inventory = new Map<string, number>();
@@ -37,16 +37,16 @@ export const CurrentInventory: React.FC<CurrentInventoryProps> = ({
     return inventory;
   };
 
-
-
   const getActiveLevelResourceNeeds = () => {
     if (!productionPlan) return new Map();
-    
-    const activeLevelData = productionPlan.levels.find(level => level.level === activeLevel);
+
+    const activeLevelData = productionPlan.levels.find(
+      level => level.level === activeLevel
+    );
     if (!activeLevelData) return new Map();
-    
+
     const resourceNeeds = new Map<string, number>();
-    
+
     // Calculate total resources needed for all jobs in the active level
     activeLevelData.steps.forEach(step => {
       if (step.recipe) {
@@ -56,20 +56,23 @@ export const CurrentInventory: React.FC<CurrentInventoryProps> = ({
           resourceNeeds.set(req.resourceId, current + req.amount);
         });
       }
-              if (step.type === 'delivery') {
-          const requiredAmount = step.amountProcessed;
-          const current = resourceNeeds.get(step.resourceId) || 0;
-          resourceNeeds.set(step.resourceId, current + requiredAmount);
-        }
+      if (step.type === 'delivery') {
+        const requiredAmount = step.amountProcessed;
+        const current = resourceNeeds.get(step.resourceId) || 0;
+        resourceNeeds.set(step.resourceId, current + requiredAmount);
+      }
     });
-    
+
     return resourceNeeds;
   };
 
-  const getResourceNumberColor = (resourceId: string, amount: number): string => {
+  const getResourceNumberColor = (
+    resourceId: string,
+    amount: number
+  ): string => {
     const activeLevelNeeds = getActiveLevelResourceNeeds();
     const neededAmount = activeLevelNeeds.get(resourceId) || 0;
-    
+
     if (neededAmount === 0) return 'text-muted'; // No need for this resource
     if (amount >= neededAmount) return 'text-success'; // Sufficient resources
     if (amount > 0) return 'text-warning'; // Some resources but not enough
@@ -79,7 +82,9 @@ export const CurrentInventory: React.FC<CurrentInventoryProps> = ({
   const getActiveLevelInventoryChanges = () => {
     if (!productionPlan) return new Map();
 
-    const activeLevelData = productionPlan.levels.find(level => level.level === activeLevel);
+    const activeLevelData = productionPlan.levels.find(
+      level => level.level === activeLevel
+    );
     return activeLevelData?.inventoryChanges || new Map();
   };
 
@@ -102,13 +107,16 @@ export const CurrentInventory: React.FC<CurrentInventoryProps> = ({
       <div className="card-body">
         <div className="mb-2">
           {activeLevelData && (
-            <div className={`alert ${activeLevelData.done ? 'alert-secondary' : 'alert-info'}`}>
+            <div
+              className={`alert ${activeLevelData.done ? 'alert-secondary' : 'alert-info'}`}
+            >
               <small>
-                <i className={`bi ${activeLevelData.done ? 'bi-check-circle' : 'bi-info-circle'}`}></i>
-                {activeLevelData.done 
+                <i
+                  className={`bi ${activeLevelData.done ? 'bi-check-circle' : 'bi-info-circle'}`}
+                ></i>
+                {activeLevelData.done
                   ? ` Level ${activeLevel} is completed`
-                  : ` Showing inventory at the end of level ${activeLevel}`
-                }
+                  : ` Showing inventory at the end of level ${activeLevel}`}
               </small>
             </div>
           )}
@@ -129,14 +137,18 @@ export const CurrentInventory: React.FC<CurrentInventoryProps> = ({
               Level {activeLevel} Changes:
             </h6>
             <div className="d-flex flex-wrap gap-1">
-              {Array.from(activeLevelChanges.entries()).map(([resourceId, change]) => (
-                <span
-                  key={resourceId}
-                  className={`badge ${change > 0 ? 'bg-success' : 'bg-danger'}`}
-                >
-                  {getResourceName(resourceId, gameState)} {change > 0 ? '+' : ''}{change}
-                </span>
-              ))}
+              {Array.from(activeLevelChanges.entries()).map(
+                ([resourceId, change]) => (
+                  <span
+                    key={resourceId}
+                    className={`badge ${change > 0 ? 'bg-success' : 'bg-danger'}`}
+                  >
+                    {getResourceName(resourceId, gameState)}{' '}
+                    {change > 0 ? '+' : ''}
+                    {change}
+                  </span>
+                )
+              )}
             </div>
           </div>
         )}
@@ -152,34 +164,51 @@ export const CurrentInventory: React.FC<CurrentInventoryProps> = ({
             </span>
           </div>
           <div className="d-flex flex-wrap gap-2 small text-muted">
-            <span><i className="bi bi-circle-fill text-success me-1"></i>Sufficient</span>
-            <span><i className="bi bi-circle-fill text-warning me-1"></i>Insufficient</span>
-            <span><i className="bi bi-circle-fill text-danger me-1"></i>Missing</span>
-            <span><i className="bi bi-circle-fill text-muted me-1"></i>Not Needed</span>
+            <span>
+              <i className="bi bi-circle-fill text-success me-1"></i>Sufficient
+            </span>
+            <span>
+              <i className="bi bi-circle-fill text-warning me-1"></i>
+              Insufficient
+            </span>
+            <span>
+              <i className="bi bi-circle-fill text-danger me-1"></i>Missing
+            </span>
+            <span>
+              <i className="bi bi-circle-fill text-muted me-1"></i>Not Needed
+            </span>
           </div>
         </div>
 
         <div className="inventory-grid">
           <div className="row row-cols-2 row-cols-md-3 row-cols-lg-4 g-2">
-            {Array.from(currentInventory.entries()).map(([resourceId, amount]) => {
-              return (
-                <div key={resourceId} className="col">
-                  <div className="card h-100 border-0 shadow-sm">
-                    <div className="card-body p-2 text-center">
-                      <div className="mb-2">
-                        <i className="bi bi-box-seam fs-4 text-muted"></i>
-                      </div>
-                      <div className="mb-1">
-                        <span className="fw-medium small text-truncate d-block">{getResourceName(resourceId, gameState)}</span>
-                      </div>
-                      <div>
-                        <span className={`fw-bold fs-4 ${getResourceNumberColor(resourceId, amount)}`}>{amount}</span>
+            {Array.from(currentInventory.entries()).map(
+              ([resourceId, amount]) => {
+                return (
+                  <div key={resourceId} className="col">
+                    <div className="card h-100 border-0 shadow-sm">
+                      <div className="card-body p-2 text-center">
+                        <div className="mb-2">
+                          <i className="bi bi-box-seam fs-4 text-muted"></i>
+                        </div>
+                        <div className="mb-1">
+                          <span className="fw-medium small text-truncate d-block">
+                            {getResourceName(resourceId, gameState)}
+                          </span>
+                        </div>
+                        <div>
+                          <span
+                            className={`fw-bold fs-4 ${getResourceNumberColor(resourceId, amount)}`}
+                          >
+                            {amount}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              }
+            )}
           </div>
         </div>
 

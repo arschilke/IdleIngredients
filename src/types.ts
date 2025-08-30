@@ -8,7 +8,7 @@ export interface Train {
   name: string;
   capacity: number;
   availableAt: number;
-  class: TrainClass; 
+  class: TrainClass;
 }
 
 export interface Recipe {

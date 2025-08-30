@@ -1,5 +1,11 @@
 import React, { useState } from 'react';
-import { PlanningLevel, PlannedStep, GameState, Recipe, Destination } from './types';
+import {
+  PlanningLevel,
+  PlannedStep,
+  GameState,
+  Recipe,
+  Destination,
+} from './types';
 import { ProductionJob } from './ProductionJob';
 import { formatTime } from './utils';
 import { getBestTrains } from './trainUtils';
@@ -15,7 +21,11 @@ interface ProductionLevelProps {
   onLevelChange: (updatedLevel: PlanningLevel) => void;
   onAddStepToLevel: (step: PlannedStep, targetLevel: number) => void;
   onReorderJob?: (levelNumber: number, jobId: string, newIndex: number) => void;
-  onMoveJobToLevel?: (jobId: string, fromLevel: number, toLevel: number) => void;
+  onMoveJobToLevel?: (
+    jobId: string,
+    fromLevel: number,
+    toLevel: number
+  ) => void;
 }
 
 export const ProductionLevel: React.FC<ProductionLevelProps> = ({
@@ -28,13 +38,16 @@ export const ProductionLevel: React.FC<ProductionLevelProps> = ({
   onLevelChange,
   onAddStepToLevel,
   onReorderJob,
-  onMoveJobToLevel
+  onMoveJobToLevel,
 }) => {
   const [showAddJobModal, setShowAddJobModal] = useState<boolean>(false);
-  const [newJobType, setNewJobType] = useState<'factory' | 'destination' | 'delivery'>('factory');
+  const [newJobType, setNewJobType] = useState<
+    'factory' | 'destination' | 'delivery'
+  >('factory');
   const [selectedResource, setSelectedResource] = useState('');
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
-  const [selectedDestination, setSelectedDestination] = useState<Destination | null>(null);
+  const [selectedDestination, setSelectedDestination] =
+    useState<Destination | null>(null);
   const [draggedJobId, setDraggedJobId] = useState<string | null>(null);
   const [dragOverLevel, setDragOverLevel] = useState<number | null>(null);
   const [dragOverJobIndex, setDragOverJobIndex] = useState<number | null>(null);
@@ -42,12 +55,17 @@ export const ProductionLevel: React.FC<ProductionLevelProps> = ({
   // Check if inventory has enough resources for all jobs in this level
   const checkInventorySufficiency = () => {
     // Use the utility function to check resource sufficiency based on previous level's warehouse state
-    const insufficientResources = checkLevelResourceSufficiency(level, previousLevelWarehouseState);
-    
+    const insufficientResources = checkLevelResourceSufficiency(
+      level,
+      previousLevelWarehouseState
+    );
+
     // Add resource names to the insufficient resources
     return insufficientResources.map(resource => ({
       ...resource,
-      name: gameState.resources.find(r => r.id === resource.resourceId)?.name || resource.resourceId
+      name:
+        gameState.resources.find(r => r.id === resource.resourceId)?.name ||
+        resource.resourceId,
     }));
   };
 
@@ -78,10 +96,12 @@ export const ProductionLevel: React.FC<ProductionLevelProps> = ({
               stepIndex,
               step,
               resourceId: req.resourceId,
-              resourceName: gameState.resources.find(r => r.id === req.resourceId)?.name || req.resourceId,
+              resourceName:
+                gameState.resources.find(r => r.id === req.resourceId)?.name ||
+                req.resourceId,
               required: req.amount,
               available: currentAmount,
-              remainingAfterStep: 0
+              remainingAfterStep: 0,
             });
           } else {
             // Update inventory after this step
@@ -96,13 +116,18 @@ export const ProductionLevel: React.FC<ProductionLevelProps> = ({
             stepIndex,
             step,
             resourceId: step.resourceId,
-            resourceName: gameState.resources.find(r => r.id === step.resourceId)?.name || step.resourceId,
+            resourceName:
+              gameState.resources.find(r => r.id === step.resourceId)?.name ||
+              step.resourceId,
             required: step.amountProcessed,
             available: currentAmount,
-            remainingAfterStep: 0
+            remainingAfterStep: 0,
           });
         } else {
-          currentInventory.set(step.resourceId, currentAmount - step.amountProcessed);
+          currentInventory.set(
+            step.resourceId,
+            currentAmount - step.amountProcessed
+          );
         }
       }
     });
@@ -112,9 +137,11 @@ export const ProductionLevel: React.FC<ProductionLevelProps> = ({
 
   const onAddJobToLevel = (newStep: PlannedStep) => {
     level.steps.push(newStep);
-    level.endTime = Math.max(...level.steps.map(s => s.endTime || 0))
-    level.estimatedTime = Math.max(...level.steps.map(s => s.endTime || 0))
-    level.trainCount = level.steps.filter(step => step.trainId !== undefined).length;
+    level.endTime = Math.max(...level.steps.map(s => s.endTime || 0));
+    level.estimatedTime = Math.max(...level.steps.map(s => s.endTime || 0));
+    level.trainCount = level.steps.filter(
+      step => step.trainId !== undefined
+    ).length;
     onLevelChange(level);
   };
 
@@ -122,7 +149,7 @@ export const ProductionLevel: React.FC<ProductionLevelProps> = ({
     const updatedSteps = level.steps.filter(step => step.id !== stepId);
     const updatedLevel = {
       ...level,
-      steps: updatedSteps
+      steps: updatedSteps,
     };
     onLevelChange(updatedLevel);
   };
@@ -151,7 +178,7 @@ export const ProductionLevel: React.FC<ProductionLevelProps> = ({
   const handleDragOver = (e: React.DragEvent, jobIndex?: number) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
-    
+
     if (jobIndex !== undefined) {
       setDragOverJobIndex(jobIndex);
     }
@@ -166,7 +193,7 @@ export const ProductionLevel: React.FC<ProductionLevelProps> = ({
   const handleDrop = (e: React.DragEvent, targetJobIndex?: number) => {
     e.preventDefault();
     const draggedJobId = e.dataTransfer.getData('text/plain');
-    
+
     if (draggedJobId && draggedJobId !== '') {
       if (targetJobIndex !== undefined) {
         // Reordering within the same level
@@ -176,7 +203,7 @@ export const ProductionLevel: React.FC<ProductionLevelProps> = ({
         handleMoveJobToLevel(draggedJobId, level.level);
       }
     }
-    
+
     setDraggedJobId(null);
     setDragOverJobIndex(null);
     setDragOverLevel(null);
@@ -200,7 +227,7 @@ export const ProductionLevel: React.FC<ProductionLevelProps> = ({
           timeRequired: recipe.timeRequired,
           amountProcessed: recipe.outputAmount,
           dependencies: [],
-          recipe: recipe
+          recipe: recipe,
         };
 
         // If we're at level 1, create a new level at the beginning
@@ -210,11 +237,19 @@ export const ProductionLevel: React.FC<ProductionLevelProps> = ({
       }
     }
 
-    const destination = gameState.destinations.find(d => d.resourceId === resourceId);
+    const destination = gameState.destinations.find(
+      d => d.resourceId === resourceId
+    );
     if (destination) {
-      var neededAmount = checkInventorySufficiency().find(r => r.resourceId === resourceId);
+      var neededAmount = checkInventorySufficiency().find(
+        r => r.resourceId === resourceId
+      );
       if (neededAmount) {
-        const trains = getBestTrains(level, neededAmount.required, gameState.trains);
+        const trains = getBestTrains(
+          level,
+          neededAmount.required,
+          gameState.trains
+        );
         for (let train of trains) {
           const newStep: PlannedStep = {
             id: `destination_${resourceId}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -224,7 +259,7 @@ export const ProductionLevel: React.FC<ProductionLevelProps> = ({
             timeRequired: destination.travelTime,
             trainId: train.id,
             amountProcessed: train.capacity,
-            dependencies: []
+            dependencies: [],
           };
           // If we're at level 1, create a new level at the beginning
           // Otherwise, add to the previous level
@@ -239,13 +274,16 @@ export const ProductionLevel: React.FC<ProductionLevelProps> = ({
 
   return (
     <div
-      className={`level-container mb-2 p-3 border rounded bg-opacity-10 ${level.done ? 'bg-secondary border-secondary text-muted' :
-          level.trainCount > gameState.maxConcurrentTrains ? 'bg-danger border-danger' :
-            'bg-light'
-        } ${isActiveLevel ? 'border-primary border-2 shadow-lg' : ''} ${showAddJobModal ? 'modal-open' : ''} ${dragOverLevel === level.level ? 'drag-over' : ''}`}
-      onDragOver={(e) => handleDragOver(e)}
+      className={`level-container mb-2 p-3 border rounded bg-opacity-10 ${
+        level.done
+          ? 'bg-secondary border-secondary text-muted'
+          : level.trainCount > gameState.maxConcurrentTrains
+            ? 'bg-danger border-danger'
+            : 'bg-light'
+      } ${isActiveLevel ? 'border-primary border-2 shadow-lg' : ''} ${showAddJobModal ? 'modal-open' : ''} ${dragOverLevel === level.level ? 'drag-over' : ''}`}
+      onDragOver={e => handleDragOver(e)}
       onDragLeave={handleDragLeave}
-      onDrop={(e) => handleDrop(e)}
+      onDrop={e => handleDrop(e)}
     >
       <div className="level-header d-flex justify-content-between align-items-center mb-2">
         <div className="d-flex align-items-center gap-2">
@@ -267,7 +305,8 @@ export const ProductionLevel: React.FC<ProductionLevelProps> = ({
           )}
           {checkInventorySufficiency().length > 0 && (
             <span className="badge bg-warning">
-              <i className="bi bi-exclamation-triangle"></i> Insufficient Resources
+              <i className="bi bi-exclamation-triangle"></i> Insufficient
+              Resources
             </span>
           )}
         </div>
@@ -305,7 +344,8 @@ export const ProductionLevel: React.FC<ProductionLevelProps> = ({
 
       <div className="level-info mb-2">
         <small className="text-muted">
-          {level.description} • {level.trainCount} trains • {formatTime(level.estimatedTime)}
+          {level.description} • {level.trainCount} trains •{' '}
+          {formatTime(level.estimatedTime)}
         </small>
       </div>
 
@@ -316,10 +356,14 @@ export const ProductionLevel: React.FC<ProductionLevelProps> = ({
           <strong>Resource Depletion Analysis:</strong>
           <div className="mt-2">
             {resourceDepletionSteps.map((depletion, index) => (
-              <div key={index} className="mb-2 p-2 border-start border-warning border-3 ps-3 bg-light">
+              <div
+                key={index}
+                className="mb-2 p-2 border-start border-warning border-3 ps-3 bg-light"
+              >
                 <div className="d-flex justify-content-between align-items-center">
                   <span className="fw-bold">
-                    Step {depletion.stepIndex + 1}: {depletion.step.type === 'factory' ? 'Factory' : 'Delivery'}
+                    Step {depletion.stepIndex + 1}:{' '}
+                    {depletion.step.type === 'factory' ? 'Factory' : 'Delivery'}
                   </span>
                   <span className="badge bg-danger">
                     <i className="bi bi-x-circle"></i> Resource Depleted
@@ -329,7 +373,8 @@ export const ProductionLevel: React.FC<ProductionLevelProps> = ({
                   <strong>{depletion.resourceName}</strong> will run out here
                 </div>
                 <div className="small">
-                  Required: {depletion.required} | Available: {depletion.available}
+                  Required: {depletion.required} | Available:{' '}
+                  {depletion.available}
                 </div>
                 <button
                   className="btn btn-sm btn-outline-primary mt-1"
@@ -346,10 +391,10 @@ export const ProductionLevel: React.FC<ProductionLevelProps> = ({
 
       <div className="level-steps">
         {level.steps.length === 0 ? (
-          <div 
+          <div
             className="drop-zone p-3 text-center text-muted border-2 border-dashed rounded"
-            onDragOver={(e) => handleDragOver(e)}
-            onDrop={(e) => handleDrop(e)}
+            onDragOver={e => handleDragOver(e)}
+            onDrop={e => handleDrop(e)}
           >
             <i className="bi bi-arrow-down-circle fs-1"></i>
             <p className="mb-0">Drop jobs here to move them to this level</p>
@@ -358,23 +403,23 @@ export const ProductionLevel: React.FC<ProductionLevelProps> = ({
           level.steps.map((step, stepIndex) => (
             <React.Fragment key={step.id}>
               {/* Drop zone above each job */}
-              <div 
+              <div
                 className={`drop-zone ${dragOverJobIndex === stepIndex ? 'bg-primary bg-opacity-25' : ''}`}
                 style={{ height: '8px', margin: '2px 0' }}
-                onDragOver={(e) => handleDragOver(e, stepIndex)}
-                onDrop={(e) => handleDrop(e, stepIndex)}
+                onDragOver={e => handleDragOver(e, stepIndex)}
+                onDrop={e => handleDrop(e, stepIndex)}
               />
-              
+
               <ProductionJob
                 job={step}
                 gameState={gameState}
-                onJobUpdate={(updatedJob) => {
+                onJobUpdate={updatedJob => {
                   const updatedSteps = level.steps.map(s =>
                     s.id === updatedJob.id ? updatedJob : s
                   );
                   const updatedLevel = {
                     ...level,
-                    steps: updatedSteps
+                    steps: updatedSteps,
                   };
                   onLevelChange(updatedLevel);
                 }}
@@ -385,25 +430,29 @@ export const ProductionLevel: React.FC<ProductionLevelProps> = ({
                 isDragging={draggedJobId === step.id}
                 dragHandleProps={{
                   draggable: true,
-                  onDragStart: (e: React.DragEvent) => handleDragStart(e, step.id)
+                  onDragStart: (e: React.DragEvent) =>
+                    handleDragStart(e, step.id),
                 }}
               />
             </React.Fragment>
           ))
         )}
-        
+
         {/* Drop zone at the end of all jobs */}
-        <div 
+        <div
           className={`drop-zone ${dragOverJobIndex === level.steps.length ? 'bg-primary bg-opacity-25' : ''}`}
           style={{ height: '8px', margin: '2px 0' }}
-          onDragOver={(e) => handleDragOver(e, level.steps.length)}
-          onDrop={(e) => handleDrop(e, level.steps.length)}
+          onDragOver={e => handleDragOver(e, level.steps.length)}
+          onDrop={e => handleDrop(e, level.steps.length)}
         />
       </div>
 
       {/* Add Job Modal */}
       {showAddJobModal && (
-        <div className="modal fade show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 9999 }}>
+        <div
+          className="modal fade show d-block"
+          style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 9999 }}
+        >
           <div className="modal-dialog modal-dialog-centered">
             <div className="modal-content">
               <div className="modal-header">
@@ -420,7 +469,11 @@ export const ProductionLevel: React.FC<ProductionLevelProps> = ({
                   <select
                     className="form-select"
                     value={newJobType}
-                    onChange={(e) => setNewJobType(e.target.value as 'factory' | 'destination' | 'delivery')}
+                    onChange={e =>
+                      setNewJobType(
+                        e.target.value as 'factory' | 'destination' | 'delivery'
+                      )
+                    }
                   >
                     <option value="factory">Factory Production</option>
                     <option value="destination">Resource Gathering</option>
@@ -434,7 +487,7 @@ export const ProductionLevel: React.FC<ProductionLevelProps> = ({
                     <select
                       className="form-select"
                       value={selectedResource}
-                      onChange={(e) => {
+                      onChange={e => {
                         setSelectedResource(e.target.value);
                         const recipe = gameState.factories
                           .flatMap(f => f.recipes)
@@ -443,11 +496,18 @@ export const ProductionLevel: React.FC<ProductionLevelProps> = ({
                       }}
                     >
                       <option value="">Select a resource...</option>
-                      {gameState.factories.flatMap(f => f.recipes).map(recipe => (
-                        <option key={recipe.resourceId} value={recipe.resourceId}>
-                          {gameState.resources.find(r => r.id === recipe.resourceId)?.name || recipe.resourceId}
-                        </option>
-                      ))}
+                      {gameState.factories
+                        .flatMap(f => f.recipes)
+                        .map(recipe => (
+                          <option
+                            key={recipe.resourceId}
+                            value={recipe.resourceId}
+                          >
+                            {gameState.resources.find(
+                              r => r.id === recipe.resourceId
+                            )?.name || recipe.resourceId}
+                          </option>
+                        ))}
                     </select>
                   </div>
                 )}
@@ -458,8 +518,10 @@ export const ProductionLevel: React.FC<ProductionLevelProps> = ({
                     <select
                       className="form-select"
                       value={selectedDestination?.id || ''}
-                      onChange={(e) => {
-                        const dest = gameState.destinations.find(d => d.id === e.target.value);
+                      onChange={e => {
+                        const dest = gameState.destinations.find(
+                          d => d.id === e.target.value
+                        );
                         setSelectedDestination(dest || null);
                       }}
                     >
@@ -477,7 +539,8 @@ export const ProductionLevel: React.FC<ProductionLevelProps> = ({
                   <div className="mb-3">
                     <label className="form-label">Delivery Job:</label>
                     <p className="text-muted small">
-                      Delivery jobs are typically created when planning production for orders.
+                      Delivery jobs are typically created when planning
+                      production for orders.
                     </p>
                   </div>
                 )}
@@ -503,10 +566,13 @@ export const ProductionLevel: React.FC<ProductionLevelProps> = ({
                         timeRequired: selectedRecipe.timeRequired,
                         amountProcessed: selectedRecipe.outputAmount,
                         dependencies: [],
-                        recipe: selectedRecipe
+                        recipe: selectedRecipe,
                       };
                       onAddJobToLevel(newStep);
-                    } else if (newJobType === 'destination' && selectedDestination) {
+                    } else if (
+                      newJobType === 'destination' &&
+                      selectedDestination
+                    ) {
                       const newStep: PlannedStep = {
                         id: `destination_${selectedDestination.resourceId}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
                         type: 'destination',
@@ -515,7 +581,7 @@ export const ProductionLevel: React.FC<ProductionLevelProps> = ({
                         timeRequired: selectedDestination.travelTime,
                         amountProcessed: 0,
                         dependencies: [],
-                        destination: selectedDestination
+                        destination: selectedDestination,
                       };
                       onAddJobToLevel(newStep);
                     }
@@ -538,4 +604,4 @@ export const ProductionLevel: React.FC<ProductionLevelProps> = ({
       )}
     </div>
   );
-}; 
+};

@@ -6,20 +6,23 @@ interface TrainManagerProps {
   onTrainsChange: (trains: Train[]) => void;
 }
 
-export const TrainManager: React.FC<TrainManagerProps> = ({ trains, onTrainsChange }) => {
+export const TrainManager: React.FC<TrainManagerProps> = ({
+  trains,
+  onTrainsChange,
+}) => {
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     capacity: 10,
-    class: 'common' as TrainClass
+    class: 'common' as TrainClass,
   });
 
   const resetForm = () => {
     setFormData({
       name: '',
       capacity: 10,
-      class: 'common'
+      class: 'common',
     });
     setIsAdding(false);
     setEditingId(null);
@@ -38,11 +41,11 @@ export const TrainManager: React.FC<TrainManagerProps> = ({ trains, onTrainsChan
       name: formData.name.trim(),
       capacity: formData.capacity,
       availableAt: 0,
-      class: formData.class as TrainClass
+      class: formData.class as TrainClass,
     };
 
     if (editingId) {
-      onTrainsChange(trains.map(t => t.id === editingId ? train : t));
+      onTrainsChange(trains.map(t => (t.id === editingId ? train : t)));
     } else {
       onTrainsChange([...trains, train]);
     }
@@ -54,7 +57,7 @@ export const TrainManager: React.FC<TrainManagerProps> = ({ trains, onTrainsChan
     setFormData({
       name: train.name,
       capacity: train.capacity,
-      class: train.class
+      class: train.class,
     });
     setEditingId(train.id);
     setIsAdding(true);
@@ -89,7 +92,9 @@ export const TrainManager: React.FC<TrainManagerProps> = ({ trains, onTrainsChan
                 id="trainName"
                 type="text"
                 value={formData.name}
-                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                onChange={e =>
+                  setFormData(prev => ({ ...prev, name: e.target.value }))
+                }
                 placeholder="e.g., Express 1, Freight 2, Local 3"
                 required
               />
@@ -101,12 +106,20 @@ export const TrainManager: React.FC<TrainManagerProps> = ({ trains, onTrainsChan
                 id="capacity"
                 type="number"
                 value={formData.capacity}
-                onChange={(e) => setFormData(prev => ({ ...prev, capacity: parseInt(e.target.value) || 10 }))}
+                onChange={e =>
+                  setFormData(prev => ({
+                    ...prev,
+                    capacity: parseInt(e.target.value) || 10,
+                  }))
+                }
                 placeholder="e.g., 10"
                 min="1"
                 required
               />
-              <small>Capacity determines how much a train can carry or produce per trip</small>
+              <small>
+                Capacity determines how much a train can carry or produce per
+                trip
+              </small>
             </div>
 
             <div className="form-group">
@@ -114,7 +127,12 @@ export const TrainManager: React.FC<TrainManagerProps> = ({ trains, onTrainsChan
               <select
                 id="class"
                 value={formData.class}
-                onChange={(e) => setFormData(prev => ({ ...prev, class: e.target.value as TrainClass }))}
+                onChange={e =>
+                  setFormData(prev => ({
+                    ...prev,
+                    class: e.target.value as TrainClass,
+                  }))
+                }
                 required
               >
                 <option value="common">Common</option>
@@ -128,11 +146,7 @@ export const TrainManager: React.FC<TrainManagerProps> = ({ trains, onTrainsChan
               <button type="submit" className="btn btn-primary">
                 {editingId ? 'Update Train' : 'Add Train'}
               </button>
-              <button
-                type="button"
-                onClick={resetForm}
-                className="btn"
-              >
+              <button type="button" onClick={resetForm} className="btn">
                 Cancel
               </button>
             </div>
@@ -152,10 +166,7 @@ export const TrainManager: React.FC<TrainManagerProps> = ({ trains, onTrainsChan
               </div>
 
               <div className="train-actions">
-                <button
-                  onClick={() => startEdit(train)}
-                  className="btn"
-                >
+                <button onClick={() => startEdit(train)} className="btn">
                   Edit
                 </button>
                 <button

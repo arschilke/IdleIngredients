@@ -1,45 +1,45 @@
 // Additional custom color variables for dark theme
-$primary-light: #4DD8F3;
-$primary-dark: #1BA8C4;
-$accent: #8B5CF6;
-$dark-surface: #1F2937;
+$primary-light: #4dd8f3;
+$primary-dark: #1ba8c4;
+$accent: #8b5cf6;
+$dark-surface: #1f2937;
 $dark-elevation: #374151;
-$dark-border: #4B5563;
-$text-primary: #F9FAFB;
-$text-secondary: #D1D5DB;
-$text-muted: #9CA3AF;
+$dark-border: #4b5563;
+$text-primary: #f9fafb;
+$text-secondary: #d1d5db;
+$text-muted: #9ca3af;
 
 // Bootstrap variable overrides
-$primary: #24CFED;
-$secondary: #6366F1;
-$success: #10B981;
-$warning: #F59E0B;
-$danger: #EF4444;
-$info: #06B6D4;
-$light: #F3F4F6;
+$primary: #24cfed;
+$secondary: #6366f1;
+$success: #10b981;
+$warning: #f59e0b;
+$danger: #ef4444;
+$info: #06b6d4;
+$light: #f3f4f6;
 $dark: #111827;
 $body-bg: #111827;
-$body-color: #F9FAFB;
+$body-color: #f9fafb;
 $card-bg: rgba(31, 41, 55, 0.95);
 $card-border-color: rgba(75, 85, 99, 0.3);
 $card-cap-bg: rgba(55, 65, 81, 0.8);
-$card-cap-color: #F9FAFB;
+$card-cap-color: #f9fafb;
 $input-bg: rgba(55, 65, 81, 0.8);
 $input-border-color: rgba(75, 85, 99, 0.4);
-$input-color: #F9FAFB;
+$input-color: #f9fafb;
 $input-focus-bg: rgba(55, 65, 81, 0.9);
-$input-focus-border-color: #24CFED;
-$input-focus-color: #F9FAFB;
-$input-placeholder-color: #9CA3AF;
-$form-label-color: #24CFED;
-$form-text-color: #D1D5DB;
+$input-focus-border-color: #24cfed;
+$input-focus-color: #f9fafb;
+$input-placeholder-color: #9ca3af;
+$form-label-color: #24cfed;
+$form-text-color: #d1d5db;
 $btn-border-radius: 8px;
 $btn-font-weight: 500;
 $badge-border-radius: 6px;
 $badge-font-weight: 500;
 $alert-bg: rgba(55, 65, 81, 0.9);
 $alert-border-color: rgba(75, 85, 99, 0.3);
-$alert-color: #F9FAFB;
+$alert-color: #f9fafb;
 $border-radius: 8px;
 $border-radius-sm: 6px;
 $border-radius-lg: 12px;
@@ -52,7 +52,12 @@ $border-radius-lg: 12px;
 // Base styles
 .app {
   min-height: 100vh;
-  background: linear-gradient(135deg, $dark 0%, $dark-surface 50%, $dark-elevation 100%);
+  background: linear-gradient(
+    135deg,
+    $dark 0%,
+    $dark-surface 50%,
+    $dark-elevation 100%
+  );
   color: $text-primary;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
@@ -63,7 +68,7 @@ $border-radius-lg: 12px;
   background: rgba($dark, 0.8);
   backdrop-filter: blur(20px);
   border-bottom: 1px solid rgba($primary, 0.2);
-  
+
   h1 {
     color: $primary;
   }
@@ -76,13 +81,13 @@ $border-radius-lg: 12px;
     color: $primary;
     border: 1px solid rgba($primary, 0.3);
   }
-  
+
   &-story {
     background: rgba($accent, 0.15);
     color: $accent;
     border: 1px solid rgba($accent, 0.3);
   }
-  
+
   &-building {
     background: rgba($secondary, 0.15);
     color: $secondary;
@@ -94,7 +99,7 @@ $border-radius-lg: 12px;
 .card {
   backdrop-filter: blur(20px);
   box-shadow: 0 8px 32px rgba($dark, 0.3);
-  
+
   .card-title {
     color: $primary;
     font-weight: 600;
@@ -106,22 +111,22 @@ $border-radius-lg: 12px;
   .card {
     transition: all 0.2s ease-in-out;
     cursor: pointer;
-    
+
     &:hover {
       transform: translateY(-2px);
       box-shadow: 0 12px 40px rgba($dark, 0.4);
     }
-    
+
     &.border-danger {
       border-width: 2px !important;
       background: rgba($danger, 0.05);
     }
-    
+
     &.border-warning {
       border-width: 2px !important;
       background: rgba($warning, 0.05);
     }
-    
+
     &.border-success {
       border-width: 2px !important;
       background: rgba($success, 0.05);
@@ -129,21 +134,20 @@ $border-radius-lg: 12px;
   }
 }
 
-.form-control, .form-select {
+.form-control,
+.form-select {
   transition: all 0.2s ease;
-  
+
   &:hover {
     border-color: rgba($primary, 0.6);
   }
 }
 
-
-
 .form-range {
   &::-webkit-slider-track {
     background: rgba(255, 255, 255, 0.2);
   }
-  
+
   &::-webkit-slider-thumb {
     background: $accent;
   }
@@ -153,28 +157,30 @@ $border-radius-lg: 12px;
 .btn {
   transition: all 0.2s ease;
   border-width: 2px;
-  
+
   &-primary {
     color: $dark;
-    
+
     &:hover {
       background-color: $primary-light;
       border-color: $primary-light;
       transform: translateY(-1px);
       box-shadow: 0 4px 12px rgba($primary, 0.3);
     }
-    
+
     &:active {
       transform: translateY(0);
     }
   }
-  
-  &-success, &-warning, &-danger {
+
+  &-success,
+  &-warning,
+  &-danger {
     &:hover {
       transform: translateY(-1px);
     }
   }
-  
+
   &-outline-primary {
     &:hover {
       background-color: $primary;
@@ -182,7 +188,7 @@ $border-radius-lg: 12px;
       transform: translateY(-1px);
     }
   }
-  
+
   &-outline-secondary {
     &:hover {
       background-color: rgba($text-secondary, 0.1);
@@ -198,25 +204,25 @@ $border-radius-lg: 12px;
     background: transparent;
     color: $primary;
     border: 1px solid $primary;
-    
+
     &:hover {
       background: rgba($primary, 0.1);
       color: $primary-light;
     }
   }
-  
+
   &.bg-outline-secondary {
     background: transparent;
     color: $text-secondary;
     border: 1px solid rgba($text-secondary, 0.4);
-    
+
     &:hover {
       background: rgba($text-secondary, 0.1);
       color: $text-primary;
       border-color: $text-secondary;
     }
   }
-  
+
   &.bg-secondary {
     background-color: $dark-elevation;
     color: $text-secondary;
@@ -226,19 +232,19 @@ $border-radius-lg: 12px;
 // Alert enhancements
 .alert {
   border-left: 4px solid $primary;
-  
+
   &-success {
     border-left-color: $success;
   }
-  
+
   &-info {
     border-left-color: $info;
   }
-  
+
   &-warning {
     border-left-color: $warning;
   }
-  
+
   &-secondary {
     border-left-color: $text-secondary;
   }
@@ -252,26 +258,26 @@ $border-radius-lg: 12px;
 // Level and job styling
 .level-container {
   transition: all 0.3s ease;
-  
+
   &:hover:not(.modal-open) {
     transform: translateY(-2px);
     box-shadow: 0 12px 40px rgba($dark, 0.4);
   }
-  
+
   &.border-primary {
     border-color: $primary;
     box-shadow: 0 0 20px rgba($primary, 0.3);
   }
-  
+
   &.bg-light {
     background: rgba($dark-elevation, 0.8);
   }
-  
+
   &.bg-secondary {
     background: rgba($dark-elevation, 0.6);
     color: $text-muted;
   }
-  
+
   &.bg-danger {
     background: rgba($danger, 0.1);
     border-color: $danger;
@@ -282,7 +288,7 @@ $border-radius-lg: 12px;
   background: rgba($dark-elevation, 0.6);
   border: 1px solid rgba($dark-border, 0.2);
   transition: all 0.2s ease;
-  
+
   &:hover {
     background: rgba($dark-elevation, 0.8);
     border-color: rgba($primary, 0.3);
@@ -300,7 +306,8 @@ $border-radius-lg: 12px;
 }
 
 // Compact form styling
-.form-control-sm, .form-select-sm {
+.form-control-sm,
+.form-select-sm {
   padding: 0.25rem 0.5rem;
   font-size: 0.875rem;
   line-height: 1.25;
@@ -325,12 +332,11 @@ $border-radius-lg: 12px;
   padding: 1rem;
 }
 
-
 // Order form specific styling
 .card:has(.card-header h3.h5) {
   max-height: 60vh;
   overflow-y: auto;
-  
+
   .card-header {
     position: sticky;
     top: 0;
@@ -347,7 +353,8 @@ $border-radius-lg: 12px;
 
 // Reduce badge padding for more compact appearance
 .badge {
-  &.bg-warning, &.bg-info {
+  &.bg-warning,
+  &.bg-info {
     font-size: 0.75rem;
     padding: 0.25rem 0.5rem;
   }
@@ -357,25 +364,25 @@ $border-radius-lg: 12px;
 @media (max-width: 768px) {
   .app-header {
     padding: 1.5rem 1rem;
-    
+
     h1 {
       font-size: 2rem;
     }
-    
+
     p {
       font-size: 1rem;
     }
   }
-  
+
   .card {
     margin-bottom: 1rem;
   }
-  
+
   .btn {
     width: 100%;
     margin-bottom: 0.5rem;
   }
-  
+
   .level-container {
     margin-bottom: 1rem;
   }
@@ -385,12 +392,12 @@ $border-radius-lg: 12px;
 .drag-handle {
   cursor: grab;
   transition: all 0.2s ease;
-  
+
   &:hover {
     color: $primary !important;
     transform: scale(1.1);
   }
-  
+
   &:active {
     cursor: grabbing;
     transform: scale(0.95);
@@ -399,7 +406,7 @@ $border-radius-lg: 12px;
 
 .job-item {
   transition: all 0.2s ease;
-  
+
   &.dragging {
     opacity: 0.5;
     transform: rotate(2deg);
@@ -410,12 +417,12 @@ $border-radius-lg: 12px;
 .drop-zone {
   transition: all 0.2s ease;
   border: 2px dashed transparent;
-  
+
   &:hover {
     border-color: rgba($primary, 0.3);
     background-color: rgba($primary, 0.05);
   }
-  
+
   &.drag-over {
     border-color: $primary;
     background-color: rgba($primary, 0.1);
@@ -425,7 +432,7 @@ $border-radius-lg: 12px;
 
 .level-container {
   transition: all 0.2s ease;
-  
+
   &.drag-over {
     border-color: $primary !important;
     box-shadow: 0 0 0 2px rgba($primary, 0.3);
@@ -437,12 +444,12 @@ $border-radius-lg: 12px;
   border-left: 4px solid $warning;
   background: rgba($warning, 0.1);
   transition: all 0.2s ease;
-  
+
   &:hover {
     background: rgba($warning, 0.15);
     transform: translateX(4px);
   }
-  
+
   .depletion-badge {
     background: $danger;
     color: white;
