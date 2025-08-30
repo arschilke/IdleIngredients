@@ -135,6 +135,7 @@ function App() {
   );
 
   const [orders, setOrders] = useState<Order[]>([]);
+  const [activeLevel, setActiveLevel] = useState<number>(1);
   const [productionPlan, setProductionPlan] = useState<ProductionPlanType>({
     levels: [{
       level: 1,
@@ -178,6 +179,10 @@ function App() {
 
     // Update warehouse inventory based on completed levels
     updateWarehouseInventory(plan);
+  };
+
+  const handleActiveLevelChange = (levelNumber: number) => {
+    setActiveLevel(levelNumber);
   };
 
   const updateWarehouseInventory = (plan: ProductionPlanType) => {
@@ -240,6 +245,8 @@ function App() {
             <ProductionPlan
               gameState={gameState}
               productionPlan={productionPlan}
+              activeLevel={activeLevel}
+              onActiveLevelChange={handleActiveLevelChange}
               onProductionPlanChange={handleProductionPlanChange}
               onClearPlan={clearProductionPlan} />
           </div>
@@ -254,7 +261,7 @@ function App() {
             <div className='flex-shrink-1'>
               <CurrentInventory
                 gameState={gameState}
-                activeLevel={productionPlan.activeLevel}
+                activeLevel={activeLevel}
                 productionPlan={productionPlan}
               />
             </div>

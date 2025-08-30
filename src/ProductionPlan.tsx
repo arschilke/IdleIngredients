@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect } from 'react';
 import { ProductionPlan as ProductionPlanType, GameState, PlanningLevel, PlannedStep } from './types';
 import { ProductionLevel } from './ProductionLevel';
 import { updateWarehouseStateAfterStepAddition, calculateWarehouseStateAtLevel } from './trainUtils';
@@ -6,6 +6,8 @@ import { updateWarehouseStateAfterStepAddition, calculateWarehouseStateAtLevel }
 interface ProductionPlanProps {
     productionPlan: ProductionPlanType | null;
     gameState: GameState;
+    activeLevel: number;
+    onActiveLevelChange: (levelNumber: number) => void;
     onProductionPlanChange: (newPlan: ProductionPlanType) => void;
     onClearPlan: () => void;
 }
@@ -14,12 +16,12 @@ interface ProductionPlanProps {
 export const ProductionPlan: React.FC<ProductionPlanProps> = ({
     productionPlan,
     gameState,
+    activeLevel,
+    onActiveLevelChange,
     onProductionPlanChange,
     onClearPlan
 }) => {
     const levelRefs = useRef<{ [key: number]: HTMLDivElement | null }>({});
-
-    const [activeLevel, setActiveLevel] = useState<number>(1);
 
     // Auto-scroll to active level when it changes
     useEffect(() => {
@@ -80,16 +82,16 @@ export const ProductionPlan: React.FC<ProductionPlanProps> = ({
 
         // Adjust active level if needed
         if (activeLevel === levelNumber) {
-            setActiveLevel(updatedLevels.length > 0 ? 1 : 1);
+            onActiveLevelChange(updatedLevels.length > 0 ? 1 : 1);
         } else if (activeLevel > levelNumber) {
-            setActiveLevel(activeLevel - 1);
+            onActiveLevelChange(activeLevel - 1);
         }
 
     };
 
 
     const handleLevelClick = (levelNumber: number) => {
-        setActiveLevel(levelNumber);
+        onActiveLevelChange(levelNumber);
     };
 
 
@@ -163,7 +165,7 @@ export const ProductionPlan: React.FC<ProductionPlanProps> = ({
                                     // If the current active level was marked done, move to next incomplete level
                                     const nextIncompleteLevel = updatedLevels.find(l => !l.done && l.level > activeLevel);
                                     if (nextIncompleteLevel) {
-                                        setActiveLevel(nextIncompleteLevel.level);
+                                        onActiveLevelChange(nextIncompleteLevel.level);
                                     }
                                 }
                             }}

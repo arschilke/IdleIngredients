@@ -51,6 +51,15 @@ export const ProductionLevel: React.FC<ProductionLevelProps> = ({
     onLevelChange(level);
   };
 
+  const onRemoveStep = (stepId: string) => {
+    const updatedSteps = level.steps.filter(step => step.id !== stepId);
+    const updatedLevel = {
+      ...level,
+      steps: updatedSteps
+    };
+    onLevelChange(updatedLevel);
+  };
+
   // Create a production step for a resource
   const createProductionStep = (resourceId: string) => {
     // Find a factory that can produce this resource
@@ -215,6 +224,7 @@ export const ProductionLevel: React.FC<ProductionLevelProps> = ({
                 onLevelChange(updatedLevel);
               }}
               onAddJobToLevel={onAddJobToLevel}
+              onRemoveJob={onRemoveStep}
             />
           ))
         )}

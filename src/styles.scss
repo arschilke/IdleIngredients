@@ -101,6 +101,34 @@ $border-radius-lg: 12px;
   }
 }
 
+// Inventory grid styling
+.inventory-grid {
+  .card {
+    transition: all 0.2s ease-in-out;
+    cursor: pointer;
+    
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 40px rgba($dark, 0.4);
+    }
+    
+    &.border-danger {
+      border-width: 2px !important;
+      background: rgba($danger, 0.05);
+    }
+    
+    &.border-warning {
+      border-width: 2px !important;
+      background: rgba($warning, 0.05);
+    }
+    
+    &.border-success {
+      border-width: 2px !important;
+      background: rgba($success, 0.05);
+    }
+  }
+}
+
 .form-control, .form-select {
   transition: all 0.2s ease;
   

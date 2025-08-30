@@ -7,13 +7,15 @@ interface ProductionJobProps {
   gameState: GameState;
   onJobUpdate: (updatedJob: PlannedStep) => void;
   onAddJobToLevel: (newStep: PlannedStep, targetLevel: number) => void;
+  onRemoveJob: (stepId: string) => void;
 }
 
 export const ProductionJob: React.FC<ProductionJobProps> = ({
   job,
   gameState,
   onJobUpdate,
-  onAddJobToLevel
+  onAddJobToLevel,
+  onRemoveJob
 }) => {
   const [editingJob, setEditingJob] = useState<boolean>(false);
   const [editingJobData, setEditingJobData] = useState<Partial<PlannedStep>>({});
@@ -188,6 +190,13 @@ export const ProductionJob: React.FC<ProductionJobProps> = ({
               onClick={startEditingJob}
             >
               <i className="bi bi-pencil"></i> Edit
+            </button>
+            <button
+              className="btn btn-outline-danger btn-sm"
+              onClick={() => onRemoveJob(job.id)}
+              title="Remove this job from the level"
+            >
+              <i className="bi bi-trash"></i> Remove
             </button>
           </div>
         </div>
