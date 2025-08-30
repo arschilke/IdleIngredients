@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { PlanningLevel, PlannedStep, GameState, Recipe, Destination } from './types';
 import { ProductionJob } from './ProductionJob';
 import { formatTime } from './utils';
-import { getBestTrains, checkLevelResourceSufficiency } from './trainUtils';
+import { getBestTrains } from './trainUtils';
+import { checkLevelResourceSufficiency } from './inventoryUtils';
 
 interface ProductionLevelProps {
   level: PlanningLevel;
@@ -13,6 +14,8 @@ interface ProductionLevelProps {
   onRemoveLevel: (levelNumber: number) => void;
   onLevelChange: (updatedLevel: PlanningLevel) => void;
   onAddStepToLevel: (step: PlannedStep, targetLevel: number) => void;
+  onReorderJob?: (levelNumber: number, jobId: string, newIndex: number) => void;
+  onMoveJobToLevel?: (jobId: string, fromLevel: number, toLevel: number) => void;
 }
 
 export const ProductionLevel: React.FC<ProductionLevelProps> = ({
@@ -23,13 +26,18 @@ export const ProductionLevel: React.FC<ProductionLevelProps> = ({
   onLevelClick,
   onRemoveLevel,
   onLevelChange,
-  onAddStepToLevel
+  onAddStepToLevel,
+  onReorderJob,
+  onMoveJobToLevel
 }) => {
   const [showAddJobModal, setShowAddJobModal] = useState<boolean>(false);
   const [newJobType, setNewJobType] = useState<'factory' | 'destination' | 'delivery'>('factory');
   const [selectedResource, setSelectedResource] = useState('');
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [selectedDestination, setSelectedDestination] = useState<Destination | null>(null);
+  const [draggedJobId, setDraggedJobId] = useState<string | null>(null);
+  const [dragOverLevel, setDragOverLevel] = useState<number | null>(null);
+  const [dragOverJobIndex, setDragOverJobIndex] = useState<number | null>(null);
 
   // Check if inventory has enough resources for all jobs in this level
   const checkInventorySufficiency = () => {
@@ -41,6 +49,65 @@ export const ProductionLevel: React.FC<ProductionLevelProps> = ({
       ...resource,
       name: gameState.resources.find(r => r.id === resource.resourceId)?.name || resource.resourceId
     }));
+  };
+
+  // Calculate which steps would run out of resources when completed in order
+  const calculateResourceDepletionSteps = () => {
+    const insufficientResources = checkInventorySufficiency();
+    if (insufficientResources.length === 0) return [];
+
+    const depletionSteps: Array<{
+      stepIndex: number;
+      step: PlannedStep;
+      resourceId: string;
+      resourceName: string;
+      required: number;
+      available: number;
+      remainingAfterStep: number;
+    }> = [];
+
+    let currentInventory = new Map(previousLevelWarehouseState);
+
+    level.steps.forEach((step, stepIndex) => {
+      if (step.recipe) {
+        // Check if this step would deplete any resources
+        step.recipe.requires.forEach(req => {
+          const currentAmount = currentInventory.get(req.resourceId) || 0;
+          if (currentAmount < req.amount) {
+            depletionSteps.push({
+              stepIndex,
+              step,
+              resourceId: req.resourceId,
+              resourceName: gameState.resources.find(r => r.id === req.resourceId)?.name || req.resourceId,
+              required: req.amount,
+              available: currentAmount,
+              remainingAfterStep: 0
+            });
+          } else {
+            // Update inventory after this step
+            currentInventory.set(req.resourceId, currentAmount - req.amount);
+          }
+        });
+      }
+      if (step.type === 'delivery') {
+        const currentAmount = currentInventory.get(step.resourceId) || 0;
+        if (currentAmount < step.amountProcessed) {
+          depletionSteps.push({
+            stepIndex,
+            step,
+            resourceId: step.resourceId,
+            resourceName: gameState.resources.find(r => r.id === step.resourceId)?.name || step.resourceId,
+            required: step.amountProcessed,
+            available: currentAmount,
+            remainingAfterStep: 0
+          });
+        } else {
+          currentInventory.set(step.resourceId, currentAmount - step.amountProcessed);
+        }
+      }
+    });
+
+    return depletionSteps;
   };
 
   const onAddJobToLevel = (newStep: PlannedStep) => {
@@ -58,6 +125,61 @@ export const ProductionLevel: React.FC<ProductionLevelProps> = ({
       steps: updatedSteps
     };
     onLevelChange(updatedLevel);
+  };
+
+  // Handle job reordering within the same level
+  const handleReorderJob = (jobId: string, newIndex: number) => {
+    if (onReorderJob) {
+      onReorderJob(level.level, jobId, newIndex);
+    }
+  };
+
+  // Handle moving a job to a different level
+  const handleMoveJobToLevel = (jobId: string, targetLevel: number) => {
+    if (onMoveJobToLevel && targetLevel !== level.level) {
+      onMoveJobToLevel(jobId, level.level, targetLevel);
+    }
+  };
+
+  // Drag and drop handlers
+  const handleDragStart = (e: React.DragEvent, jobId: string) => {
+    setDraggedJobId(jobId);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', jobId);
+  };
+
+  const handleDragOver = (e: React.DragEvent, jobIndex?: number) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    
+    if (jobIndex !== undefined) {
+      setDragOverJobIndex(jobIndex);
+    }
+    setDragOverLevel(level.level);
+  };
+
+  const handleDragLeave = () => {
+    setDragOverJobIndex(null);
+    setDragOverLevel(null);
+  };
+
+  const handleDrop = (e: React.DragEvent, targetJobIndex?: number) => {
+    e.preventDefault();
+    const draggedJobId = e.dataTransfer.getData('text/plain');
+    
+    if (draggedJobId && draggedJobId !== '') {
+      if (targetJobIndex !== undefined) {
+        // Reordering within the same level
+        handleReorderJob(draggedJobId, targetJobIndex);
+      } else {
+        // Moving to this level (at the end)
+        handleMoveJobToLevel(draggedJobId, level.level);
+      }
+    }
+    
+    setDraggedJobId(null);
+    setDragOverJobIndex(null);
+    setDragOverLevel(null);
   };
 
   // Create a production step for a resource
@@ -113,12 +235,17 @@ export const ProductionLevel: React.FC<ProductionLevelProps> = ({
     }
   };
 
+  const resourceDepletionSteps = calculateResourceDepletionSteps();
+
   return (
     <div
       className={`level-container mb-2 p-3 border rounded bg-opacity-10 ${level.done ? 'bg-secondary border-secondary text-muted' :
           level.trainCount > gameState.maxConcurrentTrains ? 'bg-danger border-danger' :
             'bg-light'
-        } ${isActiveLevel ? 'border-primary border-2 shadow-lg' : ''} ${showAddJobModal ? 'modal-open' : ''}`}
+        } ${isActiveLevel ? 'border-primary border-2 shadow-lg' : ''} ${showAddJobModal ? 'modal-open' : ''} ${dragOverLevel === level.level ? 'drag-over' : ''}`}
+      onDragOver={(e) => handleDragOver(e)}
+      onDragLeave={handleDragLeave}
+      onDrop={(e) => handleDrop(e)}
     >
       <div className="level-header d-flex justify-content-between align-items-center mb-2">
         <div className="d-flex align-items-center gap-2">
@@ -182,52 +309,96 @@ export const ProductionLevel: React.FC<ProductionLevelProps> = ({
         </small>
       </div>
 
-      {/* Inventory insufficiency alert */}
-      {checkInventorySufficiency().length > 0 && (
+      {/* Resource insufficiency display with step-by-step breakdown */}
+      {resourceDepletionSteps.length > 0 && (
         <div className="alert alert-warning alert-sm mb-2">
           <i className="bi bi-exclamation-triangle me-2"></i>
-          <strong>Insufficient Resources:</strong>
-          <ul className="mb-0 mt-1">
-            {checkInventorySufficiency().map((resource, index) => (
-              <li key={index} className="small">
-                <span
-                  className="text-primary cursor-pointer text-decoration-underline"
-                  onClick={() => createProductionStep(resource.resourceId)}
-                  title={`Click to create production step for ${resource.name}`}
+          <strong>Resource Depletion Analysis:</strong>
+          <div className="mt-2">
+            {resourceDepletionSteps.map((depletion, index) => (
+              <div key={index} className="mb-2 p-2 border-start border-warning border-3 ps-3 bg-light">
+                <div className="d-flex justify-content-between align-items-center">
+                  <span className="fw-bold">
+                    Step {depletion.stepIndex + 1}: {depletion.step.type === 'factory' ? 'Factory' : 'Delivery'}
+                  </span>
+                  <span className="badge bg-danger">
+                    <i className="bi bi-x-circle"></i> Resource Depleted
+                  </span>
+                </div>
+                <div className="small text-muted mt-1">
+                  <strong>{depletion.resourceName}</strong> will run out here
+                </div>
+                <div className="small">
+                  Required: {depletion.required} | Available: {depletion.available}
+                </div>
+                <button
+                  className="btn btn-sm btn-outline-primary mt-1"
+                  onClick={() => createProductionStep(depletion.resourceId)}
+                  title={`Click to create production step for ${depletion.resourceName}`}
                 >
-                  {resource.name}
-                </span>
-                {' '}(need {resource.required}, have {resource.available})
-              </li>
+                  <i className="bi bi-plus-circle"></i> Add Production
+                </button>
+              </div>
             ))}
-          </ul>
+          </div>
         </div>
       )}
 
       <div className="level-steps">
         {level.steps.length === 0 ? (
-          <p className="text-muted fst-italic">No steps in this level</p>
+          <div 
+            className="drop-zone p-3 text-center text-muted border-2 border-dashed rounded"
+            onDragOver={(e) => handleDragOver(e)}
+            onDrop={(e) => handleDrop(e)}
+          >
+            <i className="bi bi-arrow-down-circle fs-1"></i>
+            <p className="mb-0">Drop jobs here to move them to this level</p>
+          </div>
         ) : (
-          level.steps.map((step) => (
-            <ProductionJob
-              key={step.id}
-              job={step}
-              gameState={gameState}
-              onJobUpdate={(updatedJob) => {
-                const updatedSteps = level.steps.map(s =>
-                  s.id === updatedJob.id ? updatedJob : s
-                );
-                const updatedLevel = {
-                  ...level,
-                  steps: updatedSteps
-                };
-                onLevelChange(updatedLevel);
-              }}
-              onAddJobToLevel={onAddJobToLevel}
-              onRemoveJob={onRemoveStep}
-            />
+          level.steps.map((step, stepIndex) => (
+            <React.Fragment key={step.id}>
+              {/* Drop zone above each job */}
+              <div 
+                className={`drop-zone ${dragOverJobIndex === stepIndex ? 'bg-primary bg-opacity-25' : ''}`}
+                style={{ height: '8px', margin: '2px 0' }}
+                onDragOver={(e) => handleDragOver(e, stepIndex)}
+                onDrop={(e) => handleDrop(e, stepIndex)}
+              />
+              
+              <ProductionJob
+                job={step}
+                gameState={gameState}
+                onJobUpdate={(updatedJob) => {
+                  const updatedSteps = level.steps.map(s =>
+                    s.id === updatedJob.id ? updatedJob : s
+                  );
+                  const updatedLevel = {
+                    ...level,
+                    steps: updatedSteps
+                  };
+                  onLevelChange(updatedLevel);
+                }}
+                onAddJobToLevel={onAddJobToLevel}
+                onRemoveJob={onRemoveStep}
+                onReorderJob={handleReorderJob}
+                onMoveToLevel={handleMoveJobToLevel}
+                isDragging={draggedJobId === step.id}
+                dragHandleProps={{
+                  draggable: true,
+                  onDragStart: (e: React.DragEvent) => handleDragStart(e, step.id)
+                }}
+              />
+            </React.Fragment>
           ))
         )}
+        
+        {/* Drop zone at the end of all jobs */}
+        <div 
+          className={`drop-zone ${dragOverJobIndex === level.steps.length ? 'bg-primary bg-opacity-25' : ''}`}
+          style={{ height: '8px', margin: '2px 0' }}
+          onDragOver={(e) => handleDragOver(e, level.steps.length)}
+          onDrop={(e) => handleDrop(e, level.steps.length)}
+        />
       </div>
 
       {/* Add Job Modal */}

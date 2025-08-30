@@ -1,7 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import { ProductionPlan as ProductionPlanType, GameState, PlanningLevel, PlannedStep } from './types';
 import { ProductionLevel } from './ProductionLevel';
-import { updateWarehouseStateAfterStepAddition, calculateWarehouseStateAtLevel } from './trainUtils';
+import { updateWarehouseStateAfterStepAddition, calculateWarehouseStateAtLevel } from './inventoryUtils';
 
 interface ProductionPlanProps {
     productionPlan: ProductionPlanType | null;
@@ -33,7 +33,75 @@ export const ProductionPlan: React.FC<ProductionPlanProps> = ({
         }
     }, [activeLevel, productionPlan]);
 
+    // Handle reordering jobs within a level
+    const handleReorderJob = (levelNumber: number, jobId: string, newIndex: number) => {
+        if (!productionPlan) return;
 
+        const levelIndex = productionPlan.levels.findIndex(l => l.level === levelNumber);
+        if (levelIndex === -1) return;
+
+        const level = productionPlan.levels[levelIndex];
+        const jobIndex = level.steps.findIndex(s => s.id === jobId);
+        if (jobIndex === -1) return;
+
+        // Remove the job from its current position
+        const [movedJob] = level.steps.splice(jobIndex, 1);
+        
+        // Insert it at the new position
+        level.steps.splice(newIndex, 0, movedJob);
+
+        // Update the production plan
+        const updatedLevels = [...productionPlan.levels];
+        updatedLevels[levelIndex] = level;
+        
+        onProductionPlanChange({
+            ...productionPlan,
+            levels: updatedLevels
+        });
+    };
+
+    // Handle moving a job from one level to another
+    const handleMoveJobToLevel = (jobId: string, fromLevel: number, toLevel: number) => {
+        if (!productionPlan || fromLevel === toLevel) return;
+
+        const fromLevelIndex = productionPlan.levels.findIndex(l => l.level === fromLevel);
+        const toLevelIndex = productionPlan.levels.findIndex(l => l.level === toLevel);
+        
+        if (fromLevelIndex === -1 || toLevelIndex === -1) return;
+
+        const fromLevelObj = productionPlan.levels[fromLevelIndex];
+        const toLevelObj = productionPlan.levels[toLevelIndex];
+
+        // Find and remove the job from the source level
+        const jobIndex = fromLevelObj.steps.findIndex(s => s.id === jobId);
+        if (jobIndex === -1) return;
+
+        const [movedJob] = fromLevelObj.steps.splice(jobIndex, 1);
+        
+        // Update the job's level
+        movedJob.level = toLevel;
+        
+        // Add the job to the target level
+        toLevelObj.steps.push(movedJob);
+
+        // Update warehouse states for both levels
+        const updatedLevels = [...productionPlan.levels];
+        updatedLevels[fromLevelIndex] = fromLevelObj;
+        updatedLevels[toLevelIndex] = toLevelObj;
+
+        // Recalculate warehouse states for all levels after the change
+        const updatedLevelsWithInventory = updateWarehouseStateAfterStepAddition(
+            updatedLevels,
+            movedJob,
+            toLevel,
+            gameState.warehouse.inventory
+        );
+
+        onProductionPlanChange({
+            ...productionPlan,
+            levels: updatedLevelsWithInventory
+        });
+    };
 
     const createNewLevel = () => {
         if (!productionPlan) return;
@@ -169,6 +237,8 @@ export const ProductionPlan: React.FC<ProductionPlanProps> = ({
                                     }
                                 }
                             }}
+                            onReorderJob={handleReorderJob}
+                            onMoveJobToLevel={handleMoveJobToLevel}
                             onAddStepToLevel={(step: PlannedStep, targetLevel: number) => {
                                 console.log('onAddStepToLevel called with:', { step, targetLevel, currentLevels: productionPlan.levels.length });
                                 let updatedLevels = [...productionPlan.levels];

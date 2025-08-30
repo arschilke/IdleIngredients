@@ -8,6 +8,10 @@ interface ProductionJobProps {
   onJobUpdate: (updatedJob: PlannedStep) => void;
   onAddJobToLevel: (newStep: PlannedStep, targetLevel: number) => void;
   onRemoveJob: (stepId: string) => void;
+  onReorderJob?: (jobId: string, newIndex: number) => void;
+  onMoveToLevel?: (jobId: string, targetLevel: number) => void;
+  isDragging?: boolean;
+  dragHandleProps?: any;
 }
 
 export const ProductionJob: React.FC<ProductionJobProps> = ({
@@ -15,7 +19,9 @@ export const ProductionJob: React.FC<ProductionJobProps> = ({
   gameState,
   onJobUpdate,
   onAddJobToLevel,
-  onRemoveJob
+  onRemoveJob,
+  isDragging,
+  dragHandleProps
 }) => {
   const [editingJob, setEditingJob] = useState<boolean>(false);
   const [editingJobData, setEditingJobData] = useState<Partial<PlannedStep>>({});
@@ -243,9 +249,23 @@ export const ProductionJob: React.FC<ProductionJobProps> = ({
   };
 
   return (
-    <div className="job-item p-2 mb-1 border rounded">
-      {renderJobDetails()}
-      {renderJobEditForm()}
+    <div className={`job-item p-2 mb-1 border rounded ${isDragging ? 'dragging' : ''}`}>
+      {/* Drag Handle */}
+      <div className="d-flex align-items-start">
+        <div 
+          className="drag-handle me-2 cursor-grab" 
+          style={{ cursor: 'grab' }}
+          {...dragHandleProps}
+          title="Drag to reorder or move to different level"
+        >
+          <i className="bi bi-grip-vertical text-muted"></i>
+        </div>
+        
+        <div className="flex-grow-1">
+          {renderJobDetails()}
+          {renderJobEditForm()}
+        </div>
+      </div>
     </div>
   );
 };
