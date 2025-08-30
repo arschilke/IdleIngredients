@@ -17,7 +17,7 @@ export function getBestTrains(
     .filter(step => step.trainId !== undefined)
     .map(step => step.trainId);
 
-  // Filter out busy trains and get available ones
+  // Filter out busy traitns and get available ones
   const applicableTrains = trains.filter(
     t => !busyTrainIds.includes(t.id) && t.availableAt <= level.startTime
   );
