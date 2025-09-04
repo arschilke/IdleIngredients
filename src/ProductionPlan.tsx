@@ -1,31 +1,44 @@
 import React, { useRef, useEffect } from 'react';
 import {
   ProductionPlan as ProductionPlanType,
-  GameState,
+  Inventory,
   PlanningLevel,
   PlannedStep,
+  Order,
+  Factory,
+  Destination,
+  Train,
+  Resource,
 } from './types';
 import { ProductionLevel } from './ProductionLevel';
-import {
-  updateWarehouseStateAfterStepAddition,
-  calculateWarehouseStateAtLevel,
-} from './inventoryUtils';
+
+import { importOrdersAndPlan } from './exportUtils';
 
 interface ProductionPlanProps {
   productionPlan: ProductionPlanType | null;
-  gameState: GameState;
+  resources: Resource[];
   activeLevel: number;
+  factories: Factory[];
+  destinations: Destination[];
+  trains: Train[];
+  maxConcurrentTrains: number;
   onActiveLevelChange: (levelNumber: number) => void;
   onProductionPlanChange: (newPlan: ProductionPlanType) => void;
+  onOrdersChange: (orders: Order[]) => void;
   onClearPlan: () => void;
 }
 
 export const ProductionPlan: React.FC<ProductionPlanProps> = ({
   productionPlan,
-  gameState,
+  factories,
+  destinations,
+  trains,
+  resources,
+  maxConcurrentTrains,
   activeLevel,
   onActiveLevelChange,
   onProductionPlanChange,
+  onOrdersChange,
   onClearPlan,
 }) => {
   const levelRefs = useRef<{ [key: number]: HTMLDivElement | null }>({});
@@ -110,17 +123,9 @@ export const ProductionPlan: React.FC<ProductionPlanProps> = ({
     updatedLevels[fromLevelIndex] = fromLevelObj;
     updatedLevels[toLevelIndex] = toLevelObj;
 
-    // Recalculate warehouse states for all levels after the change
-    const updatedLevelsWithInventory = updateWarehouseStateAfterStepAddition(
-      updatedLevels,
-      movedJob,
-      toLevel,
-      gameState.warehouse.inventory
-    );
-
     onProductionPlanChange({
       ...productionPlan,
-      levels: updatedLevelsWithInventory,
+      levels: updatedLevels,
     });
   };
 
@@ -132,7 +137,6 @@ export const ProductionPlan: React.FC<ProductionPlanProps> = ({
       level: newLevelNumber,
       steps: [],
       inventoryChanges: new Map(),
-      warehouseState: new Map(),
       trainCount: 0,
       description: 'New Level',
       estimatedTime: 0,
@@ -141,27 +145,25 @@ export const ProductionPlan: React.FC<ProductionPlanProps> = ({
       endTime: 0,
     };
 
-    // Initialize warehouse state for the new level
-    newLevel.warehouseState = calculateWarehouseStateAtLevel(
-      [...productionPlan.levels, newLevel],
-      newLevelNumber,
-      gameState.warehouse.inventory
-    );
-
     const newPlan: ProductionPlanType = {
       ...productionPlan,
-      activeLevel: newLevelNumber,
       levels: [...productionPlan.levels, newLevel],
     };
 
     onProductionPlanChange(newPlan);
+    onActiveLevelChange(newLevelNumber);
   };
 
   const onRemoveLevel = (levelNumber: number) => {
     if (!productionPlan) return;
 
-    const updatedLevels = productionPlan.levels
-      .filter(level => level.level !== levelNumber)
+    var levelIndex = productionPlan.levels.findIndex(
+      x => x.level === levelNumber
+    );
+    if (levelIndex === -1) return;
+
+    var updatedLevels = productionPlan.levels
+      .splice(levelIndex, 1)
       .map((level, index) => ({ ...level, level: index + 1 }));
 
     onProductionPlanChange({
@@ -181,6 +183,33 @@ export const ProductionPlan: React.FC<ProductionPlanProps> = ({
     onActiveLevelChange(levelNumber);
   };
 
+  const handleExport = () => {
+    //exportOrdersAndPlan(null, productionPlan);
+  };
+
+  const handleImport = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    importOrdersAndPlan(file)
+      .then(data => {
+        onOrdersChange(data.orders);
+        if (data.productionPlan) {
+          onProductionPlanChange(data.productionPlan);
+        }
+        // Show success message
+        alert(
+          `Successfully imported ${data.orders.length} orders${data.productionPlan ? ' and production plan' : ''}`
+        );
+        // Reset the file input
+        event.target.value = '';
+      })
+      .catch(error => {
+        alert(`Import failed: ${error.message}`);
+        event.target.value = '';
+      });
+  };
+
   if (!productionPlan) {
     return (
       <div className="card">
@@ -198,13 +227,27 @@ export const ProductionPlan: React.FC<ProductionPlanProps> = ({
   }
 
   return (
-    <div className="card flex-fill">
+    <div className="card h-100">
       <div className="card-header d-flex justify-content-between align-items-center">
         <h3 className="card-title mb-0">Production Plan</h3>
         <div className="d-flex gap-2">
           <button className="btn btn-success btn-sm" onClick={createNewLevel}>
             <i className="bi bi-plus-circle"></i> Add Level
           </button>
+          <button className="btn btn-info btn-sm" onClick={handleExport}>
+            <i className="bi bi-download me-1"></i>
+            Export
+          </button>
+          <label className="btn btn-primary btn-sm mb-0">
+            <i className="bi bi-upload me-1"></i>
+            Import
+            <input
+              type="file"
+              accept=".json"
+              onChange={handleImport}
+              style={{ display: 'none' }}
+            />
+          </label>
           <button className="btn btn-danger btn-sm" onClick={onClearPlan}>
             <i className="bi bi-trash"></i> Clear Plan
           </button>
@@ -220,14 +263,12 @@ export const ProductionPlan: React.FC<ProductionPlanProps> = ({
           >
             <ProductionLevel
               level={level}
-              gameState={gameState}
+              factories={factories}
+              destinations={destinations}
+              trains={trains}
+              resources={resources}
+              maxConcurrentTrains={maxConcurrentTrains}
               isActiveLevel={level.level === activeLevel}
-              previousLevelWarehouseState={
-                level.level === 1
-                  ? gameState.warehouse.inventory
-                  : productionPlan.levels.find(l => l.level === level.level - 1)
-                      ?.warehouseState || gameState.warehouse.inventory
-              }
               onLevelClick={handleLevelClick}
               onRemoveLevel={onRemoveLevel}
               onLevelChange={(updatedLevel: PlanningLevel) => {
@@ -268,7 +309,6 @@ export const ProductionPlan: React.FC<ProductionPlanProps> = ({
                     inventoryChanges: new Map([
                       [step.resourceId, step.amountProcessed],
                     ]),
-                    warehouseState: new Map(),
                     trainCount: 0,
                     description: `Production: ${step.resourceId}`,
                     estimatedTime: step.timeRequired,
@@ -279,7 +319,7 @@ export const ProductionPlan: React.FC<ProductionPlanProps> = ({
                   updatedLevels.unshift(newLevel);
 
                   // Renumber all levels while keeping active level the same
-                  const currentActiveLevel = productionPlan.activeLevel;
+                  const currentActiveLevel = activeLevel;
                   updatedLevels = updatedLevels.map((level, index) => ({
                     ...level,
                     level: index + 1,
@@ -291,21 +331,12 @@ export const ProductionPlan: React.FC<ProductionPlanProps> = ({
                   // Make the step ID more unique
                   step.id = `factory_${step.resourceId}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-                  // Update warehouse state for all levels after adding this step
-                  const updatedLevelsWithInventory =
-                    updateWarehouseStateAfterStepAddition(
-                      updatedLevels,
-                      step,
-                      1, // New level is level 1
-                      gameState.warehouse.inventory
-                    );
-
                   // Update the production plan with renumbered levels
                   onProductionPlanChange({
                     ...productionPlan,
-                    levels: updatedLevelsWithInventory,
-                    activeLevel: currentActiveLevel + 1, // Adjust active level for renumbering
+                    levels: updatedLevels,
                   });
+                  setActiveLevel(currentActiveLevel + 1);
                 } else if (targetLevel > 0) {
                   // Find the target level and add the step to it
                   const targetLevelIndex = updatedLevels.findIndex(
@@ -317,19 +348,10 @@ export const ProductionPlan: React.FC<ProductionPlanProps> = ({
                     // Add the step to the target level
                     targetLevelObj.steps.push(step);
 
-                    // Update warehouse state for all levels after adding this step
-                    const updatedLevelsWithInventory =
-                      updateWarehouseStateAfterStepAddition(
-                        updatedLevels,
-                        step,
-                        targetLevel,
-                        gameState.warehouse.inventory
-                      );
-
                     // Update the production plan
                     onProductionPlanChange({
                       ...productionPlan,
-                      levels: updatedLevelsWithInventory,
+                      levels: updatedLevels,
                     });
                   }
                 }

@@ -1,10 +1,21 @@
 import React, { useState } from 'react';
-import { PlannedStep, GameState, PlannedStepType } from './types';
+import {
+  PlannedStep,
+  PlannedStepType,
+  Factory,
+  Destination,
+  Resource,
+  Train,
+} from './types';
 import { formatTime, getResourceName, generateId } from './utils';
 
 interface ProductionJobProps {
   job: PlannedStep;
-  gameState: GameState;
+  resources: Resource[];
+  factories: Factory[];
+  destinations: Destination[];
+  trains: Train[];
+  maxConcurrentTrains: number;
   onJobUpdate: (updatedJob: PlannedStep) => void;
   onAddJobToLevel: (newStep: PlannedStep, targetLevel: number) => void;
   onRemoveJob: (stepId: string) => void;
@@ -16,7 +27,10 @@ interface ProductionJobProps {
 
 export const ProductionJob: React.FC<ProductionJobProps> = ({
   job,
-  gameState,
+  resources,
+  factories,
+  destinations,
+  trains,
   onJobUpdate,
   onAddJobToLevel,
   onRemoveJob,
@@ -57,12 +71,10 @@ export const ProductionJob: React.FC<ProductionJobProps> = ({
     if (currentLevel <= 1) return;
 
     const targetLevel = currentLevel - 1;
-    const recipe = gameState.factories
+    const recipe = factories
       .flatMap(f => f.recipes)
       .find(r => r.resourceId === resourceId);
-    const destination = gameState.destinations.find(
-      d => d.resourceId === resourceId
-    );
+    const destination = destinations.find(d => d.resourceId === resourceId);
 
     if (recipe) {
       // Create factory job
@@ -103,7 +115,7 @@ export const ProductionJob: React.FC<ProductionJobProps> = ({
         <h6 className="mb-2">
           Edit Job:{' '}
           {(job.type === 'delivery' && job.order?.name) ||
-            getResourceName(job.resourceId, gameState)}
+            getResourceName(job.resourceId, resources)}
         </h6>
 
         {job.type !== 'delivery' && (
@@ -125,29 +137,28 @@ export const ProductionJob: React.FC<ProductionJobProps> = ({
           </div>
         )}
         {/* Train Assignment */}
-        {job.type === 'destination' ||
-          (job.type === 'delivery' && (
-            <div className="mb-2">
-              <label className="form-label">Assign Train:</label>
-              <select
-                className="form-select form-select-sm"
-                value={editingJobData.trainId || ''}
-                onChange={e =>
-                  setEditingJobData(prev => ({
-                    ...prev,
-                    trainId: e.target.value || undefined,
-                  }))
-                }
-              >
-                <option value="">No Train Assigned</option>
-                {gameState.trains.map(train => (
-                  <option key={train.id} value={train.id}>
-                    {train.name} (Capacity: {train.capacity})
-                  </option>
-                ))}
-              </select>
-            </div>
-          ))}
+        {(job.type === 'destination' || job.type === 'delivery') && (
+          <div className="mb-2">
+            <label className="form-label">Assign Train:</label>
+            <select
+              className="form-select form-select-sm"
+              value={editingJobData.trainId || ''}
+              onChange={e =>
+                setEditingJobData(prev => ({
+                  ...prev,
+                  trainId: e.target.value || undefined,
+                }))
+              }
+            >
+              <option value="">No Train Assigned</option>
+              {trains.map(train => (
+                <option key={train.id} value={train.id}>
+                  {train.name} (Capacity: {train.capacity})
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
         {/* Recipe Selection for Factory Jobs */}
         {job.type === 'factory' && (
@@ -157,7 +168,7 @@ export const ProductionJob: React.FC<ProductionJobProps> = ({
               className="form-select form-select-sm"
               value={editingJobData.recipe?.resourceId || ''}
               onChange={e => {
-                const selectedRecipe = gameState.factories
+                const selectedRecipe = factories
                   .flatMap(f => f.recipes)
                   .find(r => r.resourceId === e.target.value);
                 setEditingJobData(prev => ({
@@ -166,7 +177,7 @@ export const ProductionJob: React.FC<ProductionJobProps> = ({
                 }));
               }}
             >
-              {gameState.factories
+              {factories
                 .flatMap(f => f.recipes)
                 .filter(r => r.resourceId === job.resourceId)
                 .map(recipe => (
@@ -174,11 +185,11 @@ export const ProductionJob: React.FC<ProductionJobProps> = ({
                     {recipe.requires
                       .map(
                         req =>
-                          `${req.amount} ${getResourceName(req.resourceId, gameState)}`
+                          `${req.amount} ${getResourceName(req.resourceId, resources)}`
                       )
                       .join(' + ')}{' '}
                     → {recipe.outputAmount}{' '}
-                    {getResourceName(recipe.resourceId, gameState)}
+                    {getResourceName(recipe.resourceId, resources)}
                   </option>
                 ))}
             </select>
@@ -210,14 +221,14 @@ export const ProductionJob: React.FC<ProductionJobProps> = ({
             </span>
             <strong className="ms-2">
               {(job.type === 'delivery' && job.order?.name) ||
-                getResourceName(job.resourceId, gameState)}
+                getResourceName(job.resourceId, resources)}
             </strong>
 
             {/* Train Assignment Display */}
             {job.trainId && (
               <span className="badge bg-info ms-2">
                 <i className="bi bi-train-front"></i>{' '}
-                {gameState.trains.find(t => t.id === job.trainId)?.name}
+                {trains.find(t => t.id === job.trainId)?.name}
               </span>
             )}
           </div>
@@ -253,13 +264,13 @@ export const ProductionJob: React.FC<ProductionJobProps> = ({
                     }
                     style={{ cursor: 'pointer' }}
                   >
-                    {req.amount} {getResourceName(req.resourceId, gameState)}
+                    {req.amount} {getResourceName(req.resourceId, resources)}
                   </span>
                 ))}
               </div>
               <small className="text-muted">
                 Output: {job.recipe.outputAmount}{' '}
-                {getResourceName(job.recipe.resourceId, gameState)}
+                {getResourceName(job.recipe.resourceId, resources)}
               </small>
             </div>
           )}

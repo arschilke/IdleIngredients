@@ -74,6 +74,33 @@ $border-radius-lg: 12px;
   }
 }
 
+.main-grid {
+  display: grid;
+  grid-template-columns:  min-content 2fr minmax(1fr, min-content);
+  grid-template-rows:minmax() min-content 2fr minmax(min-content, 1fr);
+  gap: 1rem;
+  grid-template-areas:
+    "current-orders current-orders order-form"
+    "production-plan production-plan current-inventory"
+    "production-plan production-plan current-inventory";
+}
+
+.current-orders {
+  grid-area: current-orders;
+}
+
+.order-form {
+  grid-area: order-form;
+}
+
+.production-plan {
+  grid-area: production-plan;
+}
+
+.current-inventory {
+  grid-area: current-inventory;
+} 
+
 // Custom order type badges
 .order-type {
   &-boat {
@@ -456,5 +483,35 @@ $border-radius-lg: 12px;
     font-size: 0.75rem;
     padding: 0.25rem 0.5rem;
     border-radius: $border-radius-sm;
+  }
+}
+
+// Orders container with horizontal fade
+.orders-container {
+  position: relative;
+  
+  .d-flex {
+    scrollbar-width: none; // Firefox
+    -ms-overflow-style: none; // IE and Edge
+    
+    &::-webkit-scrollbar {
+      display: none; // Chrome, Safari, Opera
+    }
+  }
+  
+  .fade-overlay-right {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 60px;
+    height: 100%;
+    background: linear-gradient(
+      to right,
+      transparent 0%,
+      rgba($dark, 0.8) 50%,
+      rgba($dark, 0.95) 100%
+    );
+    pointer-events: none;
+    z-index: 5;
   }
 }

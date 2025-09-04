@@ -1,14 +1,30 @@
+import { JobResourceStatus } from './inventoryUtils';
+
 export interface Resource {
   id: string;
   name: string;
+  icon: string;
 }
 
 export interface Train {
   id: string;
   name: string;
   capacity: number;
-  availableAt: number;
   class: TrainClass;
+  engine: TrainEngine;
+}
+
+export enum TrainEngine {
+  Steam = 'steam',
+  Diesel = 'diesel',
+  Electric = 'electric',
+}
+
+export enum TrainClass {
+  Common = 'common',
+  Rare = 'rare',
+  Epic = 'epic',
+  Legendary = 'legendary',
 }
 
 export interface Recipe {
@@ -21,8 +37,6 @@ export interface Recipe {
 export interface Factory {
   id: string;
   name: string;
-  availableAt: number;
-  queue: PlannedStep[];
   queueMaxSize: number;
   recipes: Recipe[];
 }
@@ -33,7 +47,6 @@ export interface Destination {
   resourceId: string;
   classes: TrainClass[];
 }
-export type TrainClass = 'common' | 'rare' | 'epic' | 'legendary';
 
 export interface ResourceRequirement {
   resourceId: string;
@@ -86,11 +99,7 @@ export interface PlannedStep {
   endTime?: number;
   trainId?: string;
   order?: Order; // For delivery jobs
-  resourceStatus?: {
-    isSufficient: boolean;
-    healthScore: number;
-    insufficientResources: string[];
-  };
+  resourceStatus?: JobResourceStatus;
 }
 
 export interface PlanningLevel {
@@ -99,7 +108,6 @@ export interface PlanningLevel {
   endTime: number;
   steps: PlannedStep[];
   inventoryChanges: Map<string, number>;
-  warehouseState: Map<string, number>; // Warehouse state at the end of this level
   trainCount: number;
   description: string;
   estimatedTime: number;
@@ -110,25 +118,9 @@ export interface ProductionPlan {
   levels: PlanningLevel[];
   totalTime: number;
   maxConcurrentWorkers: number;
-  activeLevel: number;
 }
 
-export interface RecipeTreeNode {
-  resourceId: string;
-  requiredAmount: number;
-  availableRecipes: Recipe[];
-  selectedRecipe?: Recipe;
-  availableDestinations: Destination[];
-  selectedDestination?: Destination;
-  children: RecipeTreeNode[];
-}
-
-export interface GameState {
-  maxConcurrentTrains: number;
-  resources: Resource[];
-  trains: Train[];
-  orders: Order[];
-  warehouse: Warehouse;
-  factories: Factory[];
-  destinations: Destination[];
+export interface Inventory {
+  maxCapacity: number;
+  inventory: Map<string, number>;
 }

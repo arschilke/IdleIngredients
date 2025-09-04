@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { OrderForm } from './OrderForm';
 import { ProductionPlan } from './ProductionPlan';
 import { CurrentInventory } from './CurrentInventory';
@@ -9,92 +9,123 @@ import {
   Train,
   Factory,
   Destination,
-  Warehouse,
-  GameState,
   ProductionPlan as ProductionPlanType,
+  TrainEngine,
+  TrainClass,
+  Inventory,
 } from './types';
 import './styles.scss';
 
 function App() {
-  const [resources] = useState<Resource[]>([
-    { id: 'coal', name: 'Coal' },
-    { id: 'iron', name: 'Iron' },
-    { id: 'oakwood', name: 'Oakwood' },
-    { id: 'steel', name: 'Steel' },
-    { id: 'nails', name: 'Nails' },
-    { id: 'iron_powder', name: 'Iron Powder' },
-    { id: 'saw_blade', name: 'Saw Blade' },
-    { id: 'copper_ore', name: 'Copper Ore' },
-    { id: 'copper', name: 'Copper' },
-  ]);
+  const resources: Resource[] = [
+    { id: 'coal', name: 'Coal', icon: 'Icon_Coal.png' },
+    { id: 'iron', name: 'Iron', icon: 'Icon_Iron_Ore.png' },
+    { id: 'wood', name: 'Oakwood', icon: 'Icon_Wood.png' },
+    { id: 'steel', name: 'Steel', icon: 'Icon_Steel.png' },
+    { id: 'nails', name: 'Nails', icon: 'Icon_Nails.webp' },
+    { id: 'iron_powder', name: 'Iron Powder', icon: 'Icon_Iron_Powder.webp' },
+    { id: 'saw_blade', name: 'Saw Blade', icon: 'Icon_Saw_Blade.webp' },
+    { id: 'copper_ore', name: 'Copper Ore', icon: 'Icon_Copper_Ore.png' },
+    { id: 'copper', name: 'Copper', icon: 'Icon_Copper.webp' },
+    { id: 'timber', name: 'Timber', icon: 'Icon_Timber.png' },
+    { id: 'chair', name: 'Chair', icon: 'Icon_Chair.webp' },
+    { id: 'table', name: 'Table', icon: 'Icon_Table.webp' },
+    { id: 'copper_wire', name: 'Copper Wire', icon: 'Icon_Copper_Wire.webp' },
+  ];
 
-  const [trains] = useState<Train[]>([
+  const trains: Train[] = [
     {
       id: 'train1',
-      name: 'Train 1',
-      capacity: 10,
-      availableAt: 0,
-      class: 'common',
+      name: 'FS CLASS 740',
+      engine: TrainEngine.Steam,
+      capacity: 20,
+      class: TrainClass.Common,
     },
     {
       id: 'train2',
-      name: 'Train 2',
-      capacity: 15,
-      availableAt: 0,
-      class: 'rare',
+      name: 'GER CLASS S69',
+      engine: TrainEngine.Steam,
+      capacity: 20,
+      class: TrainClass.Common,
     },
     {
       id: 'train3',
-      name: 'Train 3',
-      capacity: 12,
-      availableAt: 0,
-      class: 'epic',
+      name: 'STAR CLASS 4000',
+      engine: TrainEngine.Steam,
+      capacity: 20,
+      class: TrainClass.Common,
     },
     {
       id: 'train4',
-      name: 'Train 4',
-      capacity: 8,
-      availableAt: 0,
-      class: 'legendary',
+      name: 'PRUSSIAN P8',
+      engine: TrainEngine.Steam,
+      capacity: 20,
+      class: TrainClass.Common,
     },
     {
       id: 'train5',
-      name: 'Train 5',
-      capacity: 20,
-      availableAt: 0,
-      class: 'common',
+      name: 'NORD 140',
+      engine: TrainEngine.Steam,
+      capacity: 30,
+      class: TrainClass.Rare,
     },
     {
       id: 'train6',
-      name: 'Train 6',
-      capacity: 14,
-      availableAt: 0,
-      class: 'rare',
+      name: 'LB&SCR B4',
+      engine: TrainEngine.Steam,
+      capacity: 30,
+      class: TrainClass.Rare,
     },
     {
       id: 'train7',
-      name: 'Train 7',
-      capacity: 16,
-      availableAt: 0,
-      class: 'epic',
+      name: 'SHAY CLASS C',
+      engine: TrainEngine.Steam,
+      capacity: 45,
+      class: TrainClass.Epic,
     },
     {
       id: 'train8',
-      name: 'Train 8',
-      capacity: 11,
-      availableAt: 0,
-      class: 'legendary',
+      name: 'GWR 3041 THE QUEEN',
+      engine: TrainEngine.Steam,
+      capacity: 45,
+      class: TrainClass.Epic,
     },
-  ]);
+    {
+      id: 'train9',
+      name: 'LNER A4 MALLARD',
+      engine: TrainEngine.Steam,
+      capacity: 60,
+      class: TrainClass.Legendary,
+    },
+    {
+      id: 'train10',
+      name: 'ERIE L-1',
+      engine: TrainEngine.Steam,
+      capacity: 60,
+      class: TrainClass.Legendary,
+    },
+    {
+      id: 'train11',
+      name: 'CRAMPTON',
+      engine: TrainEngine.Steam,
+      capacity: 60,
+      class: TrainClass.Legendary,
+    },
+    {
+      id: 'train12',
+      name: 'BLUE COMET',
+      engine: TrainEngine.Steam,
+      capacity: 60,
+      class: TrainClass.Legendary,
+    },
+  ];
 
   const maxConcurrentTrains = 5; // Maximum number of trains that can work simultaneously
 
-  const [factories] = useState<Factory[]>([
+  const factories: Factory[] = [
     {
       id: 'factory1',
       name: 'Smelting Plant',
-      availableAt: 0,
-      queue: [],
       queueMaxSize: 3,
       recipes: [
         {
@@ -117,8 +148,6 @@ function App() {
     {
       id: 'factory2',
       name: 'Iron Mill',
-      availableAt: 0,
-      queue: [],
       queueMaxSize: 10,
       recipes: [
         {
@@ -175,74 +204,133 @@ function App() {
         },
       ],
     },
-  ]);
-
-  const [destinations] = useState<Destination[]>([
     {
-      id: 'london',
-      travelTime: 60,
-      resourceId: 'coin',
-      classes: ['common', 'rare', 'epic', 'legendary'],
+      id: 'factory3',
+      name: 'Sawmill',
+      queueMaxSize: 10,
+      recipes: [
+        {
+          resourceId: 'timber',
+          timeRequired: 900,
+          requires: [
+            {
+              resourceId: 'wood',
+              amount: 40,
+            },
+          ],
+          outputAmount: 40,
+        },
+      ],
     },
+    {
+      id: 'factory4',
+      name: 'Furniture and Textile',
+      queueMaxSize: 10,
+      recipes: [
+        {
+          resourceId: 'chair',
+          timeRequired: 120,
+          requires: [
+            {
+              resourceId: 'timber',
+              amount: 80,
+            },
+          ],
+          outputAmount: 120,
+        },
+        {
+          resourceId: 'table',
+          timeRequired: 150,
+          requires: [
+            {
+              resourceId: 'timber',
+              amount: 80,
+            },
+          ],
+          outputAmount: 150,
+        },
+        {
+          resourceId: 'barrel',
+          timeRequired: 1800,
+          requires: [
+            {
+              resourceId: 'wood',
+              amount: 100,
+            },
+            {
+              resourceId: 'copper_wire',
+              amount: 110,
+            },
+          ],
+          outputAmount: 210,
+        },
+      ],
+    },
+  ];
+
+  const destinations: Destination[] = [
     {
       id: 'coal_mine',
       travelTime: 30,
       resourceId: 'coal',
-      classes: ['common', 'rare', 'epic', 'legendary'],
+      classes: [
+        TrainClass.Common,
+        TrainClass.Rare,
+        TrainClass.Epic,
+        TrainClass.Legendary,
+      ],
     },
     {
       id: 'iron_ore_mine',
       travelTime: 30,
       resourceId: 'iron',
-      classes: ['common', 'rare', 'epic', 'legendary'],
+      classes: [
+        TrainClass.Common,
+        TrainClass.Rare,
+        TrainClass.Epic,
+        TrainClass.Legendary,
+      ],
     },
     {
       id: 'steel_factory',
       travelTime: 180,
       resourceId: 'steel',
-      classes: ['epic', 'legendary'],
+      classes: [TrainClass.Epic, TrainClass.Legendary],
     },
-    {
-      id: 'berlin',
-      travelTime: 300,
-      resourceId: 'coin',
-      classes: ['common', 'rare', 'epic', 'legendary'],
-    },
+
     {
       id: 'oakwood',
       travelTime: 300,
       resourceId: 'oakwood',
-      classes: ['common', 'rare', 'epic', 'legendary'],
+      classes: [
+        TrainClass.Common,
+        TrainClass.Rare,
+        TrainClass.Epic,
+        TrainClass.Legendary,
+      ],
     },
     {
       id: 'copper_mine',
       travelTime: 300,
       resourceId: 'copper_ore',
-      classes: ['common', 'rare', 'epic', 'legendary'],
+      classes: [
+        TrainClass.Common,
+        TrainClass.Rare,
+        TrainClass.Epic,
+        TrainClass.Legendary,
+      ],
     },
     {
       id: 'timber_factory',
       travelTime: 180,
       resourceId: 'timber',
-      classes: ['epic', 'legendary'],
+      classes: [TrainClass.Epic, TrainClass.Legendary],
     },
-  ]);
+  ];
 
-  const [warehouse, setWarehouse] = useState<Warehouse>({
-    id: 'main_warehouse',
-    name: 'Main Warehouse',
+  const [inventory, setInventory] = useState<Inventory>({
     maxCapacity: 1000,
-    inventory: new Map([
-      ['coal', 0],
-      ['iron', 0],
-      ['oakwood', 0],
-      ['steel', 0],
-      ['nails', 0],
-      ['iron_powder', 0],
-      ['saw_blade', 0],
-      ['copper_ore', 0],
-      ['copper', 0],
-    ]),
+    inventory: new Map(resources.map(r => [r.id, 0])),
   });
 
   const [orders, setOrders] = useState<Order[]>([]);
@@ -255,7 +343,6 @@ function App() {
         endTime: 0,
         steps: [],
         inventoryChanges: new Map(),
-        warehouseState: new Map(),
         trainCount: 0,
         description: 'First Level',
         estimatedTime: 0,
@@ -264,24 +351,7 @@ function App() {
     ],
     totalTime: 0,
     maxConcurrentWorkers: maxConcurrentTrains,
-    activeLevel: 1,
   });
-
-  // Create game state for calculator
-  const gameState: GameState = {
-    maxConcurrentTrains,
-    resources,
-    trains,
-    orders,
-    warehouse,
-    factories,
-    destinations,
-  };
-
-  // Update gameState when warehouse changes
-  useEffect(() => {
-    // This will trigger a re-render of components that use gameState
-  }, [warehouse]);
 
   const handleOrderSubmit = (order: Order) => {
     setOrders([...orders, order]);
@@ -289,32 +359,68 @@ function App() {
 
   const handleProductionPlanChange = (plan: ProductionPlanType) => {
     setProductionPlan(plan);
-
-    // Update warehouse inventory based on completed levels
-    updateWarehouseInventory(plan);
+    setInventory(getInventoryAtLevel(activeLevel));
   };
 
   const handleActiveLevelChange = (levelNumber: number) => {
     setActiveLevel(levelNumber);
-  };
+    setInventory(getInventoryAtLevel(levelNumber));
 
-  const updateWarehouseInventory = (plan: ProductionPlanType) => {
-    const newInventory = new Map(warehouse.inventory);
+    let deliveredAmounts = new Map<string, number>(
+      resources.map(r => [r.id, 0])
+    );
 
-    // Process inventory changes from completed levels
-    plan.levels.forEach(level => {
-      if (level.done) {
-        level.inventoryChanges.forEach((amount, resourceId) => {
-          const currentAmount = newInventory.get(resourceId) || 0;
-          newInventory.set(resourceId, currentAmount + amount);
-        });
+    // Sum up amounts from delivery steps for this level
+    productionPlan.levels.forEach(level => {
+      if (level.level <= activeLevel) {
+        level.steps
+          .filter(step => step.type === 'delivery')
+          .forEach(step => {
+            const currentAmount = deliveredAmounts.get(step.resourceId) || 0;
+            deliveredAmounts.set(
+              step.resourceId,
+              currentAmount + step.amountProcessed
+            );
+          });
       }
     });
 
-    setWarehouse(prev => ({
-      ...prev,
-      inventory: newInventory,
-    }));
+    setOrders(
+      orders.map(order => {
+        return {
+          ...order,
+          resources: order.resources.map(resource => {
+            const currentAmount =
+              deliveredAmounts.get(resource.resourceId) || 0;
+            const amountLeft = currentAmount - resource.amount;
+            if (amountLeft > 0) {
+              resource.delivered = resource.amount;
+              deliveredAmounts.set(resource.resourceId, amountLeft);
+            } else {
+              resource.delivered = resource.amount - amountLeft;
+              deliveredAmounts.set(resource.resourceId, 0);
+            }
+            return { ...resource, delivered: resource.delivered || 0 };
+          }),
+        };
+      })
+    );
+  };
+
+  const getInventoryAtLevel = (levelNumber: number): Inventory => {
+    var results = new Map(resources.map(r => [r.id, 0]));
+    if (!productionPlan) return { ...inventory, inventory: results };
+    for (const level of productionPlan.levels) {
+      if (level.level <= levelNumber) {
+        for (const [resourceId, change] of level.inventoryChanges) {
+          const resource = resources.find(r => r.id === resourceId);
+          if (!resource) continue;
+          const current = inventory.inventory.get(resourceId) || 0;
+          inventory.inventory.set(resourceId, current + change);
+        }
+      }
+    }
+    return { ...inventory, inventory: results };
   };
 
   const clearProductionPlan = () => {
@@ -326,7 +432,6 @@ function App() {
           endTime: 0,
           steps: [],
           inventoryChanges: new Map(),
-          warehouseState: new Map(),
           trainCount: 0,
           description: 'First Level',
           estimatedTime: 0,
@@ -335,7 +440,6 @@ function App() {
       ],
       totalTime: 0,
       maxConcurrentWorkers: maxConcurrentTrains,
-      activeLevel: 1,
     });
   };
 
@@ -345,43 +449,51 @@ function App() {
         <h1>Idle Game Production Planner</h1>
       </header>
 
-      <main className="container-fluid py-4">
+      <main className="main-grid m-2 pb-2">
         {/* Row 1: Current Orders and New Order Form */}
-        <div className="d-flex gap-2">
-          <div className="d-flex flex-fill justify-content-between flex-column">
-            <CurrentOrders
-              orders={orders}
-              resources={resources}
-              trains={trains}
-              productionPlan={productionPlan}
-              onProductionPlanChange={handleProductionPlanChange}
-              maxConcurrentTrains={maxConcurrentTrains}
-            />
-            <ProductionPlan
-              gameState={gameState}
-              productionPlan={productionPlan}
-              activeLevel={activeLevel}
-              onActiveLevelChange={handleActiveLevelChange}
-              onProductionPlanChange={handleProductionPlanChange}
-              onClearPlan={clearProductionPlan}
-            />
-          </div>
-          <div className="d-flex flex-fill justify-content-between flex-column">
-            <div>
-              <OrderForm
-                resources={resources}
-                onSubmit={handleOrderSubmit}
-                onOrdersChange={setOrders}
-              />
-            </div>
-            <div className="flex-shrink-1">
-              <CurrentInventory
-                gameState={gameState}
-                activeLevel={activeLevel}
-                productionPlan={productionPlan}
-              />
-            </div>
-          </div>
+
+        <div className="current-orders">
+          <CurrentOrders
+            orders={orders}
+            resources={resources}
+            trains={trains}
+            productionPlan={productionPlan}
+            activeLevel={activeLevel}
+            onProductionPlanChange={handleProductionPlanChange}
+            onOrdersChange={setOrders}
+            maxConcurrentTrains={maxConcurrentTrains}
+          />
+        </div>
+        <div className="order-form">
+          <OrderForm
+            resources={resources}
+            onSubmit={handleOrderSubmit}
+            onOrdersChange={setOrders}
+          />
+        </div>
+        <div className="production-plan">
+          <ProductionPlan
+            factories={factories}
+            destinations={destinations}
+            productionPlan={productionPlan}
+            activeLevel={activeLevel}
+            onActiveLevelChange={handleActiveLevelChange}
+            onProductionPlanChange={handleProductionPlanChange}
+            onOrdersChange={setOrders}
+            onClearPlan={clearProductionPlan}
+            trains={trains}
+            maxConcurrentTrains={maxConcurrentTrains}
+            resources={resources}
+          />
+        </div>
+
+        <div className="current-inventory">
+          <CurrentInventory
+            resources={resources}
+            inventory={inventory}
+            activeLevel={activeLevel}
+            productionPlan={productionPlan}
+          />
         </div>
       </main>
     </div>

@@ -1,40 +1,37 @@
 import React from 'react';
-import { GameState, ProductionPlan } from './types';
+import { Inventory, ProductionPlan, Resource } from './types';
 import { getResourceName } from './utils';
 
 interface CurrentInventoryProps {
-  gameState: GameState;
+  inventory: Inventory;
+  resources: Resource[];
   activeLevel: number;
   productionPlan: ProductionPlan | null;
 }
 
 export const CurrentInventory: React.FC<CurrentInventoryProps> = ({
-  gameState,
+  resources,
   activeLevel,
   productionPlan,
 }) => {
   const getCurrentInventory = () => {
-    const inventory = new Map<string, number>();
-
-    // Start with current warehouse inventory
-    for (const [resourceId, amount] of gameState.warehouse.inventory) {
-      const current = inventory.get(resourceId) || 0;
-      inventory.set(resourceId, current + amount);
-    }
+    var currentInventory = new Map<Resource, number>();
 
     // Apply inventory changes from all levels up to the active level
     if (productionPlan) {
       for (const level of productionPlan.levels) {
         if (level.level <= activeLevel) {
           for (const [resourceId, change] of level.inventoryChanges) {
-            const current = inventory.get(resourceId) || 0;
-            inventory.set(resourceId, current + change);
+            const resource = resources.find(r => r.id === resourceId);
+            if (!resource) continue;
+            const current = currentInventory.get(resource) || 0;
+            currentInventory.set(resource, current + change);
           }
         }
       }
     }
 
-    return inventory;
+    return currentInventory;
   };
 
   const getActiveLevelResourceNeeds = () => {
@@ -143,7 +140,7 @@ export const CurrentInventory: React.FC<CurrentInventoryProps> = ({
                     key={resourceId}
                     className={`badge ${change > 0 ? 'bg-success' : 'bg-danger'}`}
                   >
-                    {getResourceName(resourceId, gameState)}{' '}
+                    {getResourceName(resourceId, resources)}{' '}
                     {change > 0 ? '+' : ''}
                     {change}
                   </span>
@@ -181,24 +178,26 @@ export const CurrentInventory: React.FC<CurrentInventoryProps> = ({
         </div>
 
         <div className="inventory-grid">
-          <div className="row row-cols-2 row-cols-md-3 row-cols-lg-4 g-2">
+          <div className="row row-cols-6 g-2">
             {Array.from(currentInventory.entries()).map(
-              ([resourceId, amount]) => {
+              ([resource, amount]) => {
                 return (
-                  <div key={resourceId} className="col">
+                  <div key={resource.id} className="col">
                     <div className="card h-100 border-0 shadow-sm">
                       <div className="card-body p-2 text-center">
-                        <div className="mb-2">
-                          <i className="bi bi-box-seam fs-4 text-muted"></i>
-                        </div>
-                        <div className="mb-1">
+                        <div className="d-flex justify-content-center flex-column">
+                          <div className="flex-shrink-1">
+                            <img
+                              src={`/Assets/${resource.icon}`}
+                              alt={resource.name}
+                              className="img-fluid"
+                            />
+                          </div>
                           <span className="fw-medium small text-truncate d-block">
-                            {getResourceName(resourceId, gameState)}
+                            {resource.name}
                           </span>
-                        </div>
-                        <div>
                           <span
-                            className={`fw-bold fs-4 ${getResourceNumberColor(resourceId, amount)}`}
+                            className={`fw-bold fs-4 ${getResourceNumberColor(resource.id, amount)}`}
                           >
                             {amount}
                           </span>

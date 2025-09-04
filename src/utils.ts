@@ -1,4 +1,4 @@
-import { GameState } from './types';
+import { Resource } from './types';
 
 /**
  * Formats a time duration in seconds to a human-readable string
@@ -27,9 +27,9 @@ export const formatTime = (seconds: number): string => {
  */
 export const getResourceName = (
   resourceId: string,
-  gameState: GameState
+  resources: Resource[]
 ): string => {
-  return gameState.resources.find(r => r.id === resourceId)?.name || resourceId;
+  return resources.find(r => r.id === resourceId)?.name || resourceId;
 };
 
 /**

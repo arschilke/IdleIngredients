@@ -5,6 +5,7 @@ import {
   Destination,
   Recipe,
   ResourceRequirement,
+  TrainClass,
 } from './types';
 
 interface ResourceManagerProps {
@@ -92,6 +93,7 @@ export const ResourceManager: React.FC<ResourceManagerProps> = ({
     const resource: Resource = {
       id: editingId || `resource_${Date.now()}`,
       name: resourceFormData.name.trim(),
+      icon: 'Icon_Default.png', // Default icon
     };
 
     if (editingId) {
@@ -116,8 +118,6 @@ export const ResourceManager: React.FC<ResourceManagerProps> = ({
     const factory: Factory = {
       id: editingId || `factory_${Date.now()}`,
       name: factoryFormData.name.trim(),
-      availableAt: 0,
-      queue: [],
       queueMaxSize: factoryFormData.queueMaxSize,
       recipes: [],
     };
@@ -143,7 +143,12 @@ export const ResourceManager: React.FC<ResourceManagerProps> = ({
       id: editingId || `destination_${Date.now()}`,
       resourceId: destinationFormData.resourceId,
       travelTime: destinationFormData.travelTime,
-      classes: ['common', 'rare', 'epic', 'legendary'], // Default to all classes
+      classes: [
+        TrainClass.Common,
+        TrainClass.Rare,
+        TrainClass.Epic,
+        TrainClass.Legendary,
+      ], // Default to all classes
     };
 
     if (editingId) {

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Train, TrainClass } from './types';
+import { Train, TrainClass, TrainEngine } from './types';
 
 interface TrainManagerProps {
   trains: Train[];
@@ -22,7 +22,7 @@ export const TrainManager: React.FC<TrainManagerProps> = ({
     setFormData({
       name: '',
       capacity: 10,
-      class: 'common',
+      class: TrainClass.Common,
     });
     setIsAdding(false);
     setEditingId(null);
@@ -42,6 +42,7 @@ export const TrainManager: React.FC<TrainManagerProps> = ({
       capacity: formData.capacity,
       availableAt: 0,
       class: formData.class as TrainClass,
+      engine: TrainEngine.Steam, // Default engine
     };
 
     if (editingId) {

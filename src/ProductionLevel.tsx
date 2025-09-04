@@ -2,20 +2,25 @@ import React, { useState } from 'react';
 import {
   PlanningLevel,
   PlannedStep,
-  GameState,
   Recipe,
   Destination,
+  Resource,
+  Factory,
+  Train,
 } from './types';
 import { ProductionJob } from './ProductionJob';
 import { formatTime } from './utils';
-import { getBestTrains } from './trainUtils';
+//import { getBestTrains } from './trainUtils';
 import { checkLevelResourceSufficiency } from './inventoryUtils';
 
 interface ProductionLevelProps {
   level: PlanningLevel;
-  gameState: GameState;
+  resources: Resource[];
+  factories: Factory[];
+  destinations: Destination[];
+  trains: Train[];
+  maxConcurrentTrains: number;
   isActiveLevel: boolean;
-  previousLevelWarehouseState: Map<string, number>; // Warehouse state at the end of the previous level
   onLevelClick: (levelNumber: number) => void;
   onRemoveLevel: (levelNumber: number) => void;
   onLevelChange: (updatedLevel: PlanningLevel) => void;
@@ -30,13 +35,16 @@ interface ProductionLevelProps {
 
 export const ProductionLevel: React.FC<ProductionLevelProps> = ({
   level,
-  gameState,
+  resources,
+  factories,
+  destinations,
+  trains,
+  maxConcurrentTrains,
   isActiveLevel,
   previousLevelWarehouseState,
   onLevelClick,
   onRemoveLevel,
   onLevelChange,
-  onAddStepToLevel,
   onReorderJob,
   onMoveJobToLevel,
 }) => {
@@ -64,75 +72,42 @@ export const ProductionLevel: React.FC<ProductionLevelProps> = ({
     return insufficientResources.map(resource => ({
       ...resource,
       name:
-        gameState.resources.find(r => r.id === resource.resourceId)?.name ||
+        resources.find((r: Resource) => r.id === resource.resourceId)?.name ||
         resource.resourceId,
     }));
   };
 
-  // Calculate which steps would run out of resources when completed in order
-  const calculateResourceDepletionSteps = () => {
-    const insufficientResources = checkInventorySufficiency();
-    if (insufficientResources.length === 0) return [];
-
-    const depletionSteps: Array<{
-      stepIndex: number;
-      step: PlannedStep;
-      resourceId: string;
-      resourceName: string;
-      required: number;
-      available: number;
-      remainingAfterStep: number;
-    }> = [];
-
-    let currentInventory = new Map(previousLevelWarehouseState);
-
-    level.steps.forEach((step, stepIndex) => {
-      if (step.recipe) {
-        // Check if this step would deplete any resources
-        step.recipe.requires.forEach(req => {
-          const currentAmount = currentInventory.get(req.resourceId) || 0;
-          if (currentAmount < req.amount) {
-            depletionSteps.push({
-              stepIndex,
-              step,
-              resourceId: req.resourceId,
-              resourceName:
-                gameState.resources.find(r => r.id === req.resourceId)?.name ||
-                req.resourceId,
-              required: req.amount,
-              available: currentAmount,
-              remainingAfterStep: 0,
-            });
-          } else {
-            // Update inventory after this step
-            currentInventory.set(req.resourceId, currentAmount - req.amount);
-          }
-        });
-      }
-      if (step.type === 'delivery') {
-        const currentAmount = currentInventory.get(step.resourceId) || 0;
-        if (currentAmount < step.amountProcessed) {
-          depletionSteps.push({
-            stepIndex,
-            step,
-            resourceId: step.resourceId,
-            resourceName:
-              gameState.resources.find(r => r.id === step.resourceId)?.name ||
-              step.resourceId,
-            required: step.amountProcessed,
-            available: currentAmount,
-            remainingAfterStep: 0,
+  const updateInventory = () => {
+    const updatedInventory = new Map(resources.map(r => [r.id, 0]));
+    level.steps.forEach(step => {
+      switch (step.type) {
+        case 'factory':
+          step.recipe?.requires.forEach(req => {
+            var currentAmount =
+              updatedInventory.get(req.resourceId) ?? 0 - req.amount;
+            updatedInventory.set(req.resourceId, currentAmount);
           });
-        } else {
-          currentInventory.set(
+          updatedInventory.set(
             step.resourceId,
-            currentAmount - step.amountProcessed
+            updatedInventory.get(step.resourceId) ?? 0 + step.amountProcessed
           );
-        }
+          break;
+        case 'delivery':
+          updatedInventory.set(
+            step.resourceId,
+            updatedInventory.get(step.resourceId) ?? 0 - step.amountProcessed
+          );
+          break;
+        case 'destination':
+          updatedInventory.set(
+            step.resourceId,
+            updatedInventory.get(step.resourceId) ?? 0 + step.amountProcessed
+          );
+          break;
       }
     });
 
-    return depletionSteps;
+    return updatedInventory;
   };
 
   const onAddJobToLevel = (newStep: PlannedStep) => {
@@ -142,6 +117,7 @@ export const ProductionLevel: React.FC<ProductionLevelProps> = ({
     level.trainCount = level.steps.filter(
       step => step.trainId !== undefined
     ).length;
+    level.inventoryChanges = updateInventory();
     onLevelChange(level);
   };
 
@@ -150,6 +126,7 @@ export const ProductionLevel: React.FC<ProductionLevelProps> = ({
     const updatedLevel = {
       ...level,
       steps: updatedSteps,
+      inventoryChanges: updateInventory(),
     };
     onLevelChange(updatedLevel);
   };
@@ -209,75 +186,12 @@ export const ProductionLevel: React.FC<ProductionLevelProps> = ({
     setDragOverLevel(null);
   };
 
-  // Create a production step for a resource
-  const createProductionStep = (resourceId: string) => {
-    // Find a factory that can produce this resource
-    const factory = gameState.factories.find(f =>
-      f.recipes.some(recipe => recipe.resourceId === resourceId)
-    );
-
-    if (factory) {
-      const recipe = factory.recipes.find(r => r.resourceId === resourceId);
-      if (recipe) {
-        const newStep: PlannedStep = {
-          id: `factory_${resourceId}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-          type: 'factory',
-          resourceId: resourceId,
-          level: level.level - 1, // Create on previous level
-          timeRequired: recipe.timeRequired,
-          amountProcessed: recipe.outputAmount,
-          dependencies: [],
-          recipe: recipe,
-        };
-
-        // If we're at level 1, create a new level at the beginning
-        // Otherwise, add to the previous level
-        const targetLevel = level.level === 1 ? -1 : level.level - 1;
-        onAddStepToLevel(newStep, targetLevel);
-      }
-    }
-
-    const destination = gameState.destinations.find(
-      d => d.resourceId === resourceId
-    );
-    if (destination) {
-      var neededAmount = checkInventorySufficiency().find(
-        r => r.resourceId === resourceId
-      );
-      if (neededAmount) {
-        const trains = getBestTrains(
-          level,
-          neededAmount.required,
-          gameState.trains
-        );
-        for (let train of trains) {
-          const newStep: PlannedStep = {
-            id: `destination_${resourceId}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-            type: 'destination',
-            resourceId: resourceId,
-            level: level.level - 1,
-            timeRequired: destination.travelTime,
-            trainId: train.id,
-            amountProcessed: train.capacity,
-            dependencies: [],
-          };
-          // If we're at level 1, create a new level at the beginning
-          // Otherwise, add to the previous level
-          const targetLevel = level.level === 1 ? -1 : level.level - 1;
-          onAddStepToLevel(newStep, targetLevel);
-        }
-      }
-    }
-  };
-
-  const resourceDepletionSteps = calculateResourceDepletionSteps();
-
   return (
     <div
       className={`level-container mb-2 p-3 border rounded bg-opacity-10 ${
         level.done
           ? 'bg-secondary border-secondary text-muted'
-          : level.trainCount > gameState.maxConcurrentTrains
+          : level.trainCount > maxConcurrentTrains
             ? 'bg-danger border-danger'
             : 'bg-light'
       } ${isActiveLevel ? 'border-primary border-2 shadow-lg' : ''} ${showAddJobModal ? 'modal-open' : ''} ${dragOverLevel === level.level ? 'drag-over' : ''}`}
@@ -298,7 +212,7 @@ export const ProductionLevel: React.FC<ProductionLevelProps> = ({
               <i className="bi bi-check-circle"></i> Done
             </span>
           )}
-          {level.trainCount > gameState.maxConcurrentTrains && (
+          {level.trainCount > maxConcurrentTrains && (
             <span className="badge bg-danger">
               <i className="bi bi-exclamation-triangle"></i> Over Capacity
             </span>
@@ -349,46 +263,6 @@ export const ProductionLevel: React.FC<ProductionLevelProps> = ({
         </small>
       </div>
 
-      {/* Resource insufficiency display with step-by-step breakdown */}
-      {resourceDepletionSteps.length > 0 && (
-        <div className="alert alert-warning alert-sm mb-2">
-          <i className="bi bi-exclamation-triangle me-2"></i>
-          <strong>Resource Depletion Analysis:</strong>
-          <div className="mt-2">
-            {resourceDepletionSteps.map((depletion, index) => (
-              <div
-                key={index}
-                className="mb-2 p-2 border-start border-warning border-3 ps-3 bg-light"
-              >
-                <div className="d-flex justify-content-between align-items-center">
-                  <span className="fw-bold">
-                    Step {depletion.stepIndex + 1}:{' '}
-                    {depletion.step.type === 'factory' ? 'Factory' : 'Delivery'}
-                  </span>
-                  <span className="badge bg-danger">
-                    <i className="bi bi-x-circle"></i> Resource Depleted
-                  </span>
-                </div>
-                <div className="small text-muted mt-1">
-                  <strong>{depletion.resourceName}</strong> will run out here
-                </div>
-                <div className="small">
-                  Required: {depletion.required} | Available:{' '}
-                  {depletion.available}
-                </div>
-                <button
-                  className="btn btn-sm btn-outline-primary mt-1"
-                  onClick={() => createProductionStep(depletion.resourceId)}
-                  title={`Click to create production step for ${depletion.resourceName}`}
-                >
-                  <i className="bi bi-plus-circle"></i> Add Production
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
       <div className="level-steps">
         {level.steps.length === 0 ? (
           <div
@@ -412,7 +286,11 @@ export const ProductionLevel: React.FC<ProductionLevelProps> = ({
 
               <ProductionJob
                 job={step}
-                gameState={gameState}
+                resources={resources}
+                factories={factories}
+                destinations={destinations}
+                trains={trains}
+                maxConcurrentTrains={maxConcurrentTrains}
                 onJobUpdate={updatedJob => {
                   const updatedSteps = level.steps.map(s =>
                     s.id === updatedJob.id ? updatedJob : s
@@ -420,6 +298,7 @@ export const ProductionLevel: React.FC<ProductionLevelProps> = ({
                   const updatedLevel = {
                     ...level,
                     steps: updatedSteps,
+                    inventoryChanges: updateInventory(),
                   };
                   onLevelChange(updatedLevel);
                 }}
@@ -489,22 +368,22 @@ export const ProductionLevel: React.FC<ProductionLevelProps> = ({
                       value={selectedResource}
                       onChange={e => {
                         setSelectedResource(e.target.value);
-                        const recipe = gameState.factories
-                          .flatMap(f => f.recipes)
-                          .find(r => r.resourceId === e.target.value);
+                        const recipe = factories
+                          .flatMap((f: Factory) => f.recipes)
+                          .find((r: Recipe) => r.resourceId === e.target.value);
                         setSelectedRecipe(recipe || null);
                       }}
                     >
                       <option value="">Select a resource...</option>
-                      {gameState.factories
-                        .flatMap(f => f.recipes)
-                        .map(recipe => (
+                      {factories
+                        .flatMap((f: Factory) => f.recipes)
+                        .map((recipe: Recipe) => (
                           <option
                             key={recipe.resourceId}
                             value={recipe.resourceId}
                           >
-                            {gameState.resources.find(
-                              r => r.id === recipe.resourceId
+                            {resources.find(
+                              (r: Resource) => r.id === recipe.resourceId
                             )?.name || recipe.resourceId}
                           </option>
                         ))}
@@ -519,14 +398,14 @@ export const ProductionLevel: React.FC<ProductionLevelProps> = ({
                       className="form-select"
                       value={selectedDestination?.id || ''}
                       onChange={e => {
-                        const dest = gameState.destinations.find(
-                          d => d.id === e.target.value
+                        const dest = destinations.find(
+                          (d: Destination) => d.id === e.target.value
                         );
                         setSelectedDestination(dest || null);
                       }}
                     >
                       <option value="">Select a destination...</option>
-                      {gameState.destinations.map(dest => (
+                      {destinations.map((dest: Destination) => (
                         <option key={dest.id} value={dest.id}>
                           {dest.resourceId} ({dest.travelTime}s)
                         </option>
