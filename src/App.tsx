@@ -473,10 +473,12 @@ function App() {
         </div>
         <div className="production-plan">
           <ProductionPlan
+            inventory={inventory}
             factories={factories}
             destinations={destinations}
             productionPlan={productionPlan}
             activeLevel={activeLevel}
+            onInventoryChange={setInventory}
             onActiveLevelChange={handleActiveLevelChange}
             onProductionPlanChange={handleProductionPlanChange}
             onOrdersChange={setOrders}
