@@ -9,17 +9,18 @@ import {
   Step,
   FactoryStep,
   DestinationStep,
+  ProductionPlan,
 } from './types';
 import { ProductionJob } from './ProductionJob';
 import { getBestTrains } from './trainUtils';
-import { getInventoryChanges } from './inventoryUtils';
+import { getInventoryAtLevel, getInventoryChanges } from './inventoryUtils';
 
 interface ProductionLevelProps {
   level: PlanningLevel;
   resources: Record<string, Resource>;
   factories: Record<string, Factory>;
   destinations: Record<string, Destination>;
-  inventory: Record<string, number>;
+  productionPlan: ProductionPlan;
   trains: Record<string, Train>;
   maxConcurrentTrains: number;
   isActiveLevel: boolean;
@@ -41,7 +42,7 @@ export const ProductionLevel: React.FC<ProductionLevelProps> = ({
   resources,
   factories,
   destinations,
-  inventory,
+  productionPlan,
   trains,
   maxConcurrentTrains,
   isActiveLevel,
@@ -69,9 +70,10 @@ export const ProductionLevel: React.FC<ProductionLevelProps> = ({
   // Check if inventory has enough resources for all jobs in this level
   const checkInventorySufficiency = () => {
     var insufficientResources: string[] = [];
-    level.inventoryChanges.forEach((value, key) => {
-      if (value < 0 && inventory[key] + value < 0) {
-        insufficientResources.push(key);
+    const inventory = getInventoryAtLevel(productionPlan, level.level);
+    Object.keys(inventory).forEach(resourceId => {
+      if (inventory[resourceId] < 0) {
+        insufficientResources.push(resourceId);
       }
     });
     return insufficientResources;

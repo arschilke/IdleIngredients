@@ -1,7 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import {
   ProductionPlan as ProductionPlanType,
-  Inventory,
   PlanningLevel,
   Order,
   Factory,
@@ -14,10 +13,9 @@ import { ProductionLevel } from './ProductionLevel';
 import { getInventoryChanges } from './inventoryUtils';
 
 interface ProductionPlanProps {
-  productionPlan: ProductionPlanType | null;
+  productionPlan: ProductionPlanType;
   resources: Record<string, Resource>;
   activeLevel: number;
-  inventory: Inventory;
   factories: Record<string, Factory>;
   destinations: Record<string, Destination>;
   trains: Record<string, Train>;
@@ -34,7 +32,6 @@ export const ProductionPlan: React.FC<ProductionPlanProps> = ({
   destinations,
   trains,
   resources,
-  inventory,
   maxConcurrentTrains,
   activeLevel,
   onActiveLevelChange,
@@ -196,6 +193,36 @@ export const ProductionPlan: React.FC<ProductionPlanProps> = ({
     );
   }
 
+  function simplifyProductionPlan(): void {
+    //TODO: This doesnt work.
+    for (const level of Object.values(productionPlan.levels)) {
+      var trainCount = 0;
+      level.steps.map(step => {
+        if ('trainId' in step) {
+          trainCount++;
+        }
+      });
+      if (trainCount < maxConcurrentTrains) {
+        var moveableSteps = productionPlan.levels[level.level + 1].steps.filter(
+          step =>
+            'trainId' in step &&
+            !(step.trainId in level.steps.map(s => 'trainId' in s && s.trainId))
+        );
+        var i = 0;
+        do {
+          handleMoveJobToLevel(
+            moveableSteps[i].id,
+            level.level + 1,
+            level.level
+          );
+          i++;
+          trainCount++;
+        } while (trainCount < maxConcurrentTrains && moveableSteps.length > i);
+      }
+    }
+    onProductionPlanChange({ ...productionPlan });
+  }
+
   return (
     <div className="card h-100">
       <div className="card-header d-flex justify-content-between align-items-center">
@@ -204,9 +231,12 @@ export const ProductionPlan: React.FC<ProductionPlanProps> = ({
           <button className="btn btn-success btn-sm" onClick={createNewLevel}>
             <i className="bi bi-plus-circle"></i> Add Level
           </button>
-          <button className="btn btn-info btn-sm" onClick={() => {}}>
-            <i className="bi bi-download me-1"></i>
-            Export
+          <button
+            className="btn btn-info btn-sm"
+            onClick={() => simplifyProductionPlan()}
+          >
+            <i className="bi bi-math me-1"></i>
+            Simplify
           </button>
           <label className="btn btn-primary btn-sm mb-0">
             <i className="bi bi-upload me-1"></i>
@@ -234,7 +264,7 @@ export const ProductionPlan: React.FC<ProductionPlanProps> = ({
             <ProductionLevel
               level={level}
               factories={factories}
-              inventory={inventory}
+              productionPlan={productionPlan}
               destinations={destinations}
               trains={trains}
               resources={resources}

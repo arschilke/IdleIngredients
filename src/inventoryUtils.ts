@@ -1,5 +1,5 @@
-import { trains } from './data';
-import { PlanningLevel, Step } from './types';
+import { resources, trains } from './data';
+import { Inventory, PlanningLevel, ProductionPlan, Step } from './types';
 
 /**
  * Calculate the net inventory change for a step
@@ -39,4 +39,32 @@ export function getInventoryChanges(level: PlanningLevel): Map<string, number> {
   });
 
   return inventoryChanges;
+}
+
+export function getInventoryAtLevel(
+  productionPlan: ProductionPlan,
+  levelNumber: number
+): Inventory {
+  // Initialize inventory with zero for each resource
+  const inventory: Inventory = {};
+  Object.keys(resources).forEach(resourceId => {
+    inventory[resourceId] = 0;
+  });
+
+  // Get all level numbers, sort them in ascending order
+  const sortedLevels = Object.keys(productionPlan.levels)
+    .map(Number)
+    .filter(lvl => lvl <= levelNumber)
+    .sort((a, b) => a - b);
+
+  // Step through each level in order, applying inventory changes
+  for (const lvl of sortedLevels) {
+    const level = productionPlan.levels[lvl];
+    if (!level) continue;
+    for (const [resourceId, change] of level.inventoryChanges.entries()) {
+      inventory[resourceId] += change;
+    }
+  }
+
+  return inventory;
 }

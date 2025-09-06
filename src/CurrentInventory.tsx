@@ -16,45 +16,17 @@ export const CurrentInventory: React.FC<CurrentInventoryProps> = ({
 }) => {
   const isDone = productionPlan?.levels[activeLevel]?.done ?? false;
 
-  const getActiveLevelResourceNeeds = () => {
-    if (!productionPlan) return new Map();
-
-    const activeLevelData = productionPlan.levels[activeLevel];
-
-    if (!activeLevelData) return new Map();
-
-    const resourceNeeds = new Map<string, number>();
-
-    // Calculate total resources needed for all jobs in the active level
-    activeLevelData.steps.forEach(step => {
-      if (step.type === 'factory') {
-        // For factory jobs, add up all required resources from recipes
-        step.recipe.requires.forEach(req => {
-          const current = resourceNeeds.get(req.resourceId) || 0;
-          resourceNeeds.set(req.resourceId, current + req.amount);
-        });
-      }
-      if (step.type === 'delivery') {
-        step.order.resources.forEach(req => {
-          const current = resourceNeeds.get(step.resourceId) || 0;
-          resourceNeeds.set(req.resourceId, current + req.amount);
-        });
-      }
-    });
-
-    return resourceNeeds;
-  };
-
   const getResourceNumberColor = (
     resourceId: string,
     amount: number
   ): string => {
-    const activeLevelNeeds = getActiveLevelResourceNeeds();
-    const neededAmount = activeLevelNeeds.get(resourceId) || 0;
+    const neededAmount =
+      productionPlan?.levels[activeLevel]?.inventoryChanges.get(resourceId) ||
+      0;
 
     if (neededAmount === 0) return 'text-muted'; // No need for this resource
     if (amount >= neededAmount) return 'text-success'; // Sufficient resources
-    if (amount > 0) return 'text-warning'; // Some resources but not enough
+    if (amount < neededAmount) return 'text-warning'; // Some resources but not enough
     return 'text-danger'; // No resources available
   };
 

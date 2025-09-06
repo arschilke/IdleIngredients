@@ -16,6 +16,7 @@ import {
   resources,
   trains,
 } from './data';
+import { getInventoryAtLevel } from './inventoryUtils';
 
 function App() {
   const [inventory, setInventory] = useState<Inventory>(() => {
@@ -47,37 +48,12 @@ function App() {
 
   const handleProductionPlanChange = (plan: ProductionPlanType) => {
     setProductionPlan(plan);
-    setInventory(getInventoryAtLevel(activeLevel));
+    setInventory(getInventoryAtLevel(plan, activeLevel));
   };
 
   const handleActiveLevelChange = (levelNumber: number) => {
-    setInventory(getInventoryAtLevel(levelNumber));
+    setInventory(getInventoryAtLevel(productionPlan, levelNumber));
     setActiveLevel(levelNumber);
-  };
-
-  const getInventoryAtLevel = (levelNumber: number): Inventory => {
-    // Initialize inventory with zero for each resource
-    const inventory: Inventory = {};
-    Object.keys(resources).forEach(resourceId => {
-      inventory[resourceId] = 0;
-    });
-
-    // Get all level numbers, sort them in ascending order
-    const sortedLevels = Object.keys(productionPlan.levels)
-      .map(Number)
-      .filter(lvl => lvl <= levelNumber)
-      .sort((a, b) => a - b);
-
-    // Step through each level in order, applying inventory changes
-    for (const lvl of sortedLevels) {
-      const level = productionPlan.levels[lvl];
-      if (!level) continue;
-      for (const [resourceId, change] of level.inventoryChanges.entries()) {
-        inventory[resourceId] += change;
-      }
-    }
-
-    return inventory;
   };
 
   const clearProductionPlan = (): void => {
@@ -136,7 +112,6 @@ function App() {
             trains={trains}
             maxConcurrentTrains={maxConcurrentTrains}
             resources={resources}
-            inventory={inventory}
           />
         </div>
 
