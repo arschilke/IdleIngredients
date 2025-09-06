@@ -3,24 +3,24 @@ import {
   ProductionPlan as ProductionPlanType,
   Inventory,
   PlanningLevel,
-  PlannedStep,
   Order,
   Factory,
   Destination,
   Train,
   Resource,
+  Step,
 } from './types';
 import { ProductionLevel } from './ProductionLevel';
-
-import { importOrdersAndPlan } from './exportUtils';
+import { getInventoryChanges } from './inventoryUtils';
 
 interface ProductionPlanProps {
   productionPlan: ProductionPlanType | null;
-  resources: Resource[];
+  resources: Record<string, Resource>;
   activeLevel: number;
-  factories: Factory[];
-  destinations: Destination[];
-  trains: Train[];
+  inventory: Inventory;
+  factories: Record<string, Factory>;
+  destinations: Record<string, Destination>;
+  trains: Record<string, Train>;
   maxConcurrentTrains: number;
   onActiveLevelChange: (levelNumber: number) => void;
   onProductionPlanChange: (newPlan: ProductionPlanType) => void;
@@ -34,11 +34,11 @@ export const ProductionPlan: React.FC<ProductionPlanProps> = ({
   destinations,
   trains,
   resources,
+  inventory,
   maxConcurrentTrains,
   activeLevel,
   onActiveLevelChange,
   onProductionPlanChange,
-  onOrdersChange,
   onClearPlan,
 }) => {
   const levelRefs = useRef<{ [key: number]: HTMLDivElement | null }>({});
@@ -61,12 +61,9 @@ export const ProductionPlan: React.FC<ProductionPlanProps> = ({
   ) => {
     if (!productionPlan) return;
 
-    const levelIndex = productionPlan.levels.findIndex(
-      l => l.level === levelNumber
-    );
-    if (levelIndex === -1) return;
+    const level = productionPlan.levels[levelNumber];
+    if (!level) return;
 
-    const level = productionPlan.levels[levelIndex];
     const jobIndex = level.steps.findIndex(s => s.id === jobId);
     if (jobIndex === -1) return;
 
@@ -77,8 +74,8 @@ export const ProductionPlan: React.FC<ProductionPlanProps> = ({
     level.steps.splice(newIndex, 0, movedJob);
 
     // Update the production plan
-    const updatedLevels = [...productionPlan.levels];
-    updatedLevels[levelIndex] = level;
+    const updatedLevels = { ...productionPlan.levels };
+    updatedLevels[levelNumber] = level;
 
     onProductionPlanChange({
       ...productionPlan,
@@ -94,17 +91,8 @@ export const ProductionPlan: React.FC<ProductionPlanProps> = ({
   ) => {
     if (!productionPlan || fromLevel === toLevel) return;
 
-    const fromLevelIndex = productionPlan.levels.findIndex(
-      l => l.level === fromLevel
-    );
-    const toLevelIndex = productionPlan.levels.findIndex(
-      l => l.level === toLevel
-    );
-
-    if (fromLevelIndex === -1 || toLevelIndex === -1) return;
-
-    const fromLevelObj = productionPlan.levels[fromLevelIndex];
-    const toLevelObj = productionPlan.levels[toLevelIndex];
+    const fromLevelObj = productionPlan.levels[fromLevel];
+    const toLevelObj = productionPlan.levels[toLevel];
 
     // Find and remove the job from the source level
     const jobIndex = fromLevelObj.steps.findIndex(s => s.id === jobId);
@@ -113,15 +101,15 @@ export const ProductionPlan: React.FC<ProductionPlanProps> = ({
     const [movedJob] = fromLevelObj.steps.splice(jobIndex, 1);
 
     // Update the job's level
-    movedJob.level = toLevel;
+    movedJob.levelId = toLevel;
 
     // Add the job to the target level
     toLevelObj.steps.push(movedJob);
 
     // Update warehouse states for both levels
-    const updatedLevels = [...productionPlan.levels];
-    updatedLevels[fromLevelIndex] = fromLevelObj;
-    updatedLevels[toLevelIndex] = toLevelObj;
+    const updatedLevels = { ...productionPlan.levels };
+    updatedLevels[fromLevel] = fromLevelObj;
+    updatedLevels[toLevel] = toLevelObj;
 
     onProductionPlanChange({
       ...productionPlan,
@@ -132,22 +120,17 @@ export const ProductionPlan: React.FC<ProductionPlanProps> = ({
   const createNewLevel = () => {
     if (!productionPlan) return;
 
-    const newLevelNumber = productionPlan.levels.length + 1;
-    const newLevel = {
+    const newLevelNumber = Object.keys(productionPlan.levels).length + 1;
+    const newLevel: PlanningLevel = {
       level: newLevelNumber,
       steps: [],
       inventoryChanges: new Map(),
-      trainCount: 0,
-      description: 'New Level',
-      estimatedTime: 0,
       done: false,
-      startTime: 0,
-      endTime: 0,
     };
 
     const newPlan: ProductionPlanType = {
       ...productionPlan,
-      levels: [...productionPlan.levels, newLevel],
+      levels: { ...productionPlan.levels, [newLevelNumber]: newLevel },
     };
 
     onProductionPlanChange(newPlan);
@@ -157,23 +140,37 @@ export const ProductionPlan: React.FC<ProductionPlanProps> = ({
   const onRemoveLevel = (levelNumber: number) => {
     if (!productionPlan) return;
 
-    var levelIndex = productionPlan.levels.findIndex(
+    var levelIndex = Object.values(productionPlan.levels).find(
       x => x.level === levelNumber
-    );
+    )?.level;
+
     if (levelIndex === -1) return;
 
-    var updatedLevels = productionPlan.levels
-      .splice(levelIndex, 1)
-      .map((level, index) => ({ ...level, level: index + 1 }));
+    const updatedLevels = { ...productionPlan.levels };
+    delete updatedLevels[levelNumber];
+
+    // Renumber levels to be consecutive after removal
+    const sortedLevelNumbers = Object.keys(updatedLevels)
+      .map(Number)
+      .sort((a, b) => a - b);
+
+    const newLevels: Record<number, PlanningLevel> = {};
+    let newLevelNum = 1;
+    for (const oldLevelNum of sortedLevelNumbers) {
+      const level = { ...updatedLevels[oldLevelNum], level: newLevelNum };
+      newLevels[newLevelNum] = level;
+      newLevelNum++;
+    }
 
     onProductionPlanChange({
       ...productionPlan,
-      levels: updatedLevels,
+      levels: newLevels,
     });
 
     // Adjust active level if needed
+    const numLevels = Object.keys(newLevels).length;
     if (activeLevel === levelNumber) {
-      onActiveLevelChange(updatedLevels.length > 0 ? 1 : 1);
+      onActiveLevelChange(numLevels > 0 ? 1 : 1);
     } else if (activeLevel > levelNumber) {
       onActiveLevelChange(activeLevel - 1);
     }
@@ -181,33 +178,6 @@ export const ProductionPlan: React.FC<ProductionPlanProps> = ({
 
   const handleLevelClick = (levelNumber: number) => {
     onActiveLevelChange(levelNumber);
-  };
-
-  const handleExport = () => {
-    //exportOrdersAndPlan(null, productionPlan);
-  };
-
-  const handleImport = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    importOrdersAndPlan(file)
-      .then(data => {
-        onOrdersChange(data.orders);
-        if (data.productionPlan) {
-          onProductionPlanChange(data.productionPlan);
-        }
-        // Show success message
-        alert(
-          `Successfully imported ${data.orders.length} orders${data.productionPlan ? ' and production plan' : ''}`
-        );
-        // Reset the file input
-        event.target.value = '';
-      })
-      .catch(error => {
-        alert(`Import failed: ${error.message}`);
-        event.target.value = '';
-      });
   };
 
   if (!productionPlan) {
@@ -234,7 +204,7 @@ export const ProductionPlan: React.FC<ProductionPlanProps> = ({
           <button className="btn btn-success btn-sm" onClick={createNewLevel}>
             <i className="bi bi-plus-circle"></i> Add Level
           </button>
-          <button className="btn btn-info btn-sm" onClick={handleExport}>
+          <button className="btn btn-info btn-sm" onClick={() => {}}>
             <i className="bi bi-download me-1"></i>
             Export
           </button>
@@ -244,7 +214,7 @@ export const ProductionPlan: React.FC<ProductionPlanProps> = ({
             <input
               type="file"
               accept=".json"
-              onChange={handleImport}
+              onChange={() => {}}
               style={{ display: 'none' }}
             />
           </label>
@@ -254,7 +224,7 @@ export const ProductionPlan: React.FC<ProductionPlanProps> = ({
         </div>
       </div>
       <div className="card-body">
-        {productionPlan.levels.map(level => (
+        {Object.values(productionPlan.levels).map(level => (
           <div
             key={level.level}
             ref={el => {
@@ -264,6 +234,7 @@ export const ProductionPlan: React.FC<ProductionPlanProps> = ({
             <ProductionLevel
               level={level}
               factories={factories}
+              inventory={inventory}
               destinations={destinations}
               trains={trains}
               resources={resources}
@@ -272,9 +243,8 @@ export const ProductionPlan: React.FC<ProductionPlanProps> = ({
               onLevelClick={handleLevelClick}
               onRemoveLevel={onRemoveLevel}
               onLevelChange={(updatedLevel: PlanningLevel) => {
-                const updatedLevels = productionPlan.levels.map(l =>
-                  l.level === updatedLevel.level ? updatedLevel : l
-                );
+                const updatedLevels = { ...productionPlan.levels };
+                updatedLevels[updatedLevel.level] = updatedLevel;
 
                 // Update the production plan first
                 const updatedPlan = {
@@ -286,7 +256,7 @@ export const ProductionPlan: React.FC<ProductionPlanProps> = ({
                 // Then check if we need to change the active level
                 if (updatedLevel.level === activeLevel && updatedLevel.done) {
                   // If the current active level was marked done, move to next incomplete level
-                  const nextIncompleteLevel = updatedLevels.find(
+                  const nextIncompleteLevel = Object.values(updatedLevels).find(
                     l => !l.done && l.level > activeLevel
                   );
                   if (nextIncompleteLevel) {
@@ -296,58 +266,55 @@ export const ProductionPlan: React.FC<ProductionPlanProps> = ({
               }}
               onReorderJob={handleReorderJob}
               onMoveJobToLevel={handleMoveJobToLevel}
-              onAddStepToLevel={(step: PlannedStep, targetLevel: number) => {
-                let updatedLevels = [...productionPlan.levels];
+              updateInventory={getInventoryChanges}
+              onAddStepToLevel={(step: Step, targetLevel: number) => {
+                let updatedLevels = { ...productionPlan.levels };
 
-                if (targetLevel === -1) {
+                if (targetLevel <= 0) {
                   // Create a new level at the beginning of the plan
                   const newLevel: PlanningLevel = {
                     level: 1,
-                    startTime: 0,
-                    endTime: 0,
                     steps: [step],
-                    inventoryChanges: new Map([
-                      [step.resourceId, step.amountProcessed],
-                    ]),
-                    trainCount: 0,
-                    description: `Production: ${step.resourceId}`,
-                    estimatedTime: step.timeRequired,
+                    inventoryChanges: new Map(),
                     done: false,
                   };
+                  newLevel.inventoryChanges = getInventoryChanges(newLevel);
 
                   // Add the new level at the beginning
-                  updatedLevels.unshift(newLevel);
+                  const newLevels: Record<number, PlanningLevel> = {
+                    1: newLevel,
+                  };
 
-                  // Renumber all levels while keeping active level the same
-                  const currentActiveLevel = activeLevel;
-                  updatedLevels = updatedLevels.map((level, index) => ({
-                    ...level,
-                    level: index + 1,
-                  }));
+                  // Add existing levels with incremented level numbers
+                  Object.values(updatedLevels).forEach(level => {
+                    newLevels[level.level + 1] = {
+                      ...level,
+                      level: level.level + 1,
+                    };
+                  });
 
-                  // Update the step's level to match the new level number
-                  step.level = 1;
+                  // Update step levelIds for all levels
+                  Object.values(newLevels).forEach(level =>
+                    level.steps.forEach(step => {
+                      step.levelId = level.level;
+                    })
+                  );
 
-                  // Make the step ID more unique
-                  step.id = `factory_${step.resourceId}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+                  updatedLevels = newLevels;
 
                   // Update the production plan with renumbered levels
+                  onActiveLevelChange(activeLevel + 1);
                   onProductionPlanChange({
                     ...productionPlan,
                     levels: updatedLevels,
                   });
-                  setActiveLevel(currentActiveLevel + 1);
                 } else if (targetLevel > 0) {
                   // Find the target level and add the step to it
-                  const targetLevelIndex = updatedLevels.findIndex(
-                    l => l.level === targetLevel
-                  );
-                  if (targetLevelIndex !== -1) {
-                    const targetLevelObj = updatedLevels[targetLevelIndex];
-
+                  const targetLevelObj = updatedLevels[targetLevel];
+                  if (targetLevelObj) {
                     // Add the step to the target level
                     targetLevelObj.steps.push(step);
-
+                    onActiveLevelChange(targetLevel);
                     // Update the production plan
                     onProductionPlanChange({
                       ...productionPlan,

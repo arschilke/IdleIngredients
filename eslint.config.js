@@ -51,9 +51,15 @@ module.exports = [
         prompt: 'readonly',
         // DOM types
         HTMLDivElement: 'readonly',
+        HTMLInputElement: 'readonly',
         HTMLElement: 'readonly',
         Element: 'readonly',
         Event: 'readonly',
+        // File API
+        File: 'readonly',
+        FileReader: 'readonly',
+        Blob: 'readonly',
+        URL: 'readonly',
         // Node.js globals (if needed)
         process: 'readonly',
         Buffer: 'readonly',

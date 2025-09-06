@@ -3,7 +3,7 @@ import { Order, Resource, ResourceRequirement } from './types';
 import { formatTime } from './utils';
 
 interface OrderFormProps {
-  resources: Resource[];
+  resources: Record<string, Resource>;
   onSubmit: (order: Order) => void;
   onOrdersChange: (orders: Order[]) => void;
 }
@@ -179,7 +179,7 @@ export function OrderForm({ resources, onSubmit }: OrderFormProps) {
                   required
                 >
                   <option value="">Select resource</option>
-                  {resources.map(r => (
+                  {Object.values(resources).map(r => (
                     <option key={r.id} value={r.id}>
                       {r.name}
                     </option>

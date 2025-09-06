@@ -1,30 +1,33 @@
 import React, { useState } from 'react';
 import {
   PlanningLevel,
-  PlannedStep,
   Recipe,
   Destination,
   Resource,
   Factory,
   Train,
+  Step,
+  FactoryStep,
+  DestinationStep,
 } from './types';
 import { ProductionJob } from './ProductionJob';
-import { formatTime } from './utils';
-//import { getBestTrains } from './trainUtils';
-import { checkLevelResourceSufficiency } from './inventoryUtils';
+import { getBestTrains } from './trainUtils';
+import { getInventoryChanges } from './inventoryUtils';
 
 interface ProductionLevelProps {
   level: PlanningLevel;
-  resources: Resource[];
-  factories: Factory[];
-  destinations: Destination[];
-  trains: Train[];
+  resources: Record<string, Resource>;
+  factories: Record<string, Factory>;
+  destinations: Record<string, Destination>;
+  inventory: Record<string, number>;
+  trains: Record<string, Train>;
   maxConcurrentTrains: number;
   isActiveLevel: boolean;
   onLevelClick: (levelNumber: number) => void;
   onRemoveLevel: (levelNumber: number) => void;
   onLevelChange: (updatedLevel: PlanningLevel) => void;
-  onAddStepToLevel: (step: PlannedStep, targetLevel: number) => void;
+  onAddStepToLevel: (step: Step, targetLevel: number) => void;
+  updateInventory: (level: PlanningLevel) => Map<string, number>;
   onReorderJob?: (levelNumber: number, jobId: string, newIndex: number) => void;
   onMoveJobToLevel?: (
     jobId: string,
@@ -38,20 +41,23 @@ export const ProductionLevel: React.FC<ProductionLevelProps> = ({
   resources,
   factories,
   destinations,
+  inventory,
   trains,
   maxConcurrentTrains,
   isActiveLevel,
-  previousLevelWarehouseState,
   onLevelClick,
   onRemoveLevel,
+  updateInventory,
   onLevelChange,
   onReorderJob,
   onMoveJobToLevel,
+  onAddStepToLevel,
 }) => {
   const [showAddJobModal, setShowAddJobModal] = useState<boolean>(false);
   const [newJobType, setNewJobType] = useState<
-    'factory' | 'destination' | 'delivery'
+    'factory' | 'destination' | 'delivery' | 'submit'
   >('factory');
+  const [selectedTrain, setSelectedTrain] = useState<Train | null>(null);
   const [selectedResource, setSelectedResource] = useState('');
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [selectedDestination, setSelectedDestination] =
@@ -62,63 +68,17 @@ export const ProductionLevel: React.FC<ProductionLevelProps> = ({
 
   // Check if inventory has enough resources for all jobs in this level
   const checkInventorySufficiency = () => {
-    // Use the utility function to check resource sufficiency based on previous level's warehouse state
-    const insufficientResources = checkLevelResourceSufficiency(
-      level,
-      previousLevelWarehouseState
-    );
-
-    // Add resource names to the insufficient resources
-    return insufficientResources.map(resource => ({
-      ...resource,
-      name:
-        resources.find((r: Resource) => r.id === resource.resourceId)?.name ||
-        resource.resourceId,
-    }));
-  };
-
-  const updateInventory = () => {
-    const updatedInventory = new Map(resources.map(r => [r.id, 0]));
-    level.steps.forEach(step => {
-      switch (step.type) {
-        case 'factory':
-          step.recipe?.requires.forEach(req => {
-            var currentAmount =
-              updatedInventory.get(req.resourceId) ?? 0 - req.amount;
-            updatedInventory.set(req.resourceId, currentAmount);
-          });
-          updatedInventory.set(
-            step.resourceId,
-            updatedInventory.get(step.resourceId) ?? 0 + step.amountProcessed
-          );
-          break;
-        case 'delivery':
-          updatedInventory.set(
-            step.resourceId,
-            updatedInventory.get(step.resourceId) ?? 0 - step.amountProcessed
-          );
-          break;
-        case 'destination':
-          updatedInventory.set(
-            step.resourceId,
-            updatedInventory.get(step.resourceId) ?? 0 + step.amountProcessed
-          );
-          break;
+    var insufficientResources: string[] = [];
+    level.inventoryChanges.forEach((value, key) => {
+      if (value < 0 && inventory[key] + value < 0) {
+        insufficientResources.push(key);
       }
     });
-
-    return updatedInventory;
+    return insufficientResources;
   };
 
-  const onAddJobToLevel = (newStep: PlannedStep) => {
-    level.steps.push(newStep);
-    level.endTime = Math.max(...level.steps.map(s => s.endTime || 0));
-    level.estimatedTime = Math.max(...level.steps.map(s => s.endTime || 0));
-    level.trainCount = level.steps.filter(
-      step => step.trainId !== undefined
-    ).length;
-    level.inventoryChanges = updateInventory();
-    onLevelChange(level);
+  const onAddJobToLevel = (newStep: Step) => {
+    onAddStepToLevel(newStep, newStep.levelId);
   };
 
   const onRemoveStep = (stepId: string) => {
@@ -126,8 +86,8 @@ export const ProductionLevel: React.FC<ProductionLevelProps> = ({
     const updatedLevel = {
       ...level,
       steps: updatedSteps,
-      inventoryChanges: updateInventory(),
     };
+    updatedLevel.inventoryChanges = getInventoryChanges(level);
     onLevelChange(updatedLevel);
   };
 
@@ -186,12 +146,19 @@ export const ProductionLevel: React.FC<ProductionLevelProps> = ({
     setDragOverLevel(null);
   };
 
+  const tooManyTrains =
+    level.steps.filter(
+      step =>
+        (step.type === 'destination' || step.type === 'delivery') &&
+        step.trainId !== undefined
+    ).length > maxConcurrentTrains;
+
   return (
     <div
       className={`level-container mb-2 p-3 border rounded bg-opacity-10 ${
         level.done
           ? 'bg-secondary border-secondary text-muted'
-          : level.trainCount > maxConcurrentTrains
+          : tooManyTrains
             ? 'bg-danger border-danger'
             : 'bg-light'
       } ${isActiveLevel ? 'border-primary border-2 shadow-lg' : ''} ${showAddJobModal ? 'modal-open' : ''} ${dragOverLevel === level.level ? 'drag-over' : ''}`}
@@ -212,7 +179,7 @@ export const ProductionLevel: React.FC<ProductionLevelProps> = ({
               <i className="bi bi-check-circle"></i> Done
             </span>
           )}
-          {level.trainCount > maxConcurrentTrains && (
+          {tooManyTrains && (
             <span className="badge bg-danger">
               <i className="bi bi-exclamation-triangle"></i> Over Capacity
             </span>
@@ -256,13 +223,6 @@ export const ProductionLevel: React.FC<ProductionLevelProps> = ({
         </div>
       </div>
 
-      <div className="level-info mb-2">
-        <small className="text-muted">
-          {level.description} • {level.trainCount} trains •{' '}
-          {formatTime(level.estimatedTime)}
-        </small>
-      </div>
-
       <div className="level-steps">
         {level.steps.length === 0 ? (
           <div
@@ -298,8 +258,9 @@ export const ProductionLevel: React.FC<ProductionLevelProps> = ({
                   const updatedLevel = {
                     ...level,
                     steps: updatedSteps,
-                    inventoryChanges: updateInventory(),
                   };
+                  updatedLevel.inventoryChanges = updateInventory(level);
+
                   onLevelChange(updatedLevel);
                 }}
                 onAddJobToLevel={onAddJobToLevel}
@@ -311,6 +272,12 @@ export const ProductionLevel: React.FC<ProductionLevelProps> = ({
                   draggable: true,
                   onDragStart: (e: React.DragEvent) =>
                     handleDragStart(e, step.id),
+                }}
+                getBestTrains={function (
+                  amount: number,
+                  trains: Record<string, Train>
+                ): Train[] {
+                  return getBestTrains(level, amount, trains);
                 }}
               />
             </React.Fragment>
@@ -368,23 +335,22 @@ export const ProductionLevel: React.FC<ProductionLevelProps> = ({
                       value={selectedResource}
                       onChange={e => {
                         setSelectedResource(e.target.value);
-                        const recipe = factories
+                        const recipe = Object.values(factories)
                           .flatMap((f: Factory) => f.recipes)
                           .find((r: Recipe) => r.resourceId === e.target.value);
                         setSelectedRecipe(recipe || null);
                       }}
                     >
                       <option value="">Select a resource...</option>
-                      {factories
+                      {Object.values(factories)
                         .flatMap((f: Factory) => f.recipes)
                         .map((recipe: Recipe) => (
                           <option
                             key={recipe.resourceId}
                             value={recipe.resourceId}
                           >
-                            {resources.find(
-                              (r: Resource) => r.id === recipe.resourceId
-                            )?.name || recipe.resourceId}
+                            {resources[recipe.resourceId]?.name ||
+                              recipe.resourceId}
                           </option>
                         ))}
                     </select>
@@ -392,25 +358,45 @@ export const ProductionLevel: React.FC<ProductionLevelProps> = ({
                 )}
 
                 {newJobType === 'destination' && (
-                  <div className="mb-3">
-                    <label className="form-label">Destination:</label>
-                    <select
-                      className="form-select"
-                      value={selectedDestination?.id || ''}
-                      onChange={e => {
-                        const dest = destinations.find(
-                          (d: Destination) => d.id === e.target.value
-                        );
-                        setSelectedDestination(dest || null);
-                      }}
-                    >
-                      <option value="">Select a destination...</option>
-                      {destinations.map((dest: Destination) => (
-                        <option key={dest.id} value={dest.id}>
-                          {dest.resourceId} ({dest.travelTime}s)
-                        </option>
-                      ))}
-                    </select>
+                  <div>
+                    <div className="mb-3">
+                      <label className="form-label">Destination:</label>
+                      <select
+                        className="form-select"
+                        value={selectedDestination?.id || ''}
+                        onChange={e => {
+                          const dest = destinations[e.target.value];
+                          setSelectedDestination(dest || null);
+                        }}
+                      >
+                        <option value="">Select a destination...</option>
+                        {Object.values(destinations).map(
+                          (dest: Destination) => (
+                            <option key={dest.id} value={dest.id}>
+                              {dest.resourceId} ({dest.travelTime}s)
+                            </option>
+                          )
+                        )}
+                      </select>
+                    </div>
+                    <div className="mb-3">
+                      <label className="form-label">Train:</label>
+                      <select
+                        className="form-select"
+                        value={selectedTrain?.id || ''}
+                        onChange={e => {
+                          const train = trains[e.target.value];
+                          setSelectedTrain(train || null);
+                        }}
+                      >
+                        <option value="">Select a Train...</option>
+                        {Object.values(trains).map((train: Train) => (
+                          <option key={train.id} value={train.id}>
+                            {train.name} ({train.capacity})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
                 )}
 
@@ -437,40 +423,40 @@ export const ProductionLevel: React.FC<ProductionLevelProps> = ({
                   className="btn btn-primary"
                   onClick={() => {
                     if (newJobType === 'factory' && selectedRecipe) {
-                      const newStep: PlannedStep = {
+                      const newStep: FactoryStep = {
                         id: `factory_${selectedRecipe.resourceId}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
                         type: 'factory',
                         resourceId: selectedRecipe.resourceId,
-                        level: level.level,
+                        levelId: level.level,
                         timeRequired: selectedRecipe.timeRequired,
-                        amountProcessed: selectedRecipe.outputAmount,
-                        dependencies: [],
                         recipe: selectedRecipe,
                       };
                       onAddJobToLevel(newStep);
                     } else if (
                       newJobType === 'destination' &&
-                      selectedDestination
+                      selectedDestination &&
+                      selectedTrain
                     ) {
-                      const newStep: PlannedStep = {
+                      const newStep: DestinationStep = {
                         id: `destination_${selectedDestination.resourceId}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
                         type: 'destination',
                         resourceId: selectedDestination.resourceId,
-                        level: level.level,
+                        levelId: level.level,
                         timeRequired: selectedDestination.travelTime,
-                        amountProcessed: 0,
-                        dependencies: [],
                         destination: selectedDestination,
+                        trainId: selectedTrain?.id,
                       };
                       onAddJobToLevel(newStep);
                     }
                     setShowAddJobModal(false);
                     setSelectedResource('');
+                    setSelectedTrain(null);
                     setSelectedRecipe(null);
                     setSelectedDestination(null);
                   }}
                   disabled={
                     (newJobType === 'factory' && !selectedRecipe) ||
+                    (newJobType === 'destination' && !selectedTrain) ||
                     (newJobType === 'destination' && !selectedDestination)
                   }
                 >

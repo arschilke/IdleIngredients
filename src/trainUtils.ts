@@ -1,3 +1,4 @@
+import { isDeliveryStep, isDestinationStep } from './data';
 import { Train, PlanningLevel } from './types';
 
 /**
@@ -10,16 +11,16 @@ import { Train, PlanningLevel } from './types';
 export function getBestTrains(
   level: PlanningLevel,
   amount: number,
-  trains: Train[]
+  trains: Record<string, Train>
 ): Train[] {
   // Get busy train IDs from the level
   const busyTrainIds = level.steps
-    .filter(step => step.trainId !== undefined)
+    .filter(step => isDeliveryStep(step) || isDestinationStep(step))
     .map(step => step.trainId);
 
-  // Filter out busy traitns and get available ones
-  const applicableTrains = trains.filter(
-    t => !busyTrainIds.includes(t.id) && t.availableAt <= level.startTime
+  // Filter out busy trains and get available ones
+  const applicableTrains = Object.values(trains).filter(
+    (x: Train) => x.id !== undefined && !busyTrainIds.includes(x.id)
   );
 
   // Sort trains by how close their capacity is to the required amount

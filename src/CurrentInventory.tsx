@@ -1,10 +1,9 @@
 import React from 'react';
 import { Inventory, ProductionPlan, Resource } from './types';
-import { getResourceName } from './utils';
 
 interface CurrentInventoryProps {
   inventory: Inventory;
-  resources: Resource[];
+  resources: Record<string, Resource>;
   activeLevel: number;
   productionPlan: ProductionPlan | null;
 }
@@ -13,40 +12,22 @@ export const CurrentInventory: React.FC<CurrentInventoryProps> = ({
   resources,
   activeLevel,
   productionPlan,
+  inventory,
 }) => {
-  const getCurrentInventory = () => {
-    var currentInventory = new Map<Resource, number>();
-
-    // Apply inventory changes from all levels up to the active level
-    if (productionPlan) {
-      for (const level of productionPlan.levels) {
-        if (level.level <= activeLevel) {
-          for (const [resourceId, change] of level.inventoryChanges) {
-            const resource = resources.find(r => r.id === resourceId);
-            if (!resource) continue;
-            const current = currentInventory.get(resource) || 0;
-            currentInventory.set(resource, current + change);
-          }
-        }
-      }
-    }
-
-    return currentInventory;
-  };
+  const isDone = productionPlan?.levels[activeLevel]?.done ?? false;
 
   const getActiveLevelResourceNeeds = () => {
     if (!productionPlan) return new Map();
 
-    const activeLevelData = productionPlan.levels.find(
-      level => level.level === activeLevel
-    );
+    const activeLevelData = productionPlan.levels[activeLevel];
+
     if (!activeLevelData) return new Map();
 
     const resourceNeeds = new Map<string, number>();
 
     // Calculate total resources needed for all jobs in the active level
     activeLevelData.steps.forEach(step => {
-      if (step.recipe) {
+      if (step.type === 'factory') {
         // For factory jobs, add up all required resources from recipes
         step.recipe.requires.forEach(req => {
           const current = resourceNeeds.get(req.resourceId) || 0;
@@ -54,9 +35,10 @@ export const CurrentInventory: React.FC<CurrentInventoryProps> = ({
         });
       }
       if (step.type === 'delivery') {
-        const requiredAmount = step.amountProcessed;
-        const current = resourceNeeds.get(step.resourceId) || 0;
-        resourceNeeds.set(step.resourceId, current + requiredAmount);
+        step.order.resources.forEach(req => {
+          const current = resourceNeeds.get(step.resourceId) || 0;
+          resourceNeeds.set(req.resourceId, current + req.amount);
+        });
       }
     });
 
@@ -79,20 +61,15 @@ export const CurrentInventory: React.FC<CurrentInventoryProps> = ({
   const getActiveLevelInventoryChanges = () => {
     if (!productionPlan) return new Map();
 
-    const activeLevelData = productionPlan.levels.find(
-      level => level.level === activeLevel
-    );
+    const activeLevelData = productionPlan.levels[activeLevel];
     return activeLevelData?.inventoryChanges || new Map();
   };
 
-  const getActiveLevelStatus = () => {
-    if (!productionPlan) return null;
-    return productionPlan.levels.find(level => level.level === activeLevel);
-  };
-
-  const currentInventory = getCurrentInventory();
   const activeLevelChanges = getActiveLevelInventoryChanges();
-  const activeLevelData = getActiveLevelStatus();
+  const currentSize = Object.values(inventory).reduce(
+    (sum, val) => sum + val,
+    0
+  );
 
   return (
     <div className="card">
@@ -103,21 +80,21 @@ export const CurrentInventory: React.FC<CurrentInventoryProps> = ({
       </div>
       <div className="card-body">
         <div className="mb-2">
-          {activeLevelData && (
+          {activeLevel && (
             <div
-              className={`alert ${activeLevelData.done ? 'alert-secondary' : 'alert-info'}`}
+              className={`alert ${isDone ? 'alert-secondary' : 'alert-info'}`}
             >
               <small>
                 <i
-                  className={`bi ${activeLevelData.done ? 'bi-check-circle' : 'bi-info-circle'}`}
+                  className={`bi ${isDone ? 'bi-check-circle' : 'bi-info-circle'}`}
                 ></i>
-                {activeLevelData.done
+                {isDone
                   ? ` Level ${activeLevel} is completed`
                   : ` Showing inventory at the end of level ${activeLevel}`}
               </small>
             </div>
           )}
-          {!activeLevelData && productionPlan && (
+          {!activeLevel && productionPlan && (
             <div className="alert alert-warning">
               <small>
                 <i className="bi bi-exclamation-triangle"></i>
@@ -140,8 +117,7 @@ export const CurrentInventory: React.FC<CurrentInventoryProps> = ({
                     key={resourceId}
                     className={`badge ${change > 0 ? 'bg-success' : 'bg-danger'}`}
                   >
-                    {getResourceName(resourceId, resources)}{' '}
-                    {change > 0 ? '+' : ''}
+                    {resources[resourceId].name} {change > 0 ? '+' : ''}
                     {change}
                   </span>
                 )
@@ -156,9 +132,7 @@ export const CurrentInventory: React.FC<CurrentInventoryProps> = ({
               <i className="bi bi-grid-3x3-gap me-1"></i>
               Resource Overview
             </h6>
-            <span className="badge bg-secondary">
-              {currentInventory.size} Resources
-            </span>
+            <span className="badge bg-secondary">{currentSize} Resources</span>
           </div>
           <div className="d-flex flex-wrap gap-2 small text-muted">
             <span>
@@ -179,39 +153,38 @@ export const CurrentInventory: React.FC<CurrentInventoryProps> = ({
 
         <div className="inventory-grid">
           <div className="row row-cols-6 g-2">
-            {Array.from(currentInventory.entries()).map(
-              ([resource, amount]) => {
-                return (
-                  <div key={resource.id} className="col">
-                    <div className="card h-100 border-0 shadow-sm">
-                      <div className="card-body p-2 text-center">
-                        <div className="d-flex justify-content-center flex-column">
-                          <div className="flex-shrink-1">
-                            <img
-                              src={`/Assets/${resource.icon}`}
-                              alt={resource.name}
-                              className="img-fluid"
-                            />
-                          </div>
-                          <span className="fw-medium small text-truncate d-block">
-                            {resource.name}
-                          </span>
-                          <span
-                            className={`fw-bold fs-4 ${getResourceNumberColor(resource.id, amount)}`}
-                          >
-                            {amount}
-                          </span>
+            {Object.keys(inventory).map(resourceId => {
+              const resource = resources[resourceId];
+              return (
+                <div key={resourceId} className="col">
+                  <div className="card h-100 border-0 shadow-sm">
+                    <div className="card-body p-2 text-center">
+                      <div className="d-flex justify-content-center flex-column">
+                        <div className="flex-shrink-1">
+                          <img
+                            src={`/Assets/${resource.icon}`}
+                            alt={resource.name}
+                            className="img-fluid"
+                          />
                         </div>
+                        <span className="fw-medium small text-truncate d-block">
+                          {resource.name}
+                        </span>
+                        <span
+                          className={`fw-bold fs-4 ${getResourceNumberColor(resourceId, inventory[resourceId])}`}
+                        >
+                          {inventory[resourceId]}
+                        </span>
                       </div>
                     </div>
                   </div>
-                );
-              }
-            )}
+                </div>
+              );
+            })}
           </div>
         </div>
 
-        {currentInventory.size === 0 && (
+        {currentSize === 0 && (
           <div className="text-center text-muted py-4">
             <i className="bi bi-inbox display-4"></i>
             <p>No inventory found</p>

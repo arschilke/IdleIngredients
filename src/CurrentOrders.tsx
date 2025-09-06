@@ -3,19 +3,20 @@ import {
   Order,
   Resource,
   ProductionPlan,
-  PlannedStep,
   BoatOrder,
-  StoryOrder,
   Train,
+  Step,
+  DeliveryStep,
+  SubmitStep,
 } from './types';
-import { formatTime } from './utils';
+import { formatTime, generateId } from './utils';
 import { getBestTrains } from './trainUtils';
-import { exportOrdersAndPlan, importOrdersAndPlan } from './exportUtils';
+import { getInventoryChanges } from './inventoryUtils';
 
 interface CurrentOrdersProps {
   orders: Order[];
-  resources: Resource[];
-  trains: Train[];
+  resources: Record<string, Resource>;
+  trains: Record<string, Train>;
   productionPlan: ProductionPlan;
   activeLevel: number;
   onProductionPlanChange: (plan: ProductionPlan) => void;
@@ -39,84 +40,59 @@ export function CurrentOrders({
       return;
     }
     // Add to existing active level
-    const activeLevelData = productionPlan.levels.find(
-      level => level.level === activeLevel
-    );
+    const activeLevelData = productionPlan.levels[activeLevel];
 
     if (!activeLevelData) {
       return;
     }
-    const deliveredAmount =
-      calculateDeliveredAmounts().get(order.resources[0].resourceId) || 0;
-    const selectedTrains = getBestTrains(
-      activeLevelData,
-      order.resources[0].amount - deliveredAmount,
-      trains
-    );
 
-    const deliveryJobs: PlannedStep[] = [];
-    for (let train of selectedTrains) {
-      deliveryJobs.push({
-        id: `delivery_${order.id}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        type: 'delivery',
-        resourceId: order.resources[0].resourceId,
-        level: activeLevelIndex,
-        trainId: train.id,
-        timeRequired:
-          order.type === 'story' ? (order as StoryOrder).travelTime : 0,
-        order: order,
-        amountProcessed: train.capacity,
-        dependencies: [],
-      });
+    const jobs: Step[] = [];
+    if (order.type === 'story') {
+      const selectedTrains = getBestTrains(
+        activeLevelData,
+        order.resources[0].amount,
+        trains
+      );
+      let trainsIndex = 0;
+      while (trainsIndex < selectedTrains.length) {
+        jobs.push({
+          id: generateId('step'),
+          type: 'delivery',
+          resourceId: order.resources[0].resourceId,
+          levelId: activeLevel,
+          trainId: selectedTrains[trainsIndex].id,
+          order: order,
+        } as DeliveryStep);
+        trainsIndex++;
+      }
+    } else {
+      for (let i = 0; i < order.resources.length; i++) {
+        jobs.push({
+          id: generateId('step'),
+          type: 'submit',
+          order: order,
+          levelId: activeLevel,
+          resourceId: order.resources[i].resourceId,
+        } as SubmitStep);
+      }
     }
 
     // Add to existing Level
 
-    var updatedSteps = [...activeLevel.steps, ...deliveryJobs];
+    var updatedSteps = [...activeLevelData.steps, ...jobs];
 
     const updatedLevel = {
-      ...activeLevel,
-      trainCount: updatedSteps.filter(step => step.trainId !== undefined)
-        .length,
+      ...activeLevelData,
       steps: updatedSteps,
-      estimatedTime: Math.max(...updatedSteps.map(j => j.timeRequired)),
     };
+    updatedLevel.inventoryChanges = getInventoryChanges(updatedLevel);
 
     const updatedPlan = {
       ...productionPlan,
-      levels: productionPlan.levels.map(level =>
-        level.level === activeLevelIndex ? updatedLevel : level
-      ),
+      levels: { ...productionPlan.levels, [updatedLevel.level]: updatedLevel },
     };
 
     onProductionPlanChange(updatedPlan);
-  };
-
-  const handleExport = () => {
-    exportOrdersAndPlan(orders, productionPlan);
-  };
-
-  const handleImport = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    importOrdersAndPlan(file)
-      .then(data => {
-        onOrdersChange(data.orders);
-        if (data.productionPlan) {
-          onProductionPlanChange(data.productionPlan);
-        }
-        // Show success message
-        alert(
-          `Successfully imported ${data.orders.length} orders${data.productionPlan ? ' and production plan' : ''}`
-        );
-        // Reset the file input
-        event.target.value = '';
-      })
-      .catch(error => {
-        alert(`Import failed: ${error.message}`);
-        event.target.value = '';
-      });
   };
 
   if (orders.length === 0) {
@@ -139,7 +115,7 @@ export function CurrentOrders({
       <div className="card-header d-flex justify-content-between align-items-center">
         <h2 className="h4 mb-0">Current Orders</h2>
         <div className="d-flex gap-2">
-          <button className="btn btn-success btn-sm" onClick={handleExport}>
+          <button className="btn btn-success btn-sm" onClick={() => {}}>
             <i className="bi bi-download me-1"></i>
             Export
           </button>
@@ -149,7 +125,7 @@ export function CurrentOrders({
             <input
               type="file"
               accept=".json"
-              onChange={handleImport}
+              onChange={() => {}}
               style={{ display: 'none' }}
             />
           </label>
@@ -161,8 +137,21 @@ export function CurrentOrders({
             {orders.map(order => (
               <div
                 key={order.id}
-                className="card bg-opacity-10 bg-light flex-shrink-0"
+                className="card bg-opacity-10 bg-light flex-shrink-0 position-relative"
               >
+                {/* Close (delete) button */}
+                <button
+                  type="button"
+                  className="btn-close position-absolute top-0 end-0 m-2"
+                  aria-label="Delete order"
+                  onClick={() => {
+                    // Remove the order from the list
+                    const updatedOrders = orders.filter(o => o.id !== order.id);
+                    onOrdersChange(updatedOrders);
+                  }}
+                  style={{ zIndex: 2 }}
+                />
+
                 <div className="card-body">
                   <div className="d-flex justify-content-between gap-1 align-items-start mb-2">
                     <span className={`badge order-type-${order.type}`}>
@@ -184,9 +173,7 @@ export function CurrentOrders({
                       </small>
                       <div className="d-flex flex-wrap gap-1">
                         {order.resources.map((req, index) => {
-                          const resource = resources.find(
-                            r => r.id === req.resourceId
-                          );
+                          const resource = resources[req.resourceId];
                           return (
                             <span key={index} className="badge bg-secondary">
                               {resource?.name || req.resourceId}:{' '}

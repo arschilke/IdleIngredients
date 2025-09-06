@@ -1,5 +1,3 @@
-import { JobResourceStatus } from './inventoryUtils';
-
 export interface Resource {
   id: string;
   name: string;
@@ -54,13 +52,6 @@ export interface ResourceRequirement {
   delivered?: number;
 }
 
-export interface Warehouse {
-  id: string;
-  name: string;
-  maxCapacity: number;
-  inventory: Map<string, number>;
-}
-
 export interface BaseOrder {
   id: string;
   name: string;
@@ -83,44 +74,52 @@ export interface BuildingOrder extends BaseOrder {
 
 export type Order = BoatOrder | StoryOrder | BuildingOrder;
 
-export type PlannedStepType = 'factory' | 'destination' | 'delivery';
+export type Step = FactoryStep | DestinationStep | DeliveryStep | SubmitStep;
 
-export interface PlannedStep {
+export interface BaseStep {
+  type: 'factory' | 'destination' | 'delivery' | 'submit';
   id: string;
-  type: PlannedStepType;
   resourceId: string;
-  level: number;
+  levelId: number;
   timeRequired: number;
-  amountProcessed: number;
-  dependencies: string[];
-  recipe?: Recipe;
-  destination?: Destination;
-  startTime?: number;
-  endTime?: number;
-  trainId?: string;
-  order?: Order; // For delivery jobs
-  resourceStatus?: JobResourceStatus;
+}
+
+export interface FactoryStep extends BaseStep {
+  type: 'factory';
+  recipe: Recipe;
+}
+
+export interface DestinationStep extends BaseStep {
+  type: 'destination';
+  destination: Destination;
+  trainId: string;
+}
+
+export interface DeliveryStep extends BaseStep {
+  type: 'delivery';
+  order: StoryOrder;
+  trainId: string;
+}
+
+export interface SubmitStep extends BaseStep {
+  type: 'submit';
+  order: BoatOrder | BuildingOrder;
+  timeRequired: 0;
 }
 
 export interface PlanningLevel {
   level: number;
-  startTime: number;
-  endTime: number;
-  steps: PlannedStep[];
+  steps: Step[];
   inventoryChanges: Map<string, number>;
-  trainCount: number;
-  description: string;
-  estimatedTime: number;
   done: boolean;
 }
 
 export interface ProductionPlan {
-  levels: PlanningLevel[];
+  levels: Record<number, PlanningLevel>;
   totalTime: number;
   maxConcurrentWorkers: number;
 }
 
 export interface Inventory {
-  maxCapacity: number;
-  inventory: Map<string, number>;
+  [resourceId: string]: number;
 }
