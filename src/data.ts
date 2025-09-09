@@ -5,6 +5,7 @@ import {
   DestinationStep,
   Factory,
   FactoryStep,
+  Recipe,
   Resource,
   Step,
   SubmitStep,
@@ -498,14 +499,22 @@ export function outputAmount(step: Step): number {
     return trains[step.trainId].capacity;
   }
   if (isFactoryStep(step)) {
-    return step.recipe.outputAmount;
+    return getRecipe(step.resourceId)?.outputAmount ?? 0;
   }
   return 0;
 }
 
+export function getRecipe(resourceId: string): Recipe | undefined {
+  return Object.values(factories)
+    .flatMap(f => f.recipes)
+    .find(r => r.resourceId === resourceId);
+}
+
 export function inputAmounts(step: Step): Map<string, number> {
   if (isFactoryStep(step)) {
-    return new Map(step.recipe.requires.map(x => [x.resourceId, x.amount]));
+    return new Map(
+      getRecipe(step.resourceId)?.requires.map(x => [x.resourceId, x.amount])
+    );
   }
   if (isDeliveryStep(step)) {
     return new Map([[step.resourceId, trains[step.trainId].capacity]]);

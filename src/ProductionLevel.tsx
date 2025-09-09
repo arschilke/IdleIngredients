@@ -1,25 +1,25 @@
 import React, { useState } from 'react';
 import {
   PlanningLevel,
-  Recipe,
   Destination,
   Resource,
   Factory,
   Train,
   Step,
-  FactoryStep,
-  DestinationStep,
   ProductionPlan,
   ResourceRequirement,
+  Order,
 } from './types';
 import { ProductionJob } from './ProductionJob';
 import { getInventoryAtLevel, getInventoryChanges } from './inventoryUtils';
+import { JobForm } from './JobForm';
 
 interface ProductionLevelProps {
   level: PlanningLevel;
   resources: Record<string, Resource>;
   factories: Record<string, Factory>;
   destinations: Record<string, Destination>;
+  orders: Order[];
   productionPlan: ProductionPlan;
   trains: Record<string, Train>;
   maxConcurrentTrains: number;
@@ -41,6 +41,7 @@ export const ProductionLevel: React.FC<ProductionLevelProps> = ({
   resources,
   factories,
   destinations,
+  orders,
   productionPlan,
   trains,
   maxConcurrentTrains,
@@ -52,9 +53,8 @@ export const ProductionLevel: React.FC<ProductionLevelProps> = ({
   onMoveJobToLevel,
   onAddJobToLevel: onAddStepToLevel,
 }) => {
-  const [showAddJobModal, setShowAddJobModal] = useState<boolean>(false);
+  const [showAddJobCard, setShowAddJobCard] = useState<boolean>(false);
   const [showJobControls, setShowJobControls] = useState<boolean>(false);
- 
 
   // Check if inventory has enough resources for all jobs in this level
   const checkInventorySufficiency = () => {
@@ -144,7 +144,7 @@ export const ProductionLevel: React.FC<ProductionLevelProps> = ({
           : tooManyTrains
             ? 'bg-danger border-danger'
             : 'bg-light'
-      } ${isActiveLevel ? 'border-primary border-2 shadow-lg' : ''} ${showAddJobModal ? 'modal-open' : ''}`}
+      } ${isActiveLevel ? 'border-primary border-2 shadow-lg' : ''} ${showAddJobCard ? 'modal-open' : ''}`}
     >
       <div className="level-header d-flex justify-content-between align-items-center mb-2">
         <div className="d-flex align-items-center gap-2">
@@ -183,7 +183,7 @@ export const ProductionLevel: React.FC<ProductionLevelProps> = ({
           </button>
           <button
             className="btn btn-primary btn-sm"
-            onClick={() => setShowAddJobModal(true)}
+            onClick={() => setShowAddJobCard(true)}
             disabled={level.done}
             title="Add a new job to this level"
           >
@@ -213,6 +213,15 @@ export const ProductionLevel: React.FC<ProductionLevelProps> = ({
       </div>
 
       <div className="level-steps">
+        {showAddJobCard && (
+          <JobForm
+            level={level}
+            orders={orders}
+            onSubmit={onAddJobToLevel}
+            onClose={() => setShowAddJobCard(false)}
+          />
+        )}
+
         {level.steps.length === 0 ? (
           <div className="p-3 text-center text-muted border-2 border-dashed rounded">
             <i className="bi bi-plus-circle fs-1"></i>
@@ -271,6 +280,9 @@ export const ProductionLevel: React.FC<ProductionLevelProps> = ({
                   resources={resources}
                   factories={factories}
                   trains={trains}
+                  destinations={destinations}
+                  orders={orders}
+                  plan={productionPlan}
                   maxConcurrentTrains={maxConcurrentTrains}
                   onJobUpdate={updatedJob => {
                     const updatedSteps = level.steps.map(s =>
@@ -294,181 +306,6 @@ export const ProductionLevel: React.FC<ProductionLevelProps> = ({
           </div>
         )}
       </div>
-
-      {/* Add Job Modal */}
-      {showAddJobModal && (
-        <div
-          className="modal fade show d-block"
-          style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 9999 }}
-        >
-          <div className="modal-dialog modal-dialog-centered">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h5 className="modal-title">Add Job to Level {level.level}</h5>
-                <button
-                  type="button"
-                  className="btn-close"
-                  onClick={() => setShowAddJobModal(false)}
-                ></button>
-              </div>
-              <div className="modal-body">
-                <div className="mb-3">
-                  <label className="form-label">Job Type:</label>
-                  <select
-                    className="form-select"
-                    value={newJobType}
-                    onChange={e =>
-                      setNewJobType(
-                        e.target.value as 'factory' | 'destination' | 'delivery'
-                      )
-                    }
-                  >
-                    <option value="factory">Factory Production</option>
-                    <option value="destination">Resource Gathering</option>
-                    <option value="delivery">Delivery</option>
-                  </select>
-                </div>
-
-                {newJobType === 'factory' && (
-                  <div className="mb-3">
-                    <label className="form-label">Resource to Produce:</label>
-                    <select
-                      className="form-select"
-                      value={selectedResource}
-                      onChange={e => {
-                        setSelectedResource(e.target.value);
-                        const recipe = Object.values(factories)
-                          .flatMap((f: Factory) => f.recipes)
-                          .find((r: Recipe) => r.resourceId === e.target.value);
-                        setSelectedRecipe(recipe || null);
-                      }}
-                    >
-                      <option value="">Select a resource...</option>
-                      {Object.values(factories)
-                        .flatMap((f: Factory) => f.recipes)
-                        .map((recipe: Recipe) => (
-                          <option
-                            key={recipe.resourceId}
-                            value={recipe.resourceId}
-                          >
-                            {resources[recipe.resourceId]?.name ||
-                              recipe.resourceId}
-                          </option>
-                        ))}
-                    </select>
-                  </div>
-                )}
-
-                {newJobType === 'destination' && (
-                  <div>
-                    <div className="mb-3">
-                      <label className="form-label">Destination:</label>
-                      <select
-                        className="form-select"
-                        value={selectedDestination?.id || ''}
-                        onChange={e => {
-                          const dest = destinations[e.target.value];
-                          setSelectedDestination(dest || null);
-                        }}
-                      >
-                        <option value="">Select a destination...</option>
-                        {Object.values(destinations).map(
-                          (dest: Destination) => (
-                            <option key={dest.id} value={dest.id}>
-                              {dest.resourceId} ({dest.travelTime}s)
-                            </option>
-                          )
-                        )}
-                      </select>
-                    </div>
-                    <div className="mb-3">
-                      <label className="form-label">Train:</label>
-                      <select
-                        className="form-select"
-                        value={selectedTrain?.id || ''}
-                        onChange={e => {
-                          const train = trains[e.target.value];
-                          setSelectedTrain(train || null);
-                        }}
-                      >
-                        <option value="">Select a Train...</option>
-                        {Object.values(trains).map((train: Train) => (
-                          <option key={train.id} value={train.id}>
-                            {train.name} ({train.capacity})
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                )}
-
-                {newJobType === 'delivery' && (
-                  <div className="mb-3">
-                    <label className="form-label">Delivery Job:</label>
-                    <p className="text-muted small">
-                      Delivery jobs are typically created when planning
-                      production for orders.
-                    </p>
-                  </div>
-                )}
-              </div>
-              <div className="modal-footer">
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={() => setShowAddJobModal(false)}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  onClick={() => {
-                    if (newJobType === 'factory' && selectedRecipe) {
-                      const newStep: FactoryStep = {
-                        id: `factory_${selectedRecipe.resourceId}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-                        type: 'factory',
-                        resourceId: selectedRecipe.resourceId,
-                        levelId: level.level,
-                        timeRequired: selectedRecipe.timeRequired,
-                        recipe: selectedRecipe,
-                      };
-                      onAddJobToLevel(newStep);
-                    } else if (
-                      newJobType === 'destination' &&
-                      selectedDestination &&
-                      selectedTrain
-                    ) {
-                      const newStep: DestinationStep = {
-                        id: `destination_${selectedDestination.resourceId}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-                        type: 'destination',
-                        resourceId: selectedDestination.resourceId,
-                        levelId: level.level,
-                        timeRequired: selectedDestination.travelTime,
-                        destination: selectedDestination,
-                        trainId: selectedTrain?.id,
-                      };
-                      onAddJobToLevel(newStep);
-                    }
-                    setShowAddJobModal(false);
-                    setSelectedResource('');
-                    setSelectedTrain(null);
-                    setSelectedRecipe(null);
-                    setSelectedDestination(null);
-                  }}
-                  disabled={
-                    (newJobType === 'factory' && !selectedRecipe) ||
-                    (newJobType === 'destination' && !selectedTrain) ||
-                    (newJobType === 'destination' && !selectedDestination)
-                  }
-                >
-                  Add Job
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

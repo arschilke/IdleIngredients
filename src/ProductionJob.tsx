@@ -1,14 +1,16 @@
 import React, { useState } from 'react';
 import {
   Factory,
-  DestinationStep,
   Resource,
   Train,
   Step,
-  FactoryStep,
-  SubmitStep,
-  DeliveryStep,
   ResourceRequirement,
+  ProductionPlan,
+  Order,
+  Recipe,
+  StoryOrder,
+  Destination,
+  StepType,
 } from './types';
 import { formatTime } from './utils';
 import { inputAmounts, outputAmount } from './data';
@@ -16,9 +18,12 @@ import { JobForm } from './JobForm';
 
 interface ProductionJobProps {
   job: Step;
-  resources: Record<string, Resource>;
+  plan: ProductionPlan;
+  orders: Order[];
   factories: Record<string, Factory>;
+  resources: Record<string, Resource>;
   trains: Record<string, Train>;
+  destinations: Record<string, Destination>;
   maxConcurrentTrains: number;
   onJobUpdate: (updatedJob: Step) => void;
   onRemoveJob: (stepId: string) => void;
@@ -29,42 +34,28 @@ interface ProductionJobProps {
 export const ProductionJob: React.FC<ProductionJobProps> = ({
   job,
   resources,
+  orders,
+  plan,
   factories,
   trains,
+  destinations,
   onJobUpdate,
   onRemoveJob,
   createResourceJob,
 }) => {
   const [editingJob, setEditingJob] = useState<boolean>(false);
-  const [editingJobData, setEditingJobData] = useState<Partial<Step>>({});
 
   const startEditingJob = () => {
     setEditingJob(true);
-    setEditingJobData({
-      type: job.type,
-      trainId:
-        job.type === 'destination' || job.type === 'delivery'
-          ? job.trainId
-          : undefined,
-      recipe: job.type === 'factory' ? job.recipe : undefined,
-      destination: job.type === 'destination' ? job.destination : undefined,
-    });
   };
 
-  const saveJobEdit = () => {
-    const updatedJob = {
-      ...job,
-      ...editingJobData,
-    };
-
-    onJobUpdate(updatedJob as Step);
+  const saveJobEdit = (updatedJob: Step) => {
+    onJobUpdate(updatedJob);
     setEditingJob(false);
-    setEditingJobData({});
   };
 
   const cancelJobEdit = () => {
     setEditingJob(false);
-    setEditingJobData({});
   };
 
   const renderJobEditForm = () => {
@@ -73,14 +64,10 @@ export const ProductionJob: React.FC<ProductionJobProps> = ({
     return (
       <JobForm
         id={job.id}
-        level={level}
-        resources={resources}
-        factories={factories}
+        level={plan.levels[job.levelId]}
         orders={orders}
-        trains={trains}
-        onJobUpdate={onJobUpdate}
-        onRemoveJob={onRemoveJob}
-        createResourceJob={createResourceJob}
+        onSubmit={saveJobEdit}
+        onClose={cancelJobEdit}
       />
     );
   };
@@ -94,7 +81,8 @@ export const ProductionJob: React.FC<ProductionJobProps> = ({
               {job.type.toLocaleUpperCase()}
             </span>
             <strong className="ms-2">
-              {(job.type === 'delivery' && job.order?.name) ||
+              {(job.type === 'delivery' &&
+                orders.find(o => o.id === job.orderId)?.name) ||
                 resources[job.resourceId].name}
             </strong>
 
@@ -124,31 +112,40 @@ export const ProductionJob: React.FC<ProductionJobProps> = ({
         </div>
         <div className="d-flex justify-content-between align-items-center gap-1 mt-2">
           {/* Recipe Information */}
-          {'recipe' in job && job.recipe && (
-            <div>
-              <small className="text-muted d-block">Recipe:</small>
-              <div className="d-flex flex-wrap gap-1 mb-2">
-                {job.recipe.requires.map((req, index) => (
-                  <button
-                    key={index}
-                    className="btn btn-outline-secondary btn-sm"
-                    onClick={() => createResourceJob(req)}
-                  >
-                    {req.amount} {resources[req.resourceId].name}
-                  </button>
-                ))}
-              </div>
-              <small className="text-muted">
-                Output: {outputAmount(job)}{' '}
-                {resources[job.recipe.resourceId].name}
-              </small>
-            </div>
-          )}
-          {'order' in job && job.order && (
+          {(job.type === StepType.Factory &&
+            (() => {
+              const recipe = Object.values(factories)
+                .flatMap((f: Factory) => f.recipes)
+                .find((r: Recipe) => r.resourceId === job.resourceId);
+              return (
+                <div>
+                  <small className="text-muted d-block">Recipe:</small>
+                  <div className="d-flex flex-wrap gap-1 mb-2">
+                    {recipe?.requires.map((req, index) => (
+                      <button
+                        key={index}
+                        className="btn btn-outline-secondary btn-sm"
+                        onClick={() => createResourceJob(req)}
+                      >
+                        {req.amount} {resources[req.resourceId].name}
+                      </button>
+                    ))}
+                  </div>
+                  <small className="text-muted">
+                    Output: {outputAmount(job)} {resources[job.resourceId].name}
+                  </small>
+                </div>
+              );
+            })()) ||
+            null}
+
+          {job.type === StepType.Delivery && (
             <div>
               <small className="text-muted d-block">Resources:</small>
               <div className="d-flex flex-wrap gap-1 mb-2">
-                {job.order?.resources.map((req, index) => (
+                {(
+                  orders.find(o => o.id === job.orderId) as StoryOrder
+                )?.resources.map((req, index) => (
                   <button
                     key={index}
                     className="btn btn-outline-secondary btn-sm"
@@ -162,19 +159,27 @@ export const ProductionJob: React.FC<ProductionJobProps> = ({
           )}
 
           {/* Destination Information */}
-          {'destination' in job && job.destination && (
+          {job.type === StepType.Destination && (
             <div>
               <small className="text-muted">
-                Travel time: {formatTime(job.destination.travelTime)}
+                Travel time:{' '}
+                {formatTime(
+                  Object.values(destinations).find(
+                    x => x.resourceId == job.resourceId
+                  )?.travelTime || 0
+                )}
               </small>
             </div>
           )}
 
           {/* Time and Amount */}
-          {job.type == 'delivery' && (
+          {job.type === StepType.Delivery && job.orderId && (
             <div className="text-end">
               <div className="text-muted small">
-                {formatTime(job.order?.travelTime || 0)}
+                {formatTime(
+                  (orders.find(o => o.id === job.orderId) as StoryOrder)
+                    ?.travelTime || 0
+                )}
               </div>
               <div className="text-muted small">
                 Amount: {inputAmounts(job).get(job.resourceId) || 0}

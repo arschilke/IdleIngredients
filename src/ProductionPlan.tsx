@@ -9,6 +9,7 @@ import {
   Resource,
   Step,
   ResourceRequirement,
+  StepType,
 } from './types';
 import { ProductionLevel } from './ProductionLevel';
 import { InsertNewLevelIntoPlan } from './plan';
@@ -17,6 +18,7 @@ import { getBestTrains } from './trainUtils';
 
 interface ProductionPlanProps {
   productionPlan: ProductionPlanType;
+  orders: Order[];
   resources: Record<string, Resource>;
   activeLevel: number;
   factories: Record<string, Factory>;
@@ -34,6 +36,7 @@ export const ProductionPlan: React.FC<ProductionPlanProps> = ({
   factories,
   destinations,
   trains,
+  orders,
   resources,
   maxConcurrentTrains,
   activeLevel,
@@ -246,10 +249,9 @@ export const ProductionPlan: React.FC<ProductionPlanProps> = ({
     ) {
       newStep = {
         id: generateId('step'),
-        type: 'destination',
+        type: StepType.Destination,
         resourceId: requirement.resourceId,
         levelId: targetLevel,
-        destination: destination,
         trainId: getBestTrains(
           level,
           requirement.amount,
@@ -262,10 +264,9 @@ export const ProductionPlan: React.FC<ProductionPlanProps> = ({
     } else if (recipe) {
       newStep = {
         id: generateId('step'),
-        type: 'factory',
+        type: StepType.Factory,
         resourceId: requirement.resourceId,
         levelId: targetLevel,
-        recipe: recipe,
         timeRequired: recipe.timeRequired,
       };
     } else if (
@@ -383,6 +384,7 @@ export const ProductionPlan: React.FC<ProductionPlanProps> = ({
           >
             <ProductionLevel
               level={level}
+              orders={orders}
               factories={factories}
               productionPlan={productionPlan}
               destinations={destinations}

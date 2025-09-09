@@ -120,6 +120,7 @@ function App() {
             trains={trains}
             maxConcurrentTrains={maxConcurrentTrains}
             resources={resources}
+            orders={orders}
           />
         </div>
 

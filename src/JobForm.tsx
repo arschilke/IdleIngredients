@@ -1,89 +1,49 @@
-import { number, object, string } from 'yup';
-import { useForm } from 'react-hook-form';
-import { yupResolver } from '@hookform/resolvers/yup';
 import {
   Country,
   Order,
   PlanningLevel,
-  Resource,
   Step,
   StepType,
   StoryOrder,
   Train,
   TrainClass,
 } from './types';
-import React from 'react';
-import { destinations, resources, trains } from './data';
+import React, { FormEvent, useState } from 'react';
+import { destinations, factories, resources, trains } from './data';
 import { getBestTrains } from './trainUtils';
+import { generateId } from './utils';
 
 interface JobFormProps {
   id?: string;
   level: PlanningLevel;
   orders: Order[];
   onSubmit: (job: Step) => void;
+  onClose: () => void;
 }
-const validationSchema = object().shape({
-  type: string()
-    .oneOf([
-      StepType.Factory,
-      StepType.Destination,
-      StepType.Delivery,
-      StepType.Submit,
-    ])
-    .required('Type is required'),
-  resourceId: string().required('Resource ID is required'),
-  levelId: number().required('Level ID is required'),
-  trainId: string().when('type', {
-    is: (val: string) =>
-      val === StepType.Destination || val === StepType.Delivery,
-    then: schema => schema.required('Train ID is required'),
-    otherwise: schema => schema.notRequired(),
-  }),
-  recipe: object().when('type', {
-    is: (val: string) => val === StepType.Factory,
-    then: schema => schema.required('Recipe is required'),
-    otherwise: schema => schema.notRequired(),
-  }),
-  destination: object().when('type', {
-    is: (val: string) => val === StepType.Destination,
-    then: schema => schema.required('Destination is required'),
-    otherwise: schema => schema.notRequired(),
-  }),
-  order: object().when('type', {
-    is: (val: string) => val === StepType.Delivery || val === StepType.Submit,
-    then: schema => schema.required('Order is required'),
-    otherwise: schema => schema.notRequired(),
-  }),
-});
-
 export const JobForm: React.FC<JobFormProps> = ({
   id,
   level,
   orders,
   onSubmit,
+  onClose,
 }) => {
   const isAddMode = !id;
 
-  // form validation rules
+  const [type, setType] = useState<StepType>(StepType.Factory);
+  const [resourceId, setResourceId] = useState<string>('');
+  const [orderId, setOrderId] = useState<string>('');
+  const [trainId, setTrainId] = useState<string>('');
 
-  // functions to build form returned by useForm() hook
-  const {
-    register,
-    handleSubmit,
-    getValues,
-    formState: { errors, isSubmitting },
-  } = useForm({
-    resolver: yupResolver(validationSchema),
-  });
+  const getOrder = (orderId: string) => {
+    return orders.find(o => o.id === orderId) as StoryOrder;
+  };
 
-  function getTrains() {
+  const getTrains = () => {
     var classes: TrainClass[] = [];
     var countries: Country[] = [];
-    var resource: Resource = resources[getValues('resourceId')];
-
-    if (getValues('type') === StepType.Destination) {
+    if (type === StepType.Destination) {
       var dest = Object.values(destinations).find(
-        d => d.resourceId == resource.id
+        d => d.resourceId == resourceId
       );
       classes = dest?.classes ?? [
         TrainClass.Common,
@@ -93,120 +53,181 @@ export const JobForm: React.FC<JobFormProps> = ({
       ];
       countries = [dest?.country ?? Country.Britain];
     }
-    if (getValues('type') === StepType.Delivery) {
-      var order = orders.find(o => o.id === getValues('order')) as StoryOrder;
+    if (type === StepType.Delivery) {
+      var order = getOrder(orderId) as StoryOrder | undefined;
 
-      classes = order.classes ?? [
+      classes = order?.classes ?? [
         TrainClass.Common,
         TrainClass.Rare,
         TrainClass.Epic,
         TrainClass.Legendary,
       ];
-      countries = [order.country ?? Country.Britain];
+      countries = [order?.country ?? Country.Britain];
     }
 
     return getBestTrains(level, 1, trains, classes, countries);
-  }
+  };
 
-  const handleFormSubmit = (data: any) => {
-    const stepData = {
-      id: id || `step-${Date.now()}`,
-      type: data.type,
-      resourceId: data.resourceId,
-      levelId: data.levelId,
-      ...(data.trainId && { trainId: data.trainId }),
-      ...(data.recipe && { recipe: data.recipe }),
-      ...(data.destination && { destination: data.destination }),
-      ...(data.order && { order: data.order }),
-    };
-    onSubmit(stepData as Step);
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    if (!resourceId) {
+      alert('Please select a resource');
+      return;
+    }
+
+    if ((type === StepType.Delivery || type === StepType.Submit) && !orderId) {
+      alert('Please select an order');
+      return;
+    }
+
+    if (
+      (type === StepType.Destination || type === StepType.Delivery) &&
+      !trainId
+    ) {
+      alert('Please select a train');
+      return;
+    }
+
+    const newStep: Step = {
+      id: id ?? generateId('step'),
+      name: resourceId,
+      type: type,
+      resourceId: resourceId,
+      levelId: level.level,
+      timeRequired: 0,
+      ...(type === StepType.Delivery && { orderId: orderId }),
+      ...(type === StepType.Destination && { trainId: trainId }),
+      ...(type === StepType.Submit && { orderId: orderId }),
+    } as Step;
+
+    onSubmit(newStep);
+
+    // Reset form
+    setResourceId('');
+    setOrderId('');
+    setTrainId('');
   };
 
   return (
-    <form onSubmit={handleSubmit(handleFormSubmit)}>
-      <h1>{isAddMode ? 'Add User' : 'Edit Step'}</h1>
-      <div className="form-row">
-        <div className="form-group col">
-          <label>Type</label>
-          <select
-            {...register('type')}
-            className={`form-control ${errors.type ? 'is-invalid' : ''}`}
-          >
-            {Object.values(StepType).map(type => (
-              <option key={type} value={type}>
-                {type}
-              </option>
-            ))}
-          </select>
-          <div className="invalid-feedback">{errors.type?.message}</div>
-        </div>
-        <div className="form-group col-5">
-          <label>Resource</label>
-          <select
-            {...register('resourceId')}
-            className={`form-control ${errors.resourceId ? 'is-invalid' : ''}`}
-          >
-            <option value="">Select a resource...</option>
-            {Object.values(resources).map(resource => (
-              <option key={resource.id} value={resource.id}>
-                {resource.name}
-              </option>
-            ))}
-          </select>
-          <div className="invalid-feedback">{errors.resourceId?.message}</div>
-        </div>
+    <div className="card">
+      <div className="card-header">
+        <h5 className="mb-0">
+          <i className="bi bi-plus-circle me-2"></i>
+          {isAddMode ? 'Add New Step' : 'Edit Step'}
+        </h5>
       </div>
-      {getValues('type') === StepType.Delivery && (
-        <div className="form-row">
-          <div className="form-group col">
-            <label>Order</label>
-            <select
-              {...register('order')}
-              className={`form-control ${errors.order ? 'is-invalid' : ''}`}
-            >
-              <option value="">Select an order...</option>
-              {Object.values(orders).map(order => (
-                <option key={order.id} value={order.id}>
-                  {order.name}
-                </option>
-              ))}
-            </select>
-            <div className="invalid-feedback">{errors.order?.message}</div>
-          </div>
-        </div>
-      )}
-      {getValues('type') === StepType.Destination ||
-        (getValues('type') === StepType.Delivery && (
-          <div className="form-row">
-            <div className="form-group col">
-              <label>Train</label>
+      <div className="card-body">
+        <form onSubmit={handleSubmit}>
+          <div className="row g-3">
+            <div className="col-md-6">
+              <label htmlFor="type" className="form-label">
+                <i className="bi bi-gear me-1"></i>Step Type
+              </label>
               <select
-                {...register('trainId')}
-                className={`form-control ${errors.trainId ? 'is-invalid' : ''}`}
+                id="type"
+                value={type}
+                onChange={e => setType(e.target.value as StepType)}
+                className={`form-select`}
               >
-                <option value="">Select a train...</option>
-                {getTrains().map((train: Train) => (
-                  <option key={train.id} value={train.id}>
-                    {train.name}
+                <option value="">Choose step type...</option>
+                {Object.values(StepType).map(type => (
+                  <option key={type} value={type}>
+                    {type.charAt(0).toUpperCase() + type.slice(1)}
                   </option>
                 ))}
               </select>
-              <div className="invalid-feedback">{errors.trainId?.message}</div>
             </div>
+
+            <div className="col-md-6">
+              <label htmlFor="resourceId" className="form-label">
+                <i className="bi bi-box me-1"></i>Resource
+              </label>
+              <select
+                id="resourceId"
+                value={resourceId}
+                onChange={e => setResourceId(e.target.value)}
+                className={`form-select`}
+              >
+                <option value="">Select a resource...</option>
+                {type === StepType.Destination &&
+                  Object.values(destinations).map(destination => (
+                    <option
+                      key={destination.resourceId}
+                      value={destination.resourceId}
+                    >
+                      {resources[destination.resourceId].name}
+                    </option>
+                  ))}
+                {type === StepType.Factory &&
+                  Object.values(factories)
+                    .flatMap(factory => factory.recipes)
+                    .map(recipe => (
+                      <option key={recipe.resourceId} value={recipe.resourceId}>
+                        {resources[recipe.resourceId].name}
+                      </option>
+                    ))}
+              </select>
+            </div>
+
+            {type === StepType.Delivery && (
+              <div className="col-12">
+                <label htmlFor="order" className="form-label">
+                  <i className="bi bi-clipboard me-1"></i>Order
+                </label>
+                <select
+                  id="order"
+                  value={orderId}
+                  onChange={e => setOrderId(e.target.value)}
+                  className={`form-select`}
+                >
+                  <option value="">Select an order...</option>
+                  {orders.map(order => (
+                    <option key={order.id} value={order.id}>
+                      {order.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {(type === StepType.Destination || type === StepType.Delivery) && (
+              <div className="col-12">
+                <label htmlFor="trainId" className="form-label">
+                  <i className="bi bi-train-front me-1"></i>Train
+                </label>
+                <select
+                  id="trainId"
+                  value={trainId}
+                  onChange={e => setTrainId(e.target.value)}
+                  className={`form-select`}
+                >
+                  <option value="">Select a train...</option>
+                  {getTrains().map((train: Train) => (
+                    <option key={train.id} value={train.id}>
+                      {train.name} ({train.capacity} capacity)
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
-        ))}
-      <div className="form-group">
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="btn btn-primary"
-        >
-          {isSubmitting && (
-            <span className="spinner-border spinner-border-sm mr-1"></span>
-          )}
-          Save
-        </button>
+
+          <div className="d-flex gap-2 mt-4">
+            <button type="submit" className="btn btn-primary">
+              <i className="bi bi-check-lg me-1"></i>
+              {isAddMode ? 'Add Step' : 'Save Changes'}
+            </button>
+            <button
+              type="button"
+              className="btn btn-outline-secondary"
+              onClick={onClose}
+            >
+              <i className="bi bi-x-lg me-1"></i>
+              Cancel
+            </button>
+          </div>
+        </form>
       </div>
-    </form>
+    </div>
   );
 };

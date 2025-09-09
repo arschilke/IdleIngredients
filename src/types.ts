@@ -95,24 +95,22 @@ export interface BaseStep {
 
 export interface FactoryStep extends BaseStep {
   type: StepType.Factory;
-  recipe: Recipe;
 }
 
 export interface DestinationStep extends BaseStep {
   type: StepType.Destination;
-  destination: Destination;
   trainId: string;
 }
 
 export interface DeliveryStep extends BaseStep {
   type: StepType.Delivery;
-  order: StoryOrder;
+  orderId: string;
   trainId: string;
 }
 
 export interface SubmitStep extends BaseStep {
   type: StepType.Submit;
-  order: BoatOrder | BuildingOrder;
+  orderId: string;
   timeRequired: 0;
 }
 
