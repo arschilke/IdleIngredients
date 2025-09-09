@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Train, TrainClass, TrainEngine } from './types';
+import { Country, Train, TrainClass, TrainEngine } from './types';
 
 interface TrainManagerProps {
   trains: Train[];
@@ -40,9 +40,9 @@ export const TrainManager: React.FC<TrainManagerProps> = ({
       id: editingId || `train_${Date.now()}`,
       name: formData.name.trim(),
       capacity: formData.capacity,
-      availableAt: 0,
       class: formData.class as TrainClass,
       engine: TrainEngine.Steam, // Default engine
+      country: Country.Britain,
     };
 
     if (editingId) {
@@ -163,7 +163,6 @@ export const TrainManager: React.FC<TrainManagerProps> = ({
               <div className="train-info">
                 <h4>{train.name}</h4>
                 <p>Capacity: {train.capacity}</p>
-                <p>Available at: {train.availableAt}s</p>
               </div>
 
               <div className="train-actions">

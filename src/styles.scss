@@ -76,13 +76,13 @@ $border-radius-lg: 12px;
 
 .main-grid {
   display: grid;
-  grid-template-columns:  min-content 2fr minmax(1fr, min-content);
-  grid-template-rows:minmax() min-content 2fr minmax(min-content, 1fr);
+  grid-template-columns: min-content 2fr minmax(1fr, min-content);
+  grid-template-rows: minmax() min-content 2fr minmax(min-content, 1fr);
   gap: 1rem;
   grid-template-areas:
-    "current-orders current-orders order-form"
-    "production-plan production-plan current-inventory"
-    "production-plan production-plan current-inventory";
+    'current-orders current-orders order-form'
+    'production-plan production-plan current-inventory'
+    'production-plan production-plan current-inventory';
 }
 
 .current-orders {
@@ -99,7 +99,7 @@ $border-radius-lg: 12px;
 
 .current-inventory {
   grid-area: current-inventory;
-} 
+}
 
 // Custom order type badges
 .order-type {
@@ -119,6 +119,33 @@ $border-radius-lg: 12px;
     background: rgba($secondary, 0.15);
     color: $secondary;
     border: 1px solid rgba($secondary, 0.3);
+  }
+}
+
+// Custom train class badges
+.train-class {
+  &-common {
+    background: rgba($text-secondary, 0.15);
+    color: $text-secondary;
+    border: 1px solid rgba($text-secondary, 0.3);
+  }
+
+  &-rare {
+    background: rgba($info, 0.15);
+    color: $info;
+    border: 1px solid rgba($info, 0.3);
+  }
+
+  &-epic {
+    background: rgba($warning, 0.15);
+    color: $warning;
+    border: 1px solid rgba($warning, 0.3);
+  }
+
+  &-legendary {
+    background: rgba($danger, 0.15);
+    color: $danger;
+    border: 1px solid rgba($danger, 0.3);
   }
 }
 
@@ -312,8 +339,12 @@ $border-radius-lg: 12px;
 }
 
 .job-item {
+  padding: 0.5rem;
+  margin-bottom: 0.25rem;
+  flex-grow: 1;
   background: rgba($dark-elevation, 0.6);
-  border: 1px solid rgba($dark-border, 0.2);
+  border: 1px solid $border-color;
+  border-radius: $border-radius-sm;
   transition: all 0.2s ease;
 
   &:hover {
@@ -415,57 +446,6 @@ $border-radius-lg: 12px;
   }
 }
 
-// Drag and Drop Styles
-.drag-handle {
-  cursor: grab;
-  transition: all 0.2s ease;
-
-  &:hover {
-    color: $primary !important;
-    transform: scale(1.1);
-  }
-
-  &:active {
-    cursor: grabbing;
-    transform: scale(0.95);
-  }
-}
-
-.job-item {
-  transition: all 0.2s ease;
-
-  &.dragging {
-    opacity: 0.5;
-    transform: rotate(2deg);
-    box-shadow: 0 8px 25px rgba($primary, 0.3);
-  }
-}
-
-.drop-zone {
-  transition: all 0.2s ease;
-  border: 2px dashed transparent;
-
-  &:hover {
-    border-color: rgba($primary, 0.3);
-    background-color: rgba($primary, 0.05);
-  }
-
-  &.drag-over {
-    border-color: $primary;
-    background-color: rgba($primary, 0.1);
-    transform: scale(1.02);
-  }
-}
-
-.level-container {
-  transition: all 0.2s ease;
-
-  &.drag-over {
-    border-color: $primary !important;
-    box-shadow: 0 0 0 2px rgba($primary, 0.3);
-  }
-}
-
 // Resource depletion styling
 .resource-depletion-step {
   border-left: 4px solid $warning;
@@ -489,16 +469,16 @@ $border-radius-lg: 12px;
 // Orders container with horizontal fade
 .orders-container {
   position: relative;
-  
+
   .d-flex {
     scrollbar-width: none; // Firefox
     -ms-overflow-style: none; // IE and Edge
-    
+
     &::-webkit-scrollbar {
       display: none; // Chrome, Safari, Opera
     }
   }
-  
+
   .fade-overlay-right {
     position: absolute;
     top: 0;
@@ -513,5 +493,16 @@ $border-radius-lg: 12px;
     );
     pointer-events: none;
     z-index: 5;
+  }
+}
+
+.job-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.25rem;
+  margin-bottom: 0.25rem;
+  .bi::before {
+    rotate: 90deg;
   }
 }

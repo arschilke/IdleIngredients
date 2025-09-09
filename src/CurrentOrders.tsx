@@ -1,4 +1,3 @@
-import React from 'react';
 import {
   Order,
   Resource,
@@ -51,7 +50,9 @@ export function CurrentOrders({
       const selectedTrains = getBestTrains(
         activeLevelData,
         order.resources[0].amount,
-        trains
+        trains,
+        order.classes,
+        order.country ? [order.country] : undefined
       );
       let trainsIndex = 0;
       while (trainsIndex < selectedTrains.length) {

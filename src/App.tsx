@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { OrderForm } from './OrderForm';
 import { ProductionPlan } from './ProductionPlan';
 import { CurrentInventory } from './CurrentInventory';
@@ -17,6 +17,7 @@ import {
   trains,
 } from './data';
 import { getInventoryAtLevel } from './inventoryUtils';
+import { loadOrdersFromStorage, saveOrdersToStorage } from './utils';
 
 function App() {
   const [inventory, setInventory] = useState<Inventory>(() => {
@@ -27,8 +28,15 @@ function App() {
     return inventory;
   });
 
-  const [orders, setOrders] = useState<Order[]>([]);
+  const [orders, setOrders] = useState<Order[]>(() => {
+    return loadOrdersFromStorage();
+  });
   const [activeLevel, setActiveLevel] = useState<number>(1);
+
+  // Save orders to localStorage whenever they change
+  useEffect(() => {
+    saveOrdersToStorage(orders);
+  }, [orders]);
   const [productionPlan, setProductionPlan] = useState<ProductionPlanType>({
     levels: {
       1: {

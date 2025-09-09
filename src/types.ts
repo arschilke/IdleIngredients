@@ -10,6 +10,12 @@ export interface Train {
   capacity: number;
   class: TrainClass;
   engine: TrainEngine;
+  country: Country;
+}
+
+export enum Country {
+  Britain = 'britain',
+  Germany = 'germany',
 }
 
 export enum TrainEngine {
@@ -44,6 +50,7 @@ export interface Destination {
   travelTime: number;
   resourceId: string;
   classes: TrainClass[];
+  country: Country;
 }
 
 export interface ResourceRequirement {
@@ -66,6 +73,8 @@ export interface BoatOrder extends BaseOrder {
 export interface StoryOrder extends BaseOrder {
   type: 'story';
   travelTime: number;
+  classes: TrainClass[];
+  country?: Country;
 }
 
 export interface BuildingOrder extends BaseOrder {
@@ -77,7 +86,7 @@ export type Order = BoatOrder | StoryOrder | BuildingOrder;
 export type Step = FactoryStep | DestinationStep | DeliveryStep | SubmitStep;
 
 export interface BaseStep {
-  type: 'factory' | 'destination' | 'delivery' | 'submit';
+  type: StepType;
   id: string;
   resourceId: string;
   levelId: number;
@@ -85,26 +94,33 @@ export interface BaseStep {
 }
 
 export interface FactoryStep extends BaseStep {
-  type: 'factory';
+  type: StepType.Factory;
   recipe: Recipe;
 }
 
 export interface DestinationStep extends BaseStep {
-  type: 'destination';
+  type: StepType.Destination;
   destination: Destination;
   trainId: string;
 }
 
 export interface DeliveryStep extends BaseStep {
-  type: 'delivery';
+  type: StepType.Delivery;
   order: StoryOrder;
   trainId: string;
 }
 
 export interface SubmitStep extends BaseStep {
-  type: 'submit';
+  type: StepType.Submit;
   order: BoatOrder | BuildingOrder;
   timeRequired: 0;
+}
+
+export enum StepType {
+  Factory = 'factory',
+  Destination = 'destination',
+  Delivery = 'delivery',
+  Submit = 'submit',
 }
 
 export interface PlanningLevel {

@@ -1,5 +1,11 @@
 import { useState, FormEvent } from 'react';
-import { Order, Resource, ResourceRequirement } from './types';
+import {
+  Order,
+  Resource,
+  ResourceRequirement,
+  TrainClass,
+  Country,
+} from './types';
 import { formatTime } from './utils';
 
 interface OrderFormProps {
@@ -20,6 +26,15 @@ export function OrderForm({ resources, onSubmit }: OrderFormProps) {
   ]);
   const [expirationTime, setExpirationTime] = useState(3600); // 1 hour in seconds
   const [travelTime, setTravelTime] = useState(1800); // 30 minutes in seconds
+  const [selectedTrainClasses, setSelectedTrainClasses] = useState<
+    TrainClass[]
+  >([
+    TrainClass.Common,
+    TrainClass.Rare,
+    TrainClass.Epic,
+    TrainClass.Legendary,
+  ]);
+  const [selectedCountry, setSelectedCountry] = useState<Country | ''>('');
 
   const addResource = () => {
     setOrderResources([
@@ -57,12 +72,22 @@ export function OrderForm({ resources, onSubmit }: OrderFormProps) {
       return;
     }
 
+    if (orderType === 'story' && selectedTrainClasses.length === 0) {
+      alert('Please select at least one train class for story orders');
+      return;
+    }
+
     const newOrder: Order = {
       id: `order_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       name: orderName.trim(),
       resources: orderResources.filter(r => r.resourceId && r.amount > 0),
       ...(orderType === 'boat' && { type: 'boat', expirationTime }),
-      ...(orderType === 'story' && { type: 'story', travelTime }),
+      ...(orderType === 'story' && {
+        type: 'story',
+        travelTime,
+        classes: selectedTrainClasses,
+        ...(selectedCountry && { country: selectedCountry }),
+      }),
       ...(orderType === 'building' && { type: 'building' }),
     } as Order;
 
@@ -79,6 +104,13 @@ export function OrderForm({ resources, onSubmit }: OrderFormProps) {
     ]);
     setExpirationTime(3600);
     setTravelTime(1800);
+    setSelectedTrainClasses([
+      TrainClass.Common,
+      TrainClass.Rare,
+      TrainClass.Epic,
+      TrainClass.Legendary,
+    ]);
+    setSelectedCountry('');
   };
 
   return (
@@ -163,6 +195,47 @@ export function OrderForm({ resources, onSubmit }: OrderFormProps) {
                 />
                 <span className="badge bg-info">{formatTime(travelTime)}</span>
               </div>
+            </div>
+          )}
+
+          {orderType === 'story' && (
+            <div className="mb-2">
+              <label className="form-label">Allowed Train Classes:</label>
+              <select
+                className="form-select form-select-sm"
+                id={`classes`}
+                value={selectedTrainClasses}
+                multiple
+                onChange={e => {
+                  const selectedValues = Array.from(
+                    e.target.selectedOptions,
+                    option => option.value as TrainClass
+                  );
+                  setSelectedTrainClasses(selectedValues);
+                }}
+              >
+                {Object.values(TrainClass).map(trainClass => (
+                  <option key={trainClass} value={trainClass}>
+                    {trainClass.charAt(0).toUpperCase() + trainClass.slice(1)}
+                  </option>
+                ))}
+              </select>
+              <label className="form-label">Allowed Country:</label>
+              <select
+                className="form-select form-select-sm"
+                id="country"
+                value={selectedCountry}
+                onChange={e =>
+                  setSelectedCountry(e.target.value as Country | '')
+                }
+              >
+                <option value="">No specific country</option>
+                {Object.values(Country).map(country => (
+                  <option key={country} value={country}>
+                    {country.charAt(0).toUpperCase() + country.slice(1)}
+                  </option>
+                ))}
+              </select>
             </div>
           )}
 

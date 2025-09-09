@@ -6,6 +6,7 @@ import {
   Recipe,
   ResourceRequirement,
   TrainClass,
+  Country,
 } from './types';
 
 interface ResourceManagerProps {
@@ -148,7 +149,8 @@ export const ResourceManager: React.FC<ResourceManagerProps> = ({
         TrainClass.Rare,
         TrainClass.Epic,
         TrainClass.Legendary,
-      ], // Default to all classes
+      ],
+      country: Country.Britain,
     };
 
     if (editingId) {

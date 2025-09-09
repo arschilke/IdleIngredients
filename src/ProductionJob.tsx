@@ -1,48 +1,39 @@
 import React, { useState } from 'react';
 import {
   Factory,
-  Destination,
+  DestinationStep,
   Resource,
   Train,
   Step,
   FactoryStep,
   SubmitStep,
   DeliveryStep,
-  DestinationStep,
   ResourceRequirement,
 } from './types';
-import { formatTime, generateId } from './utils';
+import { formatTime } from './utils';
 import { inputAmounts, outputAmount } from './data';
+import { JobForm } from './JobForm';
 
 interface ProductionJobProps {
   job: Step;
   resources: Record<string, Resource>;
   factories: Record<string, Factory>;
-  destinations: Record<string, Destination>;
   trains: Record<string, Train>;
   maxConcurrentTrains: number;
   onJobUpdate: (updatedJob: Step) => void;
-  onAddJobToLevel: (newStep: Step, targetLevel: number) => void;
   onRemoveJob: (stepId: string) => void;
-  onReorderJob?: (jobId: string, newIndex: number) => void;
   onMoveToLevel?: (jobId: string, targetLevel: number) => void;
-  getBestTrains: (amount: number, trains: Record<string, Train>) => Train[];
-  isDragging?: boolean;
-  dragHandleProps?: React.HTMLAttributes<HTMLDivElement>;
+  createResourceJob: (requirement: ResourceRequirement) => void;
 }
 
 export const ProductionJob: React.FC<ProductionJobProps> = ({
   job,
   resources,
   factories,
-  destinations,
   trains,
   onJobUpdate,
-  onAddJobToLevel,
   onRemoveJob,
-  getBestTrains,
-  isDragging,
-  dragHandleProps,
+  createResourceJob,
 }) => {
   const [editingJob, setEditingJob] = useState<boolean>(false);
   const [editingJobData, setEditingJobData] = useState<Partial<Step>>({});
@@ -76,157 +67,21 @@ export const ProductionJob: React.FC<ProductionJobProps> = ({
     setEditingJobData({});
   };
 
-  const handleResourceClick = (requirement: ResourceRequirement) => {
-    const resourceId = requirement.resourceId;
-    const targetLevel = job.levelId - 1;
-    const recipe = Object.values(factories)
-      .flatMap(f => f.recipes)
-      .find(r => r.resourceId === resourceId);
-    const destination = Object.values(destinations).find(
-      d => d.resourceId === resourceId
-    );
-
-    let newStep: Step | null = null;
-    if (recipe) {
-      // Create factory job
-      newStep = {
-        id: generateId('step'),
-        type: 'factory',
-        resourceId: recipe.resourceId,
-        levelId: targetLevel,
-        recipe: recipe,
-        timeRequired: recipe.timeRequired,
-      };
-    } else if (destination) {
-      // Create destination job
-      const bestTrain = getBestTrains(requirement.amount, trains)[0];
-      newStep = {
-        id: generateId('step'),
-        type: 'destination',
-        resourceId,
-        levelId: targetLevel,
-        timeRequired: destination.travelTime,
-        destination,
-        trainId: bestTrain.id,
-      };
-    }
-    if (newStep === null) {
-      return;
-    }
-    onAddJobToLevel(newStep, targetLevel);
-  };
-
   const renderJobEditForm = () => {
     if (!editingJob) return null;
 
     return (
-      <div className="job-edit-form p-3 border rounded mt-2">
-        <h6 className="mb-2">
-          Edit Job:{' '}
-          {(job.type === 'delivery' && job.order?.name) ||
-            resources[job.resourceId].name}
-        </h6>
-
-        {job.type !== 'delivery' && (
-          <div className="d-flex gap-2">
-            <label className="form-label">Job Type:</label>
-            <select
-              value={job.type}
-              onChange={e =>
-                setEditingJobData(prev => {
-                  return {
-                    ...prev,
-                    type: e.target.value as
-                      | 'factory'
-                      | 'destination'
-                      | 'delivery'
-                      | 'submit',
-                  } as Partial<
-                    FactoryStep | DestinationStep | DeliveryStep | SubmitStep
-                  >;
-                })
-              }
-            >
-              <option value="factory">Factory</option>
-              <option value="destination">Destination</option>
-              <option value="delivery">Delivery</option>
-              <option value="submit">Submit</option>
-            </select>
-          </div>
-        )}
-        {/* Train Assignment */}
-        {(job.type === 'destination' || job.type === 'delivery') && (
-          <div className="mb-2">
-            <label className="form-label">Assign Train:</label>
-            <select
-              className="form-select form-select-sm"
-              value={
-                (editingJobData as Partial<DestinationStep | DeliveryStep>)
-                  .trainId || ''
-              }
-              onChange={e =>
-                setEditingJobData(prev => ({
-                  ...prev,
-                  trainId: e.target.value || undefined,
-                }))
-              }
-            >
-              <option value="">No Train Assigned</option>
-              {Object.values(trains).map(train => (
-                <option key={train.id} value={train.id}>
-                  {train.name} (Capacity: {train.capacity})
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-
-        {/* Recipe Selection for Factory Jobs */}
-        {job.type === 'factory' && (
-          <div className="mb-2">
-            <label className="form-label">Recipe:</label>
-            <select
-              className="form-select form-select-sm"
-              value={(editingJobData as FactoryStep).recipe?.resourceId || ''}
-              onChange={e => {
-                const selectedRecipe = Object.values(factories)
-                  .flatMap(f => f.recipes)
-                  .find(r => r.resourceId === e.target.value);
-                setEditingJobData(prev => ({
-                  ...prev,
-                  recipe: selectedRecipe,
-                }));
-              }}
-            >
-              {Object.values(factories)
-                .flatMap(f => f.recipes)
-                .filter(r => r.resourceId === job.resourceId)
-                .map(recipe => (
-                  <option key={recipe.resourceId} value={recipe.resourceId}>
-                    {recipe.requires
-                      .map(
-                        req => `${req.amount} ${resources[req.resourceId].name}`
-                      )
-                      .join(' + ')}{' '}
-                    → {recipe.outputAmount} {resources[recipe.resourceId].name}
-                  </option>
-                ))}
-            </select>
-          </div>
-        )}
-
-        <div className="d-flex gap-2">
-          <button className="btn btn-success btn-sm" onClick={saveJobEdit}>
-            <i className="bi bi-check"></i> Save
-          </button>
-          <button
-            className="btn btn-outline-secondary btn-sm"
-            onClick={cancelJobEdit}
-          >
-            <i className="bi bi-x"></i> Cancel
-          </button>
-        </div>
-      </div>
+      <JobForm
+        id={job.id}
+        level={level}
+        resources={resources}
+        factories={factories}
+        orders={orders}
+        trains={trains}
+        onJobUpdate={onJobUpdate}
+        onRemoveJob={onRemoveJob}
+        createResourceJob={createResourceJob}
+      />
     );
   };
 
@@ -277,7 +132,7 @@ export const ProductionJob: React.FC<ProductionJobProps> = ({
                   <button
                     key={index}
                     className="btn btn-outline-secondary btn-sm"
-                    onClick={() => handleResourceClick(req)}
+                    onClick={() => createResourceJob(req)}
                   >
                     {req.amount} {resources[req.resourceId].name}
                   </button>
@@ -297,7 +152,7 @@ export const ProductionJob: React.FC<ProductionJobProps> = ({
                   <button
                     key={index}
                     className="btn btn-outline-secondary btn-sm"
-                    onClick={() => handleResourceClick(req)}
+                    onClick={() => createResourceJob(req)}
                   >
                     {resources[req.resourceId].name}
                   </button>
@@ -340,24 +195,10 @@ export const ProductionJob: React.FC<ProductionJobProps> = ({
   };
 
   return (
-    <div
-      className={`job-item p-2 mb-1 border rounded ${isDragging ? 'dragging' : ''}`}
-    >
-      {/* Drag Handle */}
-      <div className="d-flex align-items-start">
-        <div
-          className="drag-handle me-2 cursor-grab"
-          style={{ cursor: 'grab' }}
-          {...dragHandleProps}
-          title="Drag to reorder or move to different level"
-        >
-          <i className="bi bi-grip-vertical text-muted"></i>
-        </div>
-
-        <div className="flex-grow-1">
-          {renderJobDetails()}
-          {renderJobEditForm()}
-        </div>
+    <div className="job-item">
+      <div className="flex-grow-1">
+        {renderJobDetails()}
+        {renderJobEditForm()}
       </div>
     </div>
   );

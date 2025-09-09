@@ -1,4 +1,4 @@
-import { Resource } from './types';
+import { Resource, Order } from './types';
 
 /**
  * Formats a time duration in seconds to a human-readable string
@@ -56,4 +56,39 @@ export const formatNumber = (num: number): string => {
  */
 export const generateId = (prefix: string = 'id'): string => {
   return `${prefix}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+};
+
+/**
+ * Saves orders to localStorage
+ * @param orders - Array of orders to save
+ */
+export const saveOrdersToStorage = (orders: Order[]): void => {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      window.localStorage.setItem(
+        'idle-ingredients-orders',
+        JSON.stringify(orders)
+      );
+    }
+  } catch {
+    // Silently fail if localStorage is not available
+  }
+};
+
+/**
+ * Loads orders from localStorage
+ * @returns Array of orders or empty array if none found or error occurs
+ */
+export const loadOrdersFromStorage = (): Order[] => {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const stored = window.localStorage.getItem('idle-ingredients-orders');
+      if (stored) {
+        return JSON.parse(stored);
+      }
+    }
+  } catch {
+    // Silently fail if localStorage is not available
+  }
+  return [];
 };

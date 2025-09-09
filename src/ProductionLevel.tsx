@@ -10,9 +10,9 @@ import {
   FactoryStep,
   DestinationStep,
   ProductionPlan,
+  ResourceRequirement,
 } from './types';
 import { ProductionJob } from './ProductionJob';
-import { getBestTrains } from './trainUtils';
 import { getInventoryAtLevel, getInventoryChanges } from './inventoryUtils';
 
 interface ProductionLevelProps {
@@ -27,13 +27,12 @@ interface ProductionLevelProps {
   onLevelClick: (levelNumber: number) => void;
   onRemoveLevel: (levelNumber: number) => void;
   onLevelChange: (updatedLevel: PlanningLevel) => void;
-  onAddStepToLevel: (step: Step, targetLevel: number) => void;
-  updateInventory: (level: PlanningLevel) => Map<string, number>;
-  onReorderJob?: (levelNumber: number, jobId: string, newIndex: number) => void;
-  onMoveJobToLevel?: (
-    jobId: string,
-    fromLevel: number,
-    toLevel: number
+  onAddJobToLevel: (step: Step, targetLevel: number) => void;
+  onMoveJobToLevel: (jobId: string, fromLevel: number, toLevel: number) => void;
+  onInsertLevel: (levelNumber: number) => void;
+  onCreateResourceJob: (
+    requirement: ResourceRequirement,
+    targetLevel: number
   ) => void;
 }
 
@@ -48,24 +47,14 @@ export const ProductionLevel: React.FC<ProductionLevelProps> = ({
   isActiveLevel,
   onLevelClick,
   onRemoveLevel,
-  updateInventory,
+  onCreateResourceJob,
   onLevelChange,
-  onReorderJob,
   onMoveJobToLevel,
-  onAddStepToLevel,
+  onAddJobToLevel: onAddStepToLevel,
 }) => {
   const [showAddJobModal, setShowAddJobModal] = useState<boolean>(false);
-  const [newJobType, setNewJobType] = useState<
-    'factory' | 'destination' | 'delivery' | 'submit'
-  >('factory');
-  const [selectedTrain, setSelectedTrain] = useState<Train | null>(null);
-  const [selectedResource, setSelectedResource] = useState('');
-  const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
-  const [selectedDestination, setSelectedDestination] =
-    useState<Destination | null>(null);
-  const [draggedJobId, setDraggedJobId] = useState<string | null>(null);
-  const [dragOverLevel, setDragOverLevel] = useState<number | null>(null);
-  const [dragOverJobIndex, setDragOverJobIndex] = useState<number | null>(null);
+  const [showJobControls, setShowJobControls] = useState<boolean>(false);
+ 
 
   // Check if inventory has enough resources for all jobs in this level
   const checkInventorySufficiency = () => {
@@ -89,63 +78,55 @@ export const ProductionLevel: React.FC<ProductionLevelProps> = ({
       ...level,
       steps: updatedSteps,
     };
-    updatedLevel.inventoryChanges = getInventoryChanges(level);
+    updatedLevel.inventoryChanges = getInventoryChanges(updatedLevel);
     onLevelChange(updatedLevel);
   };
-
-  // Handle job reordering within the same level
-  const handleReorderJob = (jobId: string, newIndex: number) => {
-    if (onReorderJob) {
-      onReorderJob(level.level, jobId, newIndex);
-    }
-  };
-
   // Handle moving a job to a different level
   const handleMoveJobToLevel = (jobId: string, targetLevel: number) => {
-    if (onMoveJobToLevel && targetLevel !== level.level) {
+    if (targetLevel !== level.level) {
       onMoveJobToLevel(jobId, level.level, targetLevel);
     }
   };
 
-  // Drag and drop handlers
-  const handleDragStart = (e: React.DragEvent, jobId: string) => {
-    setDraggedJobId(jobId);
-    e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('text/plain', jobId);
+  // Handle moving a job within the current level (back/forward)
+  const handleMoveJobWithinLevel = (
+    jobId: string,
+    direction: 'back' | 'forward'
+  ) => {
+    const currentIndex = level.steps.findIndex(step => step.id === jobId);
+    if (currentIndex === -1) return;
+
+    const newIndex = direction === 'back' ? currentIndex - 1 : currentIndex + 1;
+
+    // Check bounds
+    if (newIndex < 0 || newIndex >= level.steps.length) return;
+
+    const newSteps = [...level.steps];
+    const [movedJob] = newSteps.splice(currentIndex, 1);
+    newSteps.splice(newIndex, 0, movedJob);
+
+    const updatedLevel = {
+      ...level,
+      steps: newSteps,
+    };
+    updatedLevel.inventoryChanges = getInventoryChanges(updatedLevel);
+    onLevelChange(updatedLevel);
   };
 
-  const handleDragOver = (e: React.DragEvent, jobIndex?: number) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-
-    if (jobIndex !== undefined) {
-      setDragOverJobIndex(jobIndex);
-    }
-    setDragOverLevel(level.level);
+  // Handle moving a job to the end of previous level (rewind)
+  const handleRewindJob = (jobId: string) => {
+    const previousLevel = level.level - 1;
+    onMoveJobToLevel(jobId, level.level, previousLevel);
   };
 
-  const handleDragLeave = () => {
-    setDragOverJobIndex(null);
-    setDragOverLevel(null);
+  // Handle moving a job to the beginning of next level (fast forward)
+  const handleFastForwardJob = (jobId: string) => {
+    const nextLevel = level.level + 1;
+    onMoveJobToLevel(jobId, level.level, nextLevel);
   };
 
-  const handleDrop = (e: React.DragEvent, targetJobIndex?: number) => {
-    e.preventDefault();
-    const draggedJobId = e.dataTransfer.getData('text/plain');
-
-    if (draggedJobId && draggedJobId !== '') {
-      if (targetJobIndex !== undefined) {
-        // Reordering within the same level
-        handleReorderJob(draggedJobId, targetJobIndex);
-      } else {
-        // Moving to this level (at the end)
-        handleMoveJobToLevel(draggedJobId, level.level);
-      }
-    }
-
-    setDraggedJobId(null);
-    setDragOverJobIndex(null);
-    setDragOverLevel(null);
+  const createResourceJob = (requirement: ResourceRequirement) => {
+    onCreateResourceJob(requirement, level.level - 1);
   };
 
   const tooManyTrains =
@@ -163,10 +144,7 @@ export const ProductionLevel: React.FC<ProductionLevelProps> = ({
           : tooManyTrains
             ? 'bg-danger border-danger'
             : 'bg-light'
-      } ${isActiveLevel ? 'border-primary border-2 shadow-lg' : ''} ${showAddJobModal ? 'modal-open' : ''} ${dragOverLevel === level.level ? 'drag-over' : ''}`}
-      onDragOver={e => handleDragOver(e)}
-      onDragLeave={handleDragLeave}
-      onDrop={e => handleDrop(e)}
+      } ${isActiveLevel ? 'border-primary border-2 shadow-lg' : ''} ${showAddJobModal ? 'modal-open' : ''}`}
     >
       <div className="level-header d-flex justify-content-between align-items-center mb-2">
         <div className="d-flex align-items-center gap-2">
@@ -194,6 +172,15 @@ export const ProductionLevel: React.FC<ProductionLevelProps> = ({
           )}
         </div>
         <div className="d-flex gap-2">
+          <button
+            className={`btn btn-sm ${showJobControls ? 'btn-outline-primary' : 'btn-outline-secondary'}`}
+            onClick={() => setShowJobControls(!showJobControls)}
+            title="Toggle job control buttons"
+          >
+            <i
+              className={`bi ${showJobControls ? 'bi-eye-slash' : 'bi-eye'}`}
+            ></i>
+          </button>
           <button
             className="btn btn-primary btn-sm"
             onClick={() => setShowAddJobModal(true)}
@@ -227,72 +214,85 @@ export const ProductionLevel: React.FC<ProductionLevelProps> = ({
 
       <div className="level-steps">
         {level.steps.length === 0 ? (
-          <div
-            className="drop-zone p-3 text-center text-muted border-2 border-dashed rounded"
-            onDragOver={e => handleDragOver(e)}
-            onDrop={e => handleDrop(e)}
-          >
-            <i className="bi bi-arrow-down-circle fs-1"></i>
-            <p className="mb-0">Drop jobs here to move them to this level</p>
+          <div className="p-3 text-center text-muted border-2 border-dashed rounded">
+            <i className="bi bi-plus-circle fs-1"></i>
+            <p className="mb-0">No jobs in this level</p>
           </div>
         ) : (
-          level.steps.map((step, stepIndex) => (
-            <React.Fragment key={step.id}>
-              {/* Drop zone above each job */}
-              <div
-                className={`drop-zone ${dragOverJobIndex === stepIndex ? 'bg-primary bg-opacity-25' : ''}`}
-                style={{ height: '8px', margin: '2px 0' }}
-                onDragOver={e => handleDragOver(e, stepIndex)}
-                onDrop={e => handleDrop(e, stepIndex)}
-              />
+          <div>
+            {level.steps.map((step, index) => (
+              <div key={`${step.id}-container`} className="d-flex gap-1">
+                {showJobControls && (
+                  <div className="job-controls">
+                    {/* Rewind button - move to end of previous level */}
+                    <button
+                      className="btn btn-outline-secondary btn-sm"
+                      onClick={() => handleRewindJob(step.id)}
+                      title="Move to end of previous level"
+                    >
+                      <i className="bi bi-skip-backward"></i>
+                    </button>
 
-              <ProductionJob
-                job={step}
-                resources={resources}
-                factories={factories}
-                destinations={destinations}
-                trains={trains}
-                maxConcurrentTrains={maxConcurrentTrains}
-                onJobUpdate={updatedJob => {
-                  const updatedSteps = level.steps.map(s =>
-                    s.id === updatedJob.id ? updatedJob : s
-                  );
-                  const updatedLevel = {
-                    ...level,
-                    steps: updatedSteps,
-                  };
-                  updatedLevel.inventoryChanges = updateInventory(level);
+                    {/* Back button - move before sibling */}
+                    <button
+                      className="btn btn-outline-secondary btn-sm"
+                      onClick={() => handleMoveJobWithinLevel(step.id, 'back')}
+                      disabled={index === 0}
+                      title="Move before previous job"
+                    >
+                      <i className="bi bi-arrow-left"></i>
+                    </button>
 
-                  onLevelChange(updatedLevel);
-                }}
-                onAddJobToLevel={onAddJobToLevel}
-                onRemoveJob={onRemoveStep}
-                onReorderJob={handleReorderJob}
-                onMoveToLevel={handleMoveJobToLevel}
-                isDragging={draggedJobId === step.id}
-                dragHandleProps={{
-                  draggable: true,
-                  onDragStart: (e: React.DragEvent) =>
-                    handleDragStart(e, step.id),
-                }}
-                getBestTrains={function (
-                  amount: number,
-                  trains: Record<string, Train>
-                ): Train[] {
-                  return getBestTrains(level, amount, trains);
-                }}
-              />
-            </React.Fragment>
-          ))
+                    {/* Forward button - move after sibling */}
+                    <button
+                      className="btn btn-outline-secondary btn-sm"
+                      onClick={() =>
+                        handleMoveJobWithinLevel(step.id, 'forward')
+                      }
+                      disabled={index === level.steps.length - 1}
+                      title="Move after next job"
+                    >
+                      <i className="bi bi-arrow-right"></i>
+                    </button>
+
+                    {/* Fast forward button - move to beginning of next level */}
+                    <button
+                      className="btn btn-outline-secondary btn-sm"
+                      onClick={() => handleFastForwardJob(step.id)}
+                      title="Move to beginning of next level"
+                    >
+                      <i className="bi bi-skip-forward"></i>
+                    </button>
+                  </div>
+                )}
+                <ProductionJob
+                  key={step.id}
+                  job={step}
+                  resources={resources}
+                  factories={factories}
+                  trains={trains}
+                  maxConcurrentTrains={maxConcurrentTrains}
+                  onJobUpdate={updatedJob => {
+                    const updatedSteps = level.steps.map(s =>
+                      s.id === updatedJob.id ? updatedJob : s
+                    );
+                    const updatedLevel = {
+                      ...level,
+                      steps: updatedSteps,
+                    };
+                    updatedLevel.inventoryChanges =
+                      getInventoryChanges(updatedLevel);
+
+                    onLevelChange(updatedLevel);
+                  }}
+                  onRemoveJob={onRemoveStep}
+                  onMoveToLevel={handleMoveJobToLevel}
+                  createResourceJob={createResourceJob}
+                />
+              </div>
+            ))}
+          </div>
         )}
-
-        {/* Drop zone at the end of all jobs */}
-        <div
-          className={`drop-zone ${dragOverJobIndex === level.steps.length ? 'bg-primary bg-opacity-25' : ''}`}
-          style={{ height: '8px', margin: '2px 0' }}
-          onDragOver={e => handleDragOver(e, level.steps.length)}
-          onDrop={e => handleDrop(e, level.steps.length)}
-        />
       </div>
 
       {/* Add Job Modal */}

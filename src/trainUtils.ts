@@ -1,17 +1,20 @@
 import { isDeliveryStep, isDestinationStep } from './data';
-import { Train, PlanningLevel } from './types';
+import { Train, PlanningLevel, TrainClass, Country } from './types';
 
 /**
  * Get the best available trains for a given amount of resources
  * @param level - The planning level to check for busy trains
  * @param amount - The amount of resources that need to be transported
  * @param trains - Array of available trains
+ * @param allowedClasses - Optional array of allowed train classes
  * @returns Array of trains that can handle the transport
  */
 export function getBestTrains(
   level: PlanningLevel,
   amount: number,
-  trains: Record<string, Train>
+  trains: Record<string, Train>,
+  allowedClasses?: TrainClass[],
+  allowedCountries?: Country[]
 ): Train[] {
   // Get busy train IDs from the level
   const busyTrainIds = level.steps
@@ -19,9 +22,17 @@ export function getBestTrains(
     .map(step => step.trainId);
 
   // Filter out busy trains and get available ones
-  const applicableTrains = Object.values(trains).filter(
-    (x: Train) => x.id !== undefined && !busyTrainIds.includes(x.id)
-  );
+  const applicableTrains = Object.values(trains).filter((x: Train) => {
+    // Check if train is not busy
+    const isNotBusy = x.id !== undefined && !busyTrainIds.includes(x.id);
+
+    // Check if train class is allowed (if allowedClasses is provided)
+    const isClassAllowed = !allowedClasses || allowedClasses.includes(x.class);
+    const isCountryAllowed =
+      !allowedCountries || allowedCountries.includes(x.country);
+
+    return isNotBusy && isClassAllowed && isCountryAllowed;
+  });
 
   // Sort trains by how close their capacity is to the required amount
   const bestTrains = applicableTrains.sort(
