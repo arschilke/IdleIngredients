@@ -1,11 +1,11 @@
-import { useState, type FormEvent } from 'react';
+  import { useState, type FormEvent } from 'react';
 import type {
   Order,
   Resource,
   ResourceRequirement,
-} from '../types';
-import { TrainClass, Country } from '../types';
-import { formatTime } from '../utils';
+} from '../../../types';
+import { TrainClass, Country } from '../../../types';
+import { formatTime } from 'utils';
 
 interface OrderFormProps {
   resources: Record<string, Resource>;

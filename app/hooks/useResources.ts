@@ -1,11 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { Resource, Factory, Destination, Train } from '../../types';
+import type { Resource } from '../../types';
 import { 
   loadResourcesFromStorage, 
-  saveOrdersToStorage, 
   saveResourcesToStorage
-} from '../../localStorageUtils';
-import { ensureLocalStorageData } from '../../migrateData';
+} from '../lib/localStorageUtils';
+import { ensureLocalStorageData } from '../lib/migrateData';
 
 // Query keys
 export const resourceKeys = {

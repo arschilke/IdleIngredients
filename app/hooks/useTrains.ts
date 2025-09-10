@@ -2,8 +2,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   loadTrainsFromStorage,
   saveTrainsToStorage,
-} from '../../localStorageUtils';
-import { ensureLocalStorageData } from '../../migrateData';
+} from '../lib/localStorageUtils';
+import { ensureLocalStorageData } from '../lib/migrateData';
 import type { Train } from 'types';
 
 // Query keys
@@ -65,7 +65,7 @@ export const useAddTrain = () => {
   });
 };
 
-export const useUpdateTrain = (train: Train) => {
+export const useUpdateTrain = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (train: Train) => {
@@ -77,6 +77,17 @@ export const useUpdateTrain = (train: Train) => {
     },
     onSuccess: (trains: Record<string, Train>) => {
       queryClient.setQueryData(trainsKeys.lists(), trains);
+    },
+  });
+};
+
+export const useRemoveTrain = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const currentTrains = queryClient.getQueryData<Record<string, Train>>(trainsKeys.lists()) || {};
+      delete currentTrains[id];
+      return saveTrains(currentTrains);
     },
   });
 };

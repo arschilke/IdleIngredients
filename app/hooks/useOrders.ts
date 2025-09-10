@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { Order } from '../../types';
-import { saveOrdersToStorage, loadOrdersFromStorage } from '../../localStorageUtils';
+import { saveOrdersToStorage, loadOrdersFromStorage } from '../lib/localStorageUtils';
 
 // Query keys
 export const orderKeys = {

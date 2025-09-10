@@ -9,13 +9,13 @@ import type {
   Resource,
   Step,
   ResourceRequirement,
-} from '../../types';
-import { StepType } from '../../types';
+} from '../../../../types';
+import { StepType } from '../../../../types';
 import { ProductionLevel } from './ProductionLevel';
-import { InsertNewLevelIntoPlan } from '../../plan';
-import { generateId } from '../../utils';
-import { getBestTrains } from '../../trainUtils';
-import { getInventoryChanges } from '../../inventoryUtils';
+import { InsertNewLevelIntoPlan } from '../../../../plan';
+import { generateId } from '../../../../utils';
+import { useBestTrains } from '~/hooks/useBestTrains';
+import { getInventoryChanges } from '../../../../inventoryUtils';
 
 interface ProductionPlanProps {
   productionPlan: ProductionPlanType;
@@ -253,13 +253,12 @@ export const ProductionPlan: React.FC<ProductionPlanProps> = ({
         type: StepType.Destination,
         resourceId: requirement.resourceId,
         levelId: targetLevel,
-        trainId: getBestTrains(
+        trainId: useBestTrains({
           level,
-          requirement.amount,
-          trains,
-          destination.classes,
-          [destination.country]
-        )[0].id,
+          amount: requirement.amount,
+          allowedClasses: destination.classes,
+          allowedCountries: [destination.country]
+        }).bestTrains[0].id,
         timeRequired: destination.travelTime,
       };
     } else if (recipe) {

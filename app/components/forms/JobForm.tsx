@@ -4,12 +4,14 @@ import type {
   Step,
   StoryOrder,
   Train,
-} from '../../types';
-import { Country, StepType, TrainClass } from '../../types';
+} from '../../../types';
+import { Country, StepType, TrainClass } from '../../../types';
 import React, { type FormEvent, useState } from 'react';
-import { db } from '../../db';
-import { getBestTrains } from '../../trainUtils';
-import { generateId } from '../../utils';
+import { useBestTrains } from '~/hooks/useBestTrains';
+import { generateId } from '../../../utils';
+import { useDestinations } from '~/hooks/useDestinations';
+import { useResources } from '~/hooks/useResources';
+import { useFactories } from '~/hooks/useFactories';
 
 interface JobFormProps {
   job?: Step;
@@ -26,6 +28,10 @@ export const JobForm: React.FC<JobFormProps> = ({
   onClose,
 }) => {
   const isAddMode = !job;
+
+  const { data: destinations = {} } = useDestinations();
+  const { data: resources = {} } = useResources();
+  const { data: factories = {} } = useFactories();
 
   const [type, setType] = useState<StepType>(job?.type ?? StepType.Factory);
   const [resourceId, setResourceId] = useState<string>(job?.resourceId ?? '');
@@ -44,7 +50,7 @@ export const JobForm: React.FC<JobFormProps> = ({
     let classes: TrainClass[] = [];
     let countries: Country[] = [];
     if (type === StepType.Destination) {
-      const dest = Object.values(db.destinations).find(
+      const dest = Object.values(destinations).find(
         d => d.resourceId == resourceId
       );
       classes = dest?.classes ?? [
@@ -67,7 +73,12 @@ export const JobForm: React.FC<JobFormProps> = ({
       countries = [order?.country ?? Country.Britain];
     }
 
-    return getBestTrains(level, 1, db.trains, classes, countries);
+    return useBestTrains({
+      level,
+      amount: 1,
+      allowedClasses: classes,
+      allowedCountries: countries,
+    }).bestTrains;
   };
 
   const handleSubmit = (e: FormEvent) => {
@@ -152,20 +163,20 @@ export const JobForm: React.FC<JobFormProps> = ({
               >
                 <option value="">Select a resource...</option>
                 {type === StepType.Destination &&
-                  Object.values(db.destinations).map(destination => (
+                  Object.values(destinations).map(destination => (
                     <option
                       key={destination.resourceId}
                       value={destination.resourceId}
                     >
-                      {db.resources[destination.resourceId].name}
+                      {resources[destination.resourceId].name}
                     </option>
                   ))}
                 {type === StepType.Factory &&
-                  Object.values(db.factories)
+                  Object.values(factories)
                     .flatMap(factory => factory.recipes)
                     .map(recipe => (
                       <option key={recipe.resourceId} value={recipe.resourceId}>
-                        {db.resources[recipe.resourceId].name}
+                        {resources[recipe.resourceId].name}
                       </option>
                     ))}
                 {(type === StepType.Submit || type === StepType.Delivery) &&
@@ -175,12 +186,12 @@ export const JobForm: React.FC<JobFormProps> = ({
                       key={resource.resourceId}
                       value={resource.resourceId}
                     >
-                      {db.resources[resource.resourceId].name}
+                      {resources[resource.resourceId].name}
                     </option>
                   ))}
                 {(type === StepType.Submit || type === StepType.Delivery) &&
                   !orderId &&
-                  Object.values(db.resources).map(resource => (
+                  Object.values(resources).map(resource => (
                     <option key={resource.id} value={resource.id}>
                       {resource.name}
                     </option>

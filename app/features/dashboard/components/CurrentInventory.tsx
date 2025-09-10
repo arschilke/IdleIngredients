@@ -1,6 +1,6 @@
 import React from 'react';
-import type { Inventory, ProductionPlan, Resource } from '../../types';
-import { useInventoryAtLevel } from '../hooks/useProductionPlan';
+import type { Inventory, ProductionPlan, Resource } from '../../../../types';
+import { useInventoryAtLevel } from '../../../hooks/useProductionPlan';
 
 interface CurrentInventoryProps {
   inventory?: Inventory; // Made optional since we'll calculate it

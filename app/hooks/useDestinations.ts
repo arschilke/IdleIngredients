@@ -3,8 +3,8 @@ import type { Destination } from '../../types';
 import { 
   loadDestinationsFromStorage, 
   saveDestinationsToStorage
-} from '../../localStorageUtils';
-import { ensureLocalStorageData } from '../../migrateData';
+} from '../lib/localStorageUtils';
+import { ensureLocalStorageData } from '../lib/migrateData';
 
 // Query keys
 export const destinationsKeys = {

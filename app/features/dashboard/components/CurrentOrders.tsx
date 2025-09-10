@@ -7,10 +7,10 @@ import type {
   Step,
   DeliveryStep,
   SubmitStep,
-} from '../../types';
-import { formatTime, generateId } from '../../utils';
-import { getBestTrains } from '../../trainUtils';
-import { getInventoryChanges } from '../../inventoryUtils';
+} from '../../../../types';
+import { formatTime, generateId } from '../../../../utils';
+import { useBestTrains } from '~/hooks/useBestTrains';
+import { getInventoryChanges } from '../../../../inventoryUtils';
 import React from 'react';
 
 interface CurrentOrdersProps {
@@ -48,13 +48,13 @@ export const CurrentOrders: React.FC<CurrentOrdersProps> = ({
 
     const jobs: Step[] = [];
     if (order.type === 'story') {
-      const selectedTrains = getBestTrains(
-        activeLevelData,
-        order.resources[0].amount,
-        trains,
-        order.classes,
-        order.country ? [order.country] : undefined
-      );
+      const selectedTrains = useBestTrains({
+        level: activeLevelData,
+        amount: order.resources[0].amount,
+        allowedClasses: order.classes,
+        allowedCountries: order.country ? [order.country] : undefined
+      }).bestTrains;
+      
       let trainsIndex = 0;
       while (trainsIndex < selectedTrains.length) {
         jobs.push({

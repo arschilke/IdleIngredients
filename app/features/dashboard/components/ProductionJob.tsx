@@ -10,11 +10,11 @@ import type {
   Recipe,
   StoryOrder,
   Destination,
-} from '../../types';
-import { StepType } from '../../types';
-import { formatTime } from '../../utils';
-import { JobForm } from '../JobForm/JobForm';
-import { db } from 'db';
+} from '../../../../types';
+import { StepType } from '../../../../types';
+import { formatTime } from '../../../../utils';
+import { JobForm } from '../../../components/forms/JobForm';
+import { db } from '../../../../db';
 
 interface ProductionJobProps {
   job: Step;

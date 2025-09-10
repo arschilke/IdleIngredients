@@ -1,15 +1,10 @@
 import React, { useState } from 'react';
-import { Country, type Train, TrainClass, TrainEngine } from '../types';
+import { Country, type Train, TrainClass, TrainEngine } from '../../../types';
+import { Navbar } from '~/components/layout/Navbar';
+import { useAddTrain, useRemoveTrain, useTrains, useUpdateTrain } from '~/hooks/useTrains';
 
-interface TrainManagerProps {
-  trains: Train[];
-  onTrainsChange: (trains: Train[]) => void;
-}
 
-export const TrainManager: React.FC<TrainManagerProps> = ({
-  trains,
-  onTrainsChange,
-}) => {
+export const TrainManager = () => {
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
@@ -17,6 +12,8 @@ export const TrainManager: React.FC<TrainManagerProps> = ({
     capacity: 10,
     class: 'common' as TrainClass,
   });
+  const { data: trains = {}, isLoading: trainsLoading } = useTrains();
+  
 
   const resetForm = () => {
     setFormData({
@@ -46,9 +43,9 @@ export const TrainManager: React.FC<TrainManagerProps> = ({
     };
 
     if (editingId) {
-      onTrainsChange(trains.map(t => (t.id === editingId ? train : t)));
+      useUpdateTrain().mutate(train);
     } else {
-      onTrainsChange([...trains, train]);
+      useAddTrain().mutate(train);
     }
 
     resetForm();
@@ -66,12 +63,13 @@ export const TrainManager: React.FC<TrainManagerProps> = ({
 
   const deleteTrain = (id: string) => {
     if (confirm('Are you sure you want to delete this train?')) {
-      onTrainsChange(trains.filter(t => t.id !== id));
+      useRemoveTrain().mutate(id);
     }
   };
 
   return (
     <div className="train-manager">
+      <Navbar />
       <h2>🚂 Train Manager</h2>
 
       <button
@@ -158,7 +156,7 @@ export const TrainManager: React.FC<TrainManagerProps> = ({
       <div className="trains-list">
         <h3>Current Trains</h3>
         <div className="trains-grid">
-          {trains.map(train => (
+          {Object.values(trains).map(train => (
             <div key={train.id} className="train-card">
               <div className="train-info">
                 <h4>{train.name}</h4>

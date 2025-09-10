@@ -1,21 +1,21 @@
 import { useState } from 'react';
-import { OrderForm } from '../OrderForm';
-import { ProductionPlan } from './ProductionPlan';
-import { CurrentInventory } from './CurrentInventory';
-import { CurrentOrders } from './CurrentOrders';
-import { Navbar } from './Navbar';
+import { OrderForm } from '../../components/forms/OrderForm';
+import { ProductionPlan } from './components/ProductionPlan';
+import { CurrentInventory } from './components/CurrentInventory';
+import { CurrentOrders } from './components/CurrentOrders';
+import { Navbar } from '../../components/layout/Navbar';
 import type {
   Order,
   ProductionPlan as ProductionPlanType,
-} from '../../types';
-import '../../styles.scss';
-import { Db } from '../../db';
-import { useOrders, useAddOrder, useUpdateOrders } from '../hooks/useOrders';
-import { useProductionPlan, useUpdateProductionPlan, useClearProductionPlan } from '../hooks/useProductionPlan';
-import { useResources } from '~/hooks/useResources';
-import { useFactories } from '~/hooks/useFactories';
-import { useTrains } from '~/hooks/useTrains';
-import { useDestinations } from '~/hooks/useDestinations';
+} from '../../../types';
+import '../../../styles.scss';
+import { Db } from '../../../db';
+import { useOrders, useAddOrder, useUpdateOrders } from '../../hooks/useOrders';
+import { useProductionPlan, useUpdateProductionPlan, useClearProductionPlan } from '../../hooks/useProductionPlan';
+import { useResources } from '../../hooks/useResources';
+import { useFactories } from '../../hooks/useFactories';
+import { useTrains } from '../../hooks/useTrains';
+import { useDestinations } from '../../hooks/useDestinations';
 
 const Dashboard = () => {
   const [activeLevel, setActiveLevel] = useState<number>(1);

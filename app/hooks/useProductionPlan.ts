@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { ProductionPlan as ProductionPlanType } from '../../types';
 import { getInventoryAtLevel } from '../../inventoryUtils';
-import { saveProductionPlanToStorage, loadProductionPlanFromStorage } from '../../localStorageUtils';
+import { saveProductionPlanToStorage, loadProductionPlanFromStorage } from '../lib/localStorageUtils';
 
 // Query keys
 export const productionPlanKeys = {

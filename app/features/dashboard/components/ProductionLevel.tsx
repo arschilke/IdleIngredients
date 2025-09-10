@@ -9,11 +9,11 @@ import type {
   ProductionPlan,
   ResourceRequirement,
   Order,
-} from '../../types';
-import { StepType } from '../../types';
+} from '../../../../types';
+import { StepType } from '../../../../types';
 import { ProductionJob } from './ProductionJob';
-import { getInventoryAtLevel, getInventoryChanges } from '../../inventoryUtils';
-import { JobForm } from '../JobForm/JobForm';
+import { getInventoryAtLevel, getInventoryChanges } from '../../../../inventoryUtils';
+import { JobForm } from '../../../components/forms/JobForm';
 
 interface ProductionLevelProps {
   level: PlanningLevel;
