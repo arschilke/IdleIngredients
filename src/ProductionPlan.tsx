@@ -15,6 +15,7 @@ import { ProductionLevel } from './ProductionLevel';
 import { InsertNewLevelIntoPlan } from './plan';
 import { generateId } from './utils';
 import { getBestTrains } from './trainUtils';
+import { getInventoryChanges } from './inventoryUtils';
 
 interface ProductionPlanProps {
   productionPlan: ProductionPlanType;
@@ -57,7 +58,7 @@ export const ProductionPlan: React.FC<ProductionPlanProps> = ({
   }, [activeLevel, productionPlan]);
 
   // Handle moving a job from one level to another
-  const handleMoveJobToLevel = (
+  const moveJobToLevel = (
     jobId: string,
     fromLevel: number,
     toLevel: number
@@ -101,7 +102,7 @@ export const ProductionPlan: React.FC<ProductionPlanProps> = ({
     onProductionPlanChange(updatedPlan);
   };
 
-  const handleAddJobToLevel = (job: Step, toLevel: number) => {
+  const addJobToLevel = (job: Step, toLevel: number) => {
     let updatedPlan = productionPlan;
     let actualToLevel = toLevel;
 
@@ -183,7 +184,7 @@ export const ProductionPlan: React.FC<ProductionPlanProps> = ({
   const onRemoveLevel = (levelNumber: number) => {
     if (!productionPlan) return;
 
-    var levelIndex = Object.values(productionPlan.levels).find(
+    const levelIndex = Object.values(productionPlan.levels).find(
       x => x.level === levelNumber
     )?.level;
 
@@ -223,25 +224,25 @@ export const ProductionPlan: React.FC<ProductionPlanProps> = ({
     onActiveLevelChange(levelNumber);
   };
 
-  function createResourceJob(
+  const createResourceJob = (
     requirement: ResourceRequirement,
     targetLevel: number
-  ) {
+  ) => {
     let updatedPlan = productionPlan;
     if (targetLevel < 1) {
       updatedPlan = InsertNewLevelIntoPlan(productionPlan, 1);
       targetLevel = 1;
     }
 
-    var recipe = Object.values(factories)
+    const recipe = Object.values(factories)
       .flatMap(f => f.recipes)
       .find(r => r.resourceId === requirement.resourceId);
-    var destination = Object.values(destinations).find(
+    const destination = Object.values(destinations).find(
       dest => dest.resourceId === requirement.resourceId
     );
 
-    var newStep: Step | null = null;
-    var level = updatedPlan.levels[targetLevel];
+    let newStep: Step | null = null;
+    const level = updatedPlan.levels[targetLevel];
     if (
       destination &&
       level.steps.filter((s: Step) => 'trainId' in s).length <
@@ -278,7 +279,8 @@ export const ProductionPlan: React.FC<ProductionPlanProps> = ({
       createResourceJob(requirement, targetLevel);
       return;
     }
-
+    level.steps.push(newStep as Step);
+    level.inventoryChanges = getInventoryChanges(level);
     if (newStep) {
       onProductionPlanChange({
         ...updatedPlan,
@@ -286,12 +288,11 @@ export const ProductionPlan: React.FC<ProductionPlanProps> = ({
           ...updatedPlan.levels,
           [targetLevel]: {
             ...level,
-            steps: [...level.steps, newStep],
           },
         },
       });
     }
-  }
+  };
 
   if (!productionPlan) {
     return (
@@ -309,35 +310,33 @@ export const ProductionPlan: React.FC<ProductionPlanProps> = ({
     );
   }
 
-  function simplifyProductionPlan(): void {
+  const simplifyProductionPlan = (): void => {
     //TODO: This doesnt work.
     for (const level of Object.values(productionPlan.levels)) {
-      var trainCount = 0;
+      let trainCount = 0;
       level.steps.map(step => {
         if ('trainId' in step) {
           trainCount++;
         }
       });
       if (trainCount < maxConcurrentTrains) {
-        var moveableSteps = productionPlan.levels[level.level + 1].steps.filter(
+        const moveableSteps = productionPlan.levels[
+          level.level + 1
+        ].steps.filter(
           step =>
             'trainId' in step &&
             !(step.trainId in level.steps.map(s => 'trainId' in s && s.trainId))
         );
-        var i = 0;
+        let i = 0;
         do {
-          handleMoveJobToLevel(
-            moveableSteps[i].id,
-            level.level + 1,
-            level.level
-          );
+          moveJobToLevel(moveableSteps[i].id, level.level + 1, level.level);
           i++;
           trainCount++;
         } while (trainCount < maxConcurrentTrains && moveableSteps.length > i);
       }
     }
     onProductionPlanChange({ ...productionPlan });
-  }
+  };
 
   return (
     <div className="card h-100">
@@ -417,8 +416,8 @@ export const ProductionPlan: React.FC<ProductionPlanProps> = ({
                 }
               }}
               onCreateResourceJob={createResourceJob}
-              onMoveJobToLevel={handleMoveJobToLevel}
-              onAddJobToLevel={handleAddJobToLevel}
+              onMoveJobToLevel={moveJobToLevel}
+              onAddJobToLevel={addJobToLevel}
               onInsertLevel={createNewLevel}
             />
           </div>

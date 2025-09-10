@@ -19,7 +19,7 @@ import {
 import { getInventoryAtLevel } from './inventoryUtils';
 import { loadOrdersFromStorage, saveOrdersToStorage } from './utils';
 
-function App() {
+const App = () => {
   const [inventory, setInventory] = useState<Inventory>(() => {
     const inventory = {} as Inventory;
     Object.keys(resources).forEach(resourceId => {
@@ -55,8 +55,8 @@ function App() {
   };
 
   const handleProductionPlanChange = (plan: ProductionPlanType) => {
-    setProductionPlan(plan);
     setInventory(getInventoryAtLevel(plan, activeLevel));
+    setProductionPlan(plan);
   };
 
   const handleActiveLevelChange = (levelNumber: number) => {
@@ -64,7 +64,7 @@ function App() {
     setActiveLevel(levelNumber);
   };
 
-  const clearProductionPlan = (): void => {
+  const handleClearProductionPlan = (): void => {
     setProductionPlan({
       levels: [
         {
@@ -113,14 +113,14 @@ function App() {
             destinations={destinations}
             productionPlan={productionPlan}
             activeLevel={activeLevel}
-            onActiveLevelChange={handleActiveLevelChange}
-            onProductionPlanChange={handleProductionPlanChange}
-            onOrdersChange={setOrders}
-            onClearPlan={clearProductionPlan}
             trains={trains}
             maxConcurrentTrains={maxConcurrentTrains}
             resources={resources}
             orders={orders}
+            onActiveLevelChange={handleActiveLevelChange}
+            onProductionPlanChange={handleProductionPlanChange}
+            onOrdersChange={setOrders}
+            onClearPlan={handleClearProductionPlan}
           />
         </div>
 
@@ -135,6 +135,6 @@ function App() {
       </main>
     </div>
   );
-}
+};
 
 export default App;

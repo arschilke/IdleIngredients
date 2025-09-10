@@ -14,7 +14,7 @@ interface OrderFormProps {
   onOrdersChange: (orders: Order[]) => void;
 }
 
-export function OrderForm({ resources, onSubmit }: OrderFormProps) {
+export const OrderForm = ({ resources, onSubmit }: OrderFormProps) => {
   const [orderType, setOrderType] = useState<'boat' | 'story' | 'building'>(
     'story'
   );
@@ -299,4 +299,4 @@ export function OrderForm({ resources, onSubmit }: OrderFormProps) {
       </div>
     </div>
   );
-}
+};

@@ -1,4 +1,4 @@
-import { resources, trains } from './data';
+import { getRecipe, resources, trains } from './data';
 import { Inventory, PlanningLevel, ProductionPlan, Step } from './types';
 
 /**
@@ -6,16 +6,18 @@ import { Inventory, PlanningLevel, ProductionPlan, Step } from './types';
  * @param step - The planned step to analyze
  * @returns Object with resourceId and net change (positive for production, negative for consumption)
  */
-export function calculateStepInventoryChange(step: Step): Map<string, number> {
+export const calculateStepInventoryChange = (
+  step: Step
+): Map<string, number> => {
   const changes: Map<string, number> = new Map();
 
-  if (step.type === 'factory' && step.recipe) {
+  if (step.type === 'factory') {
+    const recipe = getRecipe(step.resourceId);
     // Factory steps consume inputs and produce outputs
     // Add outputs (positive change)
-    changes.set(step.resourceId, step.recipe.outputAmount);
-
+    changes.set(step.resourceId, recipe?.outputAmount ?? 0);
     // Add inputs (negative change)
-    step.recipe.requires.forEach(req => {
+    recipe?.requires.forEach(req => {
       changes.set(req.resourceId, -req.amount);
     });
   } else if (step.type === 'destination') {
@@ -27,9 +29,11 @@ export function calculateStepInventoryChange(step: Step): Map<string, number> {
   }
 
   return changes;
-}
+};
 
-export function getInventoryChanges(level: PlanningLevel): Map<string, number> {
+export const getInventoryChanges = (
+  level: PlanningLevel
+): Map<string, number> => {
   const inventoryChanges = new Map<string, number>();
 
   level.steps.forEach(step => {
@@ -39,12 +43,12 @@ export function getInventoryChanges(level: PlanningLevel): Map<string, number> {
   });
 
   return inventoryChanges;
-}
+};
 
-export function getInventoryAtLevel(
+export const getInventoryAtLevel = (
   productionPlan: ProductionPlan,
   levelNumber: number
-): Inventory {
+): Inventory => {
   // Initialize inventory with zero for each resource
   const inventory: Inventory = {};
   Object.keys(resources).forEach(resourceId => {
@@ -67,4 +71,4 @@ export function getInventoryAtLevel(
   }
 
   return inventory;
-}
+};

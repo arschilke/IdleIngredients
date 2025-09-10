@@ -14,35 +14,39 @@ import { getBestTrains } from './trainUtils';
 import { generateId } from './utils';
 
 interface JobFormProps {
-  id?: string;
+  job?: Step;
   level: PlanningLevel;
   orders: Order[];
   onSubmit: (job: Step) => void;
   onClose: () => void;
 }
 export const JobForm: React.FC<JobFormProps> = ({
-  id,
+  job,
   level,
   orders,
   onSubmit,
   onClose,
 }) => {
-  const isAddMode = !id;
+  const isAddMode = !job;
 
-  const [type, setType] = useState<StepType>(StepType.Factory);
-  const [resourceId, setResourceId] = useState<string>('');
-  const [orderId, setOrderId] = useState<string>('');
-  const [trainId, setTrainId] = useState<string>('');
+  const [type, setType] = useState<StepType>(job?.type ?? StepType.Factory);
+  const [resourceId, setResourceId] = useState<string>(job?.resourceId ?? '');
+  const [orderId, setOrderId] = useState<string>(
+    job && 'orderId' in job ? job.orderId : ''
+  );
+  const [trainId, setTrainId] = useState<string>(
+    job && 'trainId' in job ? job.trainId : ''
+  );
 
   const getOrder = (orderId: string) => {
     return orders.find(o => o.id === orderId) as StoryOrder;
   };
 
   const getTrains = () => {
-    var classes: TrainClass[] = [];
-    var countries: Country[] = [];
+    let classes: TrainClass[] = [];
+    let countries: Country[] = [];
     if (type === StepType.Destination) {
-      var dest = Object.values(destinations).find(
+      const dest = Object.values(destinations).find(
         d => d.resourceId == resourceId
       );
       classes = dest?.classes ?? [
@@ -54,7 +58,7 @@ export const JobForm: React.FC<JobFormProps> = ({
       countries = [dest?.country ?? Country.Britain];
     }
     if (type === StepType.Delivery) {
-      var order = getOrder(orderId) as StoryOrder | undefined;
+      const order = getOrder(orderId) as StoryOrder | undefined;
 
       classes = order?.classes ?? [
         TrainClass.Common,
@@ -89,13 +93,13 @@ export const JobForm: React.FC<JobFormProps> = ({
     }
 
     const newStep: Step = {
-      id: id ?? generateId('step'),
+      id: job?.id ?? generateId('step'),
       name: resourceId,
       type: type,
       resourceId: resourceId,
       levelId: level.level,
       timeRequired: 0,
-      ...(type === StepType.Delivery && { orderId: orderId }),
+      ...(type === StepType.Delivery && { orderId: orderId, trainId: trainId }),
       ...(type === StepType.Destination && { trainId: trainId }),
       ...(type === StepType.Submit && { orderId: orderId }),
     } as Step;
@@ -166,6 +170,23 @@ export const JobForm: React.FC<JobFormProps> = ({
                         {resources[recipe.resourceId].name}
                       </option>
                     ))}
+                {(type === StepType.Submit || type === StepType.Delivery) &&
+                  orderId &&
+                  getOrder(orderId)?.resources.map(resource => (
+                    <option
+                      key={resource.resourceId}
+                      value={resource.resourceId}
+                    >
+                      {resources[resource.resourceId].name}
+                    </option>
+                  ))}
+                {(type === StepType.Submit || type === StepType.Delivery) &&
+                  !orderId &&
+                  Object.values(resources).map(resource => (
+                    <option key={resource.id} value={resource.id}>
+                      {resource.name}
+                    </option>
+                  ))}
               </select>
             </div>
 

@@ -494,7 +494,7 @@ export const isDeliveryStep = (step: Step): step is DeliveryStep => {
   return step.type === 'delivery';
 };
 
-export function outputAmount(step: Step): number {
+export const outputAmount = (step: Step): number => {
   if (isDestinationStep(step)) {
     return trains[step.trainId].capacity;
   }
@@ -502,15 +502,15 @@ export function outputAmount(step: Step): number {
     return getRecipe(step.resourceId)?.outputAmount ?? 0;
   }
   return 0;
-}
+};
 
-export function getRecipe(resourceId: string): Recipe | undefined {
+export const getRecipe = (resourceId: string): Recipe | undefined => {
   return Object.values(factories)
     .flatMap(f => f.recipes)
     .find(r => r.resourceId === resourceId);
-}
+};
 
-export function inputAmounts(step: Step): Map<string, number> {
+export const inputAmounts = (step: Step): Map<string, number> => {
   if (isFactoryStep(step)) {
     return new Map(
       getRecipe(step.resourceId)?.requires.map(x => [x.resourceId, x.amount])
@@ -520,7 +520,7 @@ export function inputAmounts(step: Step): Map<string, number> {
     return new Map([[step.resourceId, trains[step.trainId].capacity]]);
   }
   return new Map();
-}
+};
 
 export const isFactoryStep = (step: Step): step is FactoryStep => {
   return step.type === 'factory';

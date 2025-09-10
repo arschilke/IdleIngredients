@@ -63,7 +63,7 @@ export const ProductionJob: React.FC<ProductionJobProps> = ({
 
     return (
       <JobForm
-        id={job.id}
+        job={job}
         level={plan.levels[job.levelId]}
         orders={orders}
         onSubmit={saveJobEdit}

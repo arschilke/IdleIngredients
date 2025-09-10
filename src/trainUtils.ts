@@ -9,13 +9,13 @@ import { Train, PlanningLevel, TrainClass, Country } from './types';
  * @param allowedClasses - Optional array of allowed train classes
  * @returns Array of trains that can handle the transport
  */
-export function getBestTrains(
+export const getBestTrains = (
   level: PlanningLevel,
   amount: number,
   trains: Record<string, Train>,
   allowedClasses?: TrainClass[],
   allowedCountries?: Country[]
-): Train[] {
+): Train[] => {
   // Get busy train IDs from the level
   const busyTrainIds = level.steps
     .filter(step => isDeliveryStep(step) || isDestinationStep(step))
@@ -55,4 +55,4 @@ export function getBestTrains(
   } while (capacity < amount && index < bestTrains.length);
 
   return neededTrains;
-}
+};

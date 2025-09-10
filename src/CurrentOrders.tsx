@@ -23,7 +23,7 @@ interface CurrentOrdersProps {
   maxConcurrentTrains: number;
 }
 
-export function CurrentOrders({
+export const CurrentOrders = ({
   orders,
   resources,
   trains,
@@ -31,7 +31,7 @@ export function CurrentOrders({
   activeLevel,
   onProductionPlanChange,
   onOrdersChange,
-}: CurrentOrdersProps) {
+}: CurrentOrdersProps) => {
   // Calculate delivered amounts for each order's resource requirements
 
   const handlePlanProduction = (order: Order) => {
@@ -62,7 +62,8 @@ export function CurrentOrders({
           resourceId: order.resources[0].resourceId,
           levelId: activeLevel,
           trainId: selectedTrains[trainsIndex].id,
-          order: order,
+          orderId: order.id,
+          timeRequired: 0,
         } as DeliveryStep);
         trainsIndex++;
       }
@@ -71,7 +72,8 @@ export function CurrentOrders({
         jobs.push({
           id: generateId('step'),
           type: 'submit',
-          order: order,
+          orderId: order.id,
+          timeRequired: 0,
           levelId: activeLevel,
           resourceId: order.resources[i].resourceId,
         } as SubmitStep);
@@ -80,7 +82,7 @@ export function CurrentOrders({
 
     // Add to existing Level
 
-    var updatedSteps = [...activeLevelData.steps, ...jobs];
+    const updatedSteps = [...activeLevelData.steps, ...jobs];
 
     const updatedLevel = {
       ...activeLevelData,
@@ -201,4 +203,4 @@ export function CurrentOrders({
       </div>
     </div>
   );
-}
+};

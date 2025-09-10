@@ -20,13 +20,13 @@ export const CurrentInventory: React.FC<CurrentInventoryProps> = ({
     resourceId: string,
     amount: number
   ): string => {
-    const neededAmount =
-      productionPlan?.levels[activeLevel]?.inventoryChanges.get(resourceId) ||
-      0;
+    const hasChanged =
+      productionPlan?.levels[activeLevel]?.inventoryChanges.has(resourceId) ??
+      false;
+    if (!hasChanged) return 'text-muted';
+    if (amount > 0) return 'text-warning';
+    if (amount < 0) return 'text-danger';
 
-    if (neededAmount === 0) return 'text-muted'; // No need for this resource
-    if (amount >= neededAmount) return 'text-success'; // Sufficient resources
-    if (amount < neededAmount) return 'text-warning'; // Some resources but not enough
     return 'text-danger'; // No resources available
   };
 
@@ -108,14 +108,10 @@ export const CurrentInventory: React.FC<CurrentInventoryProps> = ({
           </div>
           <div className="d-flex flex-wrap gap-2 small text-muted">
             <span>
-              <i className="bi bi-circle-fill text-success me-1"></i>Sufficient
+              <i className="bi bi-circle-fill text-warning me-1"></i>Changed
             </span>
             <span>
-              <i className="bi bi-circle-fill text-warning me-1"></i>
-              Insufficient
-            </span>
-            <span>
-              <i className="bi bi-circle-fill text-danger me-1"></i>Missing
+              <i className="bi bi-circle-fill text-danger me-1"></i>Insufficient
             </span>
             <span>
               <i className="bi bi-circle-fill text-muted me-1"></i>Not Needed
@@ -143,7 +139,7 @@ export const CurrentInventory: React.FC<CurrentInventoryProps> = ({
                           {resource.name}
                         </span>
                         <span
-                          className={`fw-bold fs-4 ${getResourceNumberColor(resourceId, inventory[resourceId])}`}
+                          className={`fw-bold ${getResourceNumberColor(resourceId, inventory[resourceId])}`}
                         >
                           {inventory[resourceId]}
                         </span>
@@ -155,13 +151,6 @@ export const CurrentInventory: React.FC<CurrentInventoryProps> = ({
             })}
           </div>
         </div>
-
-        {currentSize === 0 && (
-          <div className="text-center text-muted py-4">
-            <i className="bi bi-inbox display-4"></i>
-            <p>No inventory found</p>
-          </div>
-        )}
       </div>
     </div>
   );

@@ -1,9 +1,9 @@
 import { PlanningLevel, ProductionPlan } from './types';
 
-export function InsertNewLevelIntoPlan(
+export const InsertNewLevelIntoPlan = (
   productionPlan: ProductionPlan,
   insertBeforeLevel: number
-) {
+) => {
   const newLevel: PlanningLevel = {
     level: insertBeforeLevel,
     steps: [],
@@ -45,13 +45,13 @@ export function InsertNewLevelIntoPlan(
     levels: newLevels,
   };
   return newPlan;
-}
+};
 
-export function RemoveLevelFromPlan(
+export const RemoveLevelFromPlan = (
   productionPlan: ProductionPlan,
   levelNumber: number
-) {
-  var levelIndex = productionPlan.levels[levelNumber];
+) => {
+  const levelIndex = productionPlan.levels[levelNumber];
   if (levelIndex === undefined) return productionPlan;
 
   const updatedPlan = { ...productionPlan };
@@ -71,4 +71,4 @@ export function RemoveLevelFromPlan(
   }
 
   return { ...updatedPlan, levels: newLevels };
-}
+};

@@ -51,14 +51,14 @@ export const ProductionLevel: React.FC<ProductionLevelProps> = ({
   onCreateResourceJob,
   onLevelChange,
   onMoveJobToLevel,
-  onAddJobToLevel: onAddStepToLevel,
+  onAddJobToLevel,
 }) => {
   const [showAddJobCard, setShowAddJobCard] = useState<boolean>(false);
   const [showJobControls, setShowJobControls] = useState<boolean>(false);
 
   // Check if inventory has enough resources for all jobs in this level
   const checkInventorySufficiency = () => {
-    var insufficientResources: string[] = [];
+    const insufficientResources: string[] = [];
     const inventory = getInventoryAtLevel(productionPlan, level.level);
     Object.keys(inventory).forEach(resourceId => {
       if (inventory[resourceId] < 0) {
@@ -68,11 +68,11 @@ export const ProductionLevel: React.FC<ProductionLevelProps> = ({
     return insufficientResources;
   };
 
-  const onAddJobToLevel = (newStep: Step) => {
-    onAddStepToLevel(newStep, newStep.levelId);
+  const addJobToLevel = (newStep: Step) => {
+    onAddJobToLevel(newStep, newStep.levelId);
   };
 
-  const onRemoveStep = (stepId: string) => {
+  const removeStep = (stepId: string) => {
     const updatedSteps = level.steps.filter(step => step.id !== stepId);
     const updatedLevel = {
       ...level,
@@ -81,18 +81,16 @@ export const ProductionLevel: React.FC<ProductionLevelProps> = ({
     updatedLevel.inventoryChanges = getInventoryChanges(updatedLevel);
     onLevelChange(updatedLevel);
   };
+
   // Handle moving a job to a different level
-  const handleMoveJobToLevel = (jobId: string, targetLevel: number) => {
+  const moveJobToLevel = (jobId: string, targetLevel: number) => {
     if (targetLevel !== level.level) {
       onMoveJobToLevel(jobId, level.level, targetLevel);
     }
   };
 
   // Handle moving a job within the current level (back/forward)
-  const handleMoveJobWithinLevel = (
-    jobId: string,
-    direction: 'back' | 'forward'
-  ) => {
+  const moveJobWithinLevel = (jobId: string, direction: 'back' | 'forward') => {
     const currentIndex = level.steps.findIndex(step => step.id === jobId);
     if (currentIndex === -1) return;
 
@@ -114,18 +112,18 @@ export const ProductionLevel: React.FC<ProductionLevelProps> = ({
   };
 
   // Handle moving a job to the end of previous level (rewind)
-  const handleRewindJob = (jobId: string) => {
+  const rewindJob = (jobId: string) => {
     const previousLevel = level.level - 1;
     onMoveJobToLevel(jobId, level.level, previousLevel);
   };
 
   // Handle moving a job to the beginning of next level (fast forward)
-  const handleFastForwardJob = (jobId: string) => {
+  const fastForwardJob = (jobId: string) => {
     const nextLevel = level.level + 1;
     onMoveJobToLevel(jobId, level.level, nextLevel);
   };
 
-  const createResourceJob = (requirement: ResourceRequirement) => {
+  const createJob = (requirement: ResourceRequirement) => {
     onCreateResourceJob(requirement, level.level - 1);
   };
 
@@ -217,7 +215,7 @@ export const ProductionLevel: React.FC<ProductionLevelProps> = ({
           <JobForm
             level={level}
             orders={orders}
-            onSubmit={onAddJobToLevel}
+            onSubmit={addJobToLevel}
             onClose={() => setShowAddJobCard(false)}
           />
         )}
@@ -236,7 +234,7 @@ export const ProductionLevel: React.FC<ProductionLevelProps> = ({
                     {/* Rewind button - move to end of previous level */}
                     <button
                       className="btn btn-outline-secondary btn-sm"
-                      onClick={() => handleRewindJob(step.id)}
+                      onClick={() => rewindJob(step.id)}
                       title="Move to end of previous level"
                     >
                       <i className="bi bi-skip-backward"></i>
@@ -245,7 +243,7 @@ export const ProductionLevel: React.FC<ProductionLevelProps> = ({
                     {/* Back button - move before sibling */}
                     <button
                       className="btn btn-outline-secondary btn-sm"
-                      onClick={() => handleMoveJobWithinLevel(step.id, 'back')}
+                      onClick={() => moveJobWithinLevel(step.id, 'back')}
                       disabled={index === 0}
                       title="Move before previous job"
                     >
@@ -255,9 +253,7 @@ export const ProductionLevel: React.FC<ProductionLevelProps> = ({
                     {/* Forward button - move after sibling */}
                     <button
                       className="btn btn-outline-secondary btn-sm"
-                      onClick={() =>
-                        handleMoveJobWithinLevel(step.id, 'forward')
-                      }
+                      onClick={() => moveJobWithinLevel(step.id, 'forward')}
                       disabled={index === level.steps.length - 1}
                       title="Move after next job"
                     >
@@ -267,7 +263,7 @@ export const ProductionLevel: React.FC<ProductionLevelProps> = ({
                     {/* Fast forward button - move to beginning of next level */}
                     <button
                       className="btn btn-outline-secondary btn-sm"
-                      onClick={() => handleFastForwardJob(step.id)}
+                      onClick={() => fastForwardJob(step.id)}
                       title="Move to beginning of next level"
                     >
                       <i className="bi bi-skip-forward"></i>
@@ -297,9 +293,9 @@ export const ProductionLevel: React.FC<ProductionLevelProps> = ({
 
                     onLevelChange(updatedLevel);
                   }}
-                  onRemoveJob={onRemoveStep}
-                  onMoveToLevel={handleMoveJobToLevel}
-                  createResourceJob={createResourceJob}
+                  onRemoveJob={removeStep}
+                  onMoveToLevel={moveJobToLevel}
+                  createResourceJob={createJob}
                 />
               </div>
             ))}
