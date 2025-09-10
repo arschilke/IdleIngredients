@@ -26,16 +26,16 @@ type RouteFiles = {
     id: "root";
     page: "/" | "/resources" | "/trains";
   };
-  "dashboard/Dashboard.tsx": {
-    id: "dashboard/Dashboard";
+  "features/dashboard/Dashboard.tsx": {
+    id: "features/dashboard/Dashboard";
     page: "/";
   };
-  "ResourceManager.tsx": {
-    id: "ResourceManager";
+  "features/resources/ResourceManager.tsx": {
+    id: "features/resources/ResourceManager";
     page: "/resources";
   };
-  "TrainManager.tsx": {
-    id: "TrainManager";
+  "features/trains/TrainManager.tsx": {
+    id: "features/trains/TrainManager";
     page: "/trains";
   };
 };
