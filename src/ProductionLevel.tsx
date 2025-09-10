@@ -9,6 +9,7 @@ import {
   ProductionPlan,
   ResourceRequirement,
   Order,
+  StepType,
 } from './types';
 import { ProductionJob } from './ProductionJob';
 import { getInventoryAtLevel, getInventoryChanges } from './inventoryUtils';
@@ -134,6 +135,24 @@ export const ProductionLevel: React.FC<ProductionLevelProps> = ({
         step.trainId !== undefined
     ).length > maxConcurrentTrains;
 
+  // Check if factory steps exceed any factory's queue capacity
+  const factoryStepsCount = (): Record<string, number> => {
+    let counts: Record<string, number> = {};
+    for (const factory of Object.values(factories)) {
+      var outputResourceIds = factory.recipes.map(recipe => recipe.resourceId);
+      var factorySteps = level.steps.filter(
+        step =>
+          step.type === StepType.Factory && step.resourceId in outputResourceIds
+      );
+      counts[factory.id] = factorySteps.length;
+    }
+    return counts;
+  };
+
+  const factoryQueueExceeded = Object.entries(factoryStepsCount()).some(
+    ([id, count]) => count > factories[id].queueMaxSize
+  );
+
   return (
     <div
       className={`level-container mb-2 p-3 border rounded bg-opacity-10 ${
@@ -141,7 +160,9 @@ export const ProductionLevel: React.FC<ProductionLevelProps> = ({
           ? 'bg-secondary border-secondary text-muted'
           : tooManyTrains
             ? 'bg-danger border-danger'
-            : 'bg-light'
+            : factoryQueueExceeded
+              ? 'bg-warning border-warning'
+              : 'bg-light'
       } ${isActiveLevel ? 'border-primary border-2 shadow-lg' : ''} ${showAddJobCard ? 'modal-open' : ''}`}
     >
       <div className="level-header d-flex justify-content-between align-items-center mb-2">
@@ -166,6 +187,11 @@ export const ProductionLevel: React.FC<ProductionLevelProps> = ({
             <span className="badge bg-warning">
               <i className="bi bi-exclamation-triangle"></i> Insufficient
               Resources
+            </span>
+          )}
+          {factoryQueueExceeded && (
+            <span className="badge bg-warning">
+              <i className="bi bi-exclamation-triangle"></i> Factory Queue Full
             </span>
           )}
         </div>
