@@ -11,6 +11,7 @@ import {
 import { formatTime, generateId } from './utils';
 import { getBestTrains } from './trainUtils';
 import { getInventoryChanges } from './inventoryUtils';
+import React from 'react';
 
 interface CurrentOrdersProps {
   orders: Order[];
@@ -23,7 +24,7 @@ interface CurrentOrdersProps {
   maxConcurrentTrains: number;
 }
 
-export const CurrentOrders = ({
+export const CurrentOrders: React.FC<CurrentOrdersProps> = ({
   orders,
   resources,
   trains,
@@ -31,7 +32,7 @@ export const CurrentOrders = ({
   activeLevel,
   onProductionPlanChange,
   onOrdersChange,
-}: CurrentOrdersProps) => {
+}) => {
   // Calculate delivered amounts for each order's resource requirements
 
   const handlePlanProduction = (order: Order) => {

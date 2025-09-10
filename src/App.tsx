@@ -84,6 +84,7 @@ const App = () => {
       <header className="app-header">
         <h1>Idle Game Production Planner</h1>
       </header>
+      <Navbar />
 
       <main className="main-grid m-2 pb-2">
         {/* Row 1: Current Orders and New Order Form */}
