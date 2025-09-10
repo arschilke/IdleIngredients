@@ -1,0 +1,53 @@
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import type { Destination } from '../../types';
+import { 
+  loadDestinationsFromStorage, 
+  saveDestinationsToStorage
+} from '../../localStorageUtils';
+import { ensureLocalStorageData } from '../../migrateData';
+
+// Query keys
+export const destinationsKeys = {
+  all: ['destinations'] as const,
+  id: (id: string) => [...destinationsKeys.all, id] as const,
+  lists: () => [...destinationsKeys.all, 'list'] as const,
+  list: (filters: string) => [...destinationsKeys.lists(), { filters }] as const,
+};
+
+const saveDestinations = async (destinations: Record<string, Destination>): Promise<Record<string, Destination>> => {
+  saveDestinationsToStorage(destinations);
+  return destinations;
+};
+
+// Hook to get destinations
+export const useDestinations = () => {
+  return useQuery({
+    queryKey: destinationsKeys.lists(),
+    queryFn: async () => {
+      await ensureLocalStorageData();
+      return loadDestinationsFromStorage();
+    },
+    staleTime: 1000 * 60 * 60, // 1 hour - destinations don't change often
+  });
+};  
+
+export const useDestination = (id: string) => {
+  return useQuery({
+    queryKey: destinationsKeys.id(id),
+    queryFn: async () => {
+      await ensureLocalStorageData();
+      return loadDestinationsFromStorage()[id];
+    },
+  });
+};
+
+export const useAddDestination = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (destination: Destination) => {
+      const currentDestinations = queryClient.getQueryData<Record<string, Destination>>(destinationsKeys.lists()) || {};
+      const updatedDestinations = { ...currentDestinations, [destination.id]: destination };
+      return saveDestinations(updatedDestinations);
+    },
+  });
+};
