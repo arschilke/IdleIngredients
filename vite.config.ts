@@ -1,7 +1,22 @@
-import { reactRouter } from "@react-router/dev/vite";
-import { defineConfig } from "vite";
-import tsconfigPaths from "vite-tsconfig-paths";
+import { defineConfig } from 'vite'
+import tsConfigPaths from 'vite-tsconfig-paths'
+import { tanstackStart } from '@tanstack/react-start/plugin/vite'
+import viteReact from '@vitejs/plugin-react'
 
 export default defineConfig({
-  plugins: [reactRouter(), tsconfigPaths()],
-});
+  server: {
+    port: 3000,
+  },
+  plugins: [
+    tsConfigPaths(),
+    tanstackStart({ customViteReactPlugin: true, spa: { enabled: true } }),
+    viteReact(),
+  ],
+  css: {
+    preprocessorOptions: {
+      scss: {
+        additionalData: `@import "bootstrap/scss/bootstrap";`
+      }
+    }
+  },
+})
