@@ -1,4 +1,4 @@
-import type { Resource, Factory, Destination, Train, Order, ProductionPlan } from './types';
+import type { Resource, Factory, Destination, Train, Order, ProductionPlan } from '../../types';
 
 // Storage keys
 const STORAGE_KEYS = {
@@ -82,20 +82,7 @@ export const loadOrdersFromStorage = (): Order[] => {
 
 // Production Plan
 export const saveProductionPlanToStorage = (plan: ProductionPlan): void => {
-  // Convert Maps to arrays for serialization
-  const serializablePlan = {
-    ...plan,
-    levels: Object.fromEntries(
-      Object.entries(plan.levels).map(([key, level]) => [
-        key,
-        {
-          ...level,
-          inventoryChanges: Array.from(level.inventoryChanges.entries()),
-        },
-      ])
-    ),
-  };
-  saveToStorage(STORAGE_KEYS.PRODUCTION_PLAN, serializablePlan);
+  saveToStorage(STORAGE_KEYS.PRODUCTION_PLAN, plan);
 };
 
 export const loadProductionPlanFromStorage = (): ProductionPlan | null => {

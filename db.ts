@@ -1,21 +1,21 @@
 import {
   Country,
-  type DeliveryStep,
   type Destination,
-  type DestinationStep,
   type Factory,
-  type FactoryStep,
-  type Recipe,
   type Resource,
-  type Step,
-  type SubmitStep,
   type Train,
   TrainClass,
   TrainEngine,
 } from 'types';
 import { generateId } from 'utils';
 
+/**
+ * Database class containing only initial data loading functionality
+ * Business logic methods have been moved to appropriate utility files
+ */
 export class Db {
+  public static maxConcurrentTrains = 5; // Maximum number of trains that can work simultaneously
+
   private resources: Record<string, Resource> = {
     coal: { id: 'coal', name: 'Coal', icon: 'Icon_Coal.png' },
     iron: { id: 'iron', name: 'Iron', icon: 'Icon_Iron_Ore.png' },
@@ -49,6 +49,7 @@ export class Db {
     barrel: { id: 'barrel', name: 'Barrel', icon: 'Icon_Barrel.webp' },
     oakwood: { id: 'oakwood', name: 'Oakwood', icon: 'Icon_Wood.png' },
   };
+
   private trains: Record<string, Train> = {
     train1: {
       id: 'train1',
@@ -276,8 +277,6 @@ export class Db {
     },
   };
 
-  public static maxConcurrentTrains = 5; // Maximum number of trains that can work simultaneously
-
   private factories: Record<string, Factory> = {
     factory1: {
       id: 'factory1',
@@ -427,6 +426,7 @@ export class Db {
   private destinations: Record<string, Destination> = {
     coal_mine: {
       id: 'coal_mine',
+      name: 'Coal Mine',
       travelTime: 30,
       resourceId: 'coal',
       classes: [
@@ -439,6 +439,7 @@ export class Db {
     },
     iron_ore_mine: {
       id: 'iron_ore_mine',
+      name: 'Iron Ore Mine',
       travelTime: 30,
       resourceId: 'iron',
       classes: [
@@ -451,18 +452,19 @@ export class Db {
     },
     steel_factory: {
       id: 'steel_factory',
+      name: 'Steel Factory',
       travelTime: 180,
       resourceId: 'steel',
       classes: [TrainClass.Epic, TrainClass.Legendary],
       country: Country.Britain,
     },
-
     oakwood: {
       id: 'oakwood',
+      name: 'Oak wood',
       travelTime: 300,
       resourceId: 'wood',
       classes: [
-        TrainClass.Common,
+        TrainClass.Common,  
         TrainClass.Rare,
         TrainClass.Epic,
         TrainClass.Legendary,
@@ -471,6 +473,7 @@ export class Db {
     },
     copper_mine: {
       id: 'copper_mine',
+      name: 'Copper Mine',
       travelTime: 300,
       resourceId: 'copper_ore',
       classes: [
@@ -481,63 +484,17 @@ export class Db {
       ],
       country: Country.Germany,
     },
-    /*
     timber_factory: {
-      id: 'timber_factory',
+      id: 'timber_factory',   
+      name: 'Timber Factory',
       travelTime: 180,
       resourceId: 'timber',
       classes: [TrainClass.Epic, TrainClass.Legendary],
       country: Country.Germany,
-    },*/
+    },
   };
 
-  static isDeliveryStep = (step: Step): step is DeliveryStep => {
-    return step.type === 'delivery';
-  };
-
-  public outputAmount = (step: Step): number => {
-    if (Db.isDestinationStep(step)) {
-      return this.trains[step.trainId].capacity;
-    }
-    if (Db.isFactoryStep(step)) {
-      return this.getRecipe(step.resourceId)?.outputAmount ?? 0;
-    }
-    return 0;
-  };
-
-  public getRecipe = (resourceId: string): Recipe | undefined => {
-    return Object.values(this.factories)
-      .flatMap(f => f.recipes)
-      .find(r => r.resourceId === resourceId);
-  };
-
-  public inputAmounts = (step: Step): Map<string, number> => {
-    if (Db.isFactoryStep(step)) {
-      return new Map(
-        this.getRecipe(step.resourceId)?.requires.map(x => [
-          x.resourceId,
-          x.amount,
-        ])
-      );
-    }
-    if (Db.isDeliveryStep(step)) {
-      return new Map([[step.resourceId, this.trains[step.trainId].capacity]]);
-    }
-    return new Map();
-  };
-
-  public static isFactoryStep = (step: Step): step is FactoryStep => {
-    return step.type === 'factory';
-  };
-
-  public static isDestinationStep = (step: Step): step is DestinationStep => {
-    return step.type === 'destination';
-  };
-
-  public static isSubmitStep = (step: Step): step is SubmitStep => {
-    return step.type === 'submit';
-  };
-
+  // Data access methods - only for loading initial data
   public getResources = async (): Promise<Resource[]> => {
     return await Promise.resolve(Object.values(this.resources));
   };
@@ -554,23 +511,6 @@ export class Db {
     return await Promise.resolve(this.trains);
   };
 
-  public addResource = async (name: string, icon: string) => {
-    const resource = {
-      id: generateId('resource'),
-      name: name,
-      icon: icon,
-    };
-    this.resources[resource.id] = resource;
-    return resource;
-  };
-
-  public addRecipe = async (factoryId: string, recipe: Recipe) => {
-    this.factories[factoryId].recipes.push(recipe);
-    return recipe;
-  };
-  public addDestination = async (destination: Destination) => {
-    this.destinations[destination.id] = destination;
-    return destination;
-  };
 }
+
 export const db = new Db();

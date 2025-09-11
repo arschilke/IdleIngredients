@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import type { Train, PlanningLevel, TrainClass, Country } from '../../types';
+import { type Train, type PlanningLevel, type TrainClass, type Country, StepType, type DeliveryStep, type DestinationStep } from '../../types';
 import { useTrains } from './useTrains';
 import { Db } from 'db';
 
@@ -55,8 +55,8 @@ const getBestTrains = (
   ): Train[] => {
     // Get busy train IDs from the level
     const busyTrainIds = level.steps
-      .filter(step => Db.isDeliveryStep(step) || Db.isDestinationStep(step))
-      .map(step => step.trainId);
+      .filter(step => step.type  === StepType.Destination || step.type === StepType.Delivery)
+      .map(step => (step as DestinationStep | DeliveryStep).trainId);
   
     // Filter out busy trains and get available ones
     const applicableTrains = Object.values(trains).filter((x: Train) => {

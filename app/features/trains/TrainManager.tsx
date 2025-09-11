@@ -1,62 +1,31 @@
-import React, { useState } from 'react';
-import { Country, type Train, TrainClass, TrainEngine } from '../../../types';
+import { useState } from 'react';
+import { Country, type Train, TrainClass } from '../../../types';
 import { Navbar } from '~/components/layout/Navbar';
-import { useAddTrain, useRemoveTrain, useTrains, useUpdateTrain } from '~/hooks/useTrains';
-
+import {
+  useAddTrain,
+  useRemoveTrain,
+  useTrains,
+  useUpdateTrain,
+} from '~/hooks/useTrains';
+import { TrainForm } from '~/components/forms/TrainForm';
 
 export const TrainManager = () => {
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [formData, setFormData] = useState({
-    name: '',
-    capacity: 10,
-    class: 'common' as TrainClass,
-  });
+
   const { data: trains = {}, isLoading: trainsLoading } = useTrains();
-  
 
-  const resetForm = () => {
-    setFormData({
-      name: '',
-      capacity: 10,
-      class: TrainClass.Common,
-    });
-    setIsAdding(false);
-    setEditingId(null);
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!formData.name) {
-      alert('Please fill in the train name.');
-      return;
-    }
-
-    const train: Train = {
-      id: editingId || `train_${Date.now()}`,
-      name: formData.name.trim(),
-      capacity: formData.capacity,
-      class: formData.class as TrainClass,
-      engine: TrainEngine.Steam, // Default engine
-      country: Country.Britain,
-    };
-
+  const handleSubmit = (train: Train) => {
     if (editingId) {
       useUpdateTrain().mutate(train);
     } else {
       useAddTrain().mutate(train);
     }
-
-    resetForm();
+    setIsAdding(false);
+    setEditingId(null);
   };
 
   const startEdit = (train: Train) => {
-    setFormData({
-      name: train.name,
-      capacity: train.capacity,
-      class: train.class,
-    });
     setEditingId(train.id);
     setIsAdding(true);
   };
@@ -67,117 +36,97 @@ export const TrainManager = () => {
     }
   };
 
+  const getTrainClassColor = (trainClass: TrainClass): string => {
+    switch (trainClass) {
+      case TrainClass.Common:
+        return '';
+      case TrainClass.Rare:
+        return 'bg-primary';
+      case TrainClass.Epic:
+        return 'bg-secondary';
+      case TrainClass.Legendary:
+        return 'bg-warning';
+    }
+  };
+
   return (
     <div className="train-manager">
       <Navbar />
-      <h2>🚂 Train Manager</h2>
+      <div className="container-fluid">
+        <div className="d-flex justify-content-between align-items-center">
+          <h2>🚂 Train Manager</h2>
 
-      <button
-        className="btn btn-primary"
-        onClick={() => setIsAdding(true)}
-        disabled={isAdding}
-      >
-        Add New Train
-      </button>
-
-      {isAdding && (
-        <div className="card">
-          <h3>{editingId ? 'Edit Train' : 'Add New Train'}</h3>
-
-          <form onSubmit={handleSubmit} className="form">
-            <div className="form-group">
-              <label htmlFor="trainName">Train Name:</label>
-              <input
-                id="trainName"
-                type="text"
-                value={formData.name}
-                onChange={e =>
-                  setFormData(prev => ({ ...prev, name: e.target.value }))
-                }
-                placeholder="e.g., Express 1, Freight 2, Local 3"
-                required
-              />
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="capacity">Capacity:</label>
-              <input
-                id="capacity"
-                type="number"
-                value={formData.capacity}
-                onChange={e =>
-                  setFormData(prev => ({
-                    ...prev,
-                    capacity: parseInt(e.target.value) || 10,
-                  }))
-                }
-                placeholder="e.g., 10"
-                min="1"
-                required
-              />
-              <small>
-                Capacity determines how much a train can carry or produce per
-                trip
-              </small>
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="class">Class:</label>
-              <select
-                id="class"
-                value={formData.class}
-                onChange={e =>
-                  setFormData(prev => ({
-                    ...prev,
-                    class: e.target.value as TrainClass,
-                  }))
-                }
-                required
-              >
-                <option value="common">Common</option>
-                <option value="rare">Rare</option>
-                <option value="epic">Epic</option>
-                <option value="legendary">Legendary</option>
-              </select>
-            </div>
-
-            <div className="form-actions">
-              <button type="submit" className="btn btn-primary">
-                {editingId ? 'Update Train' : 'Add Train'}
-              </button>
-              <button type="button" onClick={resetForm} className="btn">
-                Cancel
-              </button>
-            </div>
-          </form>
+          <button
+            title="Add New Train"
+            className="btn btn-primary"
+            onClick={() => setIsAdding(true)}
+            disabled={isAdding}
+          >
+            <i className="bi bi-plus"></i>
+          </button>
         </div>
-      )}
 
-      <div className="trains-list">
-        <h3>Current Trains</h3>
-        <div className="trains-grid">
-          {Object.values(trains).map(train => (
-            <div key={train.id} className="train-card">
-              <div className="train-info">
-                <h4>{train.name}</h4>
-                <p>Capacity: {train.capacity}</p>
-              </div>
+        {isAdding && (
+          <TrainForm
+            train={editingId ? trains[editingId] : undefined}
+            onSubmit={handleSubmit}
+            onClose={() => {
+              setIsAdding(false);
+              setEditingId(null);
+            }}
+          />
+        )}
 
-              <div className="train-actions">
-                <button onClick={() => startEdit(train)} className="btn">
-                  Edit
-                </button>
-                <button
-                  onClick={() => deleteTrain(train.id)}
-                  className="btn btn-danger"
-                >
-                  Delete
-                </button>
+        <div className="trains-list">
+          <div className="row">
+            {Object.values(Country).map(country => (
+              <div className="col">
+                <h4>{country.toLocaleUpperCase()}</h4>
+                <div className="row row-cols-auto row-cols-md-2 g-2">
+                  {Object.values(trains)
+                    .filter(train => train.country === country)
+                    .map(train => (
+                      <div className="col" key={train.id}>
+                        <div
+                          className={`train-card card bg-opacity-25 ${getTrainClassColor(train.class)}`}
+                        >
+                          <div className="card-header">
+                            <div className="d-flex align-items-center justify-content-between">
+                              <h4 className="me-2">{train.name}</h4>
+                              <div className="d-flex flex-column ms-auto train-actions">
+                                <button
+                                  title="Edit Train"
+                                  onClick={() => startEdit(train)}
+                                  className=" btn btn-outline-primary btn-sm"
+                                >
+                                  <i className="bi bi-pencil"></i>
+                                </button>
+                                <button
+                                  title="Delete Train"
+                                  onClick={() => deleteTrain(train.id)}
+                                  className="btn btn-outline-danger btn-sm"
+                                >
+                                  <i className="bi bi-trash"></i>
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="card-body">
+                            <div className="train-info">
+                              <p>Capacity: {train.capacity}</p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </div>
     </div>
   );
 };
+
+export default TrainManager;

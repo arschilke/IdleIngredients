@@ -47,6 +47,7 @@ export interface Factory {
 
 export interface Destination {
   id: string;
+  name: string;
   travelTime: number;
   resourceId: string;
   classes: TrainClass[];

@@ -13,8 +13,8 @@ import type {
 } from '../../../../types';
 import { StepType } from '../../../../types';
 import { formatTime } from '../../../../utils';
-import { JobForm } from '../../../components/forms/JobForm';
-import { db } from '../../../../db';
+import { JobForm } from '../../../components/forms/JobForm';  
+import { useStepOutputAmount, useStepInputAmounts } from '../../../../app/hooks/useInventory';
 
 interface ProductionJobProps {
   job: Step;
@@ -132,7 +132,7 @@ export const ProductionJob: React.FC<ProductionJobProps> = ({
                     ))}
                   </div>
                   <small className="text-muted">
-                    Output: {db.outputAmount(job)} {resources[job.resourceId].name}
+                    Output: {useStepOutputAmount(job)} {resources[job.resourceId].name}
                   </small>
                 </div>
               );
@@ -182,7 +182,7 @@ export const ProductionJob: React.FC<ProductionJobProps> = ({
                 )}
               </div>
               <div className="text-muted small">
-                Amount: {db.inputAmounts(job).get(job.resourceId) || 0}
+                Amount: {useStepInputAmounts(job).get(job.resourceId) || 0}
               </div>
             </div>
           )}
@@ -190,7 +190,7 @@ export const ProductionJob: React.FC<ProductionJobProps> = ({
           {job.type === 'submit' && (
             <div className="text-end">
               <div className="text-muted small">
-                Amount: {db.outputAmount(job)}
+                Amount: {useStepOutputAmount(job)}
               </div>
             </div>
           )}

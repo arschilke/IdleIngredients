@@ -26,6 +26,7 @@ export const DestinationForm: React.FC<DestinationFormProps> = ({
   const [travelTime, setTravelTime] = useState<number>(
     destination?.travelTime ?? 60
   );
+  const [name, setName] = useState<string>(destination?.name ?? '');
   const [resourceId, setResourceId] = useState<string>(
     destination?.resourceId ?? ''
   );
@@ -51,6 +52,7 @@ export const DestinationForm: React.FC<DestinationFormProps> = ({
 
     const newDestination: Destination = {
       id: destination?.id ?? generateId('destination'),
+      name: name ?? '',
       travelTime: travelTime,
       resourceId: resourceId,
       classes: classes,
@@ -72,7 +74,7 @@ export const DestinationForm: React.FC<DestinationFormProps> = ({
   };
 
   return (
-    <div className="card">
+    <div className="card mb-2">
       <div className="card-header">
         <h5 className="mb-0">
           <i className="bi bi-plus-circle me-2"></i>
@@ -81,6 +83,17 @@ export const DestinationForm: React.FC<DestinationFormProps> = ({
       </div>
       <div className="card-body">
         <form onSubmit={handleSubmit}>
+          <div className="mb-1">
+            <label htmlFor="name">Name:</label>
+            <input
+              className="form-control"
+              id="name"
+              name="name"
+              value={name}
+              onChange={e => setName(e.target.value)}
+              required
+            />
+          </div>
           <div className="mb-1">
             <label htmlFor="resourceId">Resource:</label>
             <select
@@ -104,6 +117,7 @@ export const DestinationForm: React.FC<DestinationFormProps> = ({
             <input
               id="travelTime"
               type="number"
+              className="form-control"
               name="travelTime"
               value={travelTime}
               onChange={e => setTravelTime(parseInt(e.target.value) || 60)}
