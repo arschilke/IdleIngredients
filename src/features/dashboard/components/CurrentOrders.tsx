@@ -9,8 +9,8 @@ import type {
   SubmitStep,
 } from '../../../types';
 import { formatTime, generateId } from "../../../utils";
-import { useBestTrains } from '../../hooks/useBestTrains';
-import { getInventoryChanges } from '../../../../inventoryUtils';
+import { useBestTrains } from '../../../hooks/useBestTrains';
+import { useLevelInventoryChanges } from '../../../hooks/useInventory';
 import React from 'react';
 
 interface CurrentOrdersProps {
@@ -89,7 +89,7 @@ export const CurrentOrders: React.FC<CurrentOrdersProps> = ({
       ...activeLevelData,
       steps: updatedSteps,
     };
-    updatedLevel.inventoryChanges = getInventoryChanges(updatedLevel);
+    updatedLevel.inventoryChanges = useLevelInventoryChanges(updatedLevel);
 
     const updatedPlan = {
       ...productionPlan,

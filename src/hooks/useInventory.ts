@@ -14,6 +14,7 @@ import {
 } from '../types';
 import { useFactories } from './useFactories';
 import { useTrains } from './useTrains';
+import { useOrder, useOrders } from './useOrders';
 
 // Query keys
 export const inventoryKeys = {
@@ -175,8 +176,7 @@ export const useStepInventoryChanges = (step: Step, order?: Order) => {
  * Hook to calculate inventory changes for a planning level
  */
 export const useLevelInventoryChanges = (
-  level: PlanningLevel,
-  orders?: Order[]
+  level: PlanningLevel
 ) => {
   const { data: factories } = useFactories();
   const { data: trains } = useTrains();
@@ -185,8 +185,8 @@ export const useLevelInventoryChanges = (
 
   level.steps.forEach(step => {
     let order: Order | undefined;
-    if (step.type === StepType.Submit && orders) {
-      order = orders.find(o => o.id === step.orderId);
+    if (step.type === StepType.Submit) {
+      order = useOrder(step.orderId).data;
     }
 
     calculateStepInventoryChange(step, order, factories!, trains!).forEach(

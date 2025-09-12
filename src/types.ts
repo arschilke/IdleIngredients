@@ -36,6 +36,7 @@ export interface Recipe {
   timeRequired: number;
   requires: ResourceRequirement[];
   outputAmount: number;
+  factoryId: string;
 }
 
 export interface Factory {
@@ -63,6 +64,7 @@ export interface ResourceRequirement {
 export interface BaseOrder {
   id: string;
   name: string;
+  type: 'boat' | 'story' | 'building';
   resources: ResourceRequirement[];
 }
 
@@ -112,7 +114,6 @@ export interface DeliveryStep extends BaseStep {
 export interface SubmitStep extends BaseStep {
   type: StepType.Submit;
   orderId: string;
-  timeRequired: 0;
 }
 
 export enum StepType {

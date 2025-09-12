@@ -3,7 +3,7 @@ import type {
   Factory,
   } from '../../types';
 import React, { type FormEvent, useState } from 'react';
-import { generateId } from '../../../utils';
+import { generateId } from '../../utils';
 import { useResources } from '../../hooks/useResources';
 import { useFactories } from '../../hooks/useFactories';
 

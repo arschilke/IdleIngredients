@@ -1,9 +1,8 @@
-import type {
-  Resource,
-} from '../../types';
-import React, { type FormEvent, useState } from 'react';
-import { generateId } from '../../../utils';
-import { useResources } from '../../hooks/useResources';
+import type { Resource } from '../../types';
+import React from 'react';
+import { useAppForm } from '../../hooks/form';
+import { resourceSchema } from '../../schemas';
+import { generateId } from '../../utils';
 
 interface ResourceFormProps {
   resource?: Resource;
@@ -16,34 +15,21 @@ export const ResourceForm: React.FC<ResourceFormProps> = ({
   onClose,
 }) => {
   const isAddMode = !resource;
-  const { data: resources = {} } = useResources();
-  const [name, setName] = useState<string>(resource?.name ?? '');
-  const [icon, setIcon] = useState<string>(resource?.icon ?? '');
 
-  const handleSubmit = (e: FormEvent) => {
-    e.preventDefault();
-    if (!name) {
-      alert('Please add a resource name');
-      return;
-    }
-
-    if (!icon) {
-      alert('Please add a resource icon');
-      return;
-    }
-
-    const newResource: Resource = {
+  const form = useAppForm({
+    defaultValues: {
+      name: resource?.name ?? '',
+      icon: resource?.icon ?? '',
       id: resource?.id ?? generateId('resource'),
-      name: name,
-      icon: icon,
-    } as Resource;
-
-    onSubmit(newResource);
-
-    // Reset form
-    setName('');
-    setIcon('');
-  };
+    },
+    validators: {
+      onChange: resourceSchema,
+    },
+    onSubmit: ({ value }) => {
+      const result = resourceSchema.cast(value);
+      onSubmit(result);
+    },
+  });
 
   return (
     <div className="card">
@@ -54,43 +40,39 @@ export const ResourceForm: React.FC<ResourceFormProps> = ({
         </h5>
       </div>
       <div className="card-body">
-        <form onSubmit={handleSubmit}>
-          <div className="mb-1">
-            <label htmlFor="resourceName">Resource Name:</label>
-            <input
-              className="form-control"
-              id="resourceName"
-              type="text"
-              name="name"
-              value={name}
-              onChange={e => setName(e.target.value)}
-              placeholder="Enter resource name"
-              required
-            />
-          </div>
-          <div className="mb-1">
-            <label htmlFor="resourceIcon">Icon:</label>
-            <input
-              className="form-control"
-              id="resourceIcon"
-              type="text"
-              name="icon"
-              value={icon}
-              onChange={e => setIcon(e.target.value)}
-              placeholder="Enter icon filename (e.g., Icon_Coal.png)"
-              required
-            />
-          </div>
+        <form
+          onSubmit={e => {
+            e.preventDefault();
+            form.handleSubmit();
+          }}
+        >
+          <form.AppField
+            name="id"
+            children={field => (
+              <input type="hidden" name="id" value={field.state.value} />
+            )}
+          />
+          <form.AppField
+            name="name"
+            children={field => <field.TextField label="Name" />}
+          />
+          <form.AppField
+            name="icon"
+            children={field => <field.TextField label="Icon" />}
+          />
 
           <div className="d-flex gap-2 mt-4">
-            <button type="submit" className="btn btn-primary">
-              <i className="bi bi-check-lg me-1"></i>
-              {isAddMode ? 'Add Step' : 'Save Changes'}
-            </button>
+            <form.SubscribeButton
+              icon="bi-check-lg"
+              label={isAddMode ? 'Add Resource' : 'Save Changes'}
+            />
             <button
               type="button"
               className="btn btn-outline-secondary"
-              onClick={onClose}
+              onClick={() => {
+                onClose();
+                form.reset();
+              }}
             >
               <i className="bi bi-x-lg me-1"></i>
               Cancel

@@ -8,7 +8,7 @@ import type {
 import { Country, StepType, TrainClass } from '../../types';
 import React, { type FormEvent, useState } from 'react';
 import { useBestTrains } from '../../hooks/useBestTrains';
-import { generateId } from '../../../utils';
+import { generateId } from '../../utils';
 import { useDestinations } from '../../hooks/useDestinations';
 import { useResources } from '../../hooks/useResources';
 import { useFactories } from '../../hooks/useFactories';
