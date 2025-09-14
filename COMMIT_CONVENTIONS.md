@@ -5,6 +5,7 @@ This project uses conventional commits and automated tooling to maintain code qu
 ## Conventional Commit Format
 
 Commits must follow this format:
+
 ```
 type(scope): description
 
@@ -14,6 +15,7 @@ type(scope): description
 ```
 
 ### Types
+
 - `feat`: New feature
 - `fix`: Bug fix
 - `docs`: Documentation changes
@@ -27,6 +29,7 @@ type(scope): description
 - `revert`: Reverting previous commits
 
 ### Examples
+
 ```
 feat: add production planning system
 fix(ui): resolve button alignment issue
@@ -38,6 +41,7 @@ refactor: simplify resource calculation logic
 ## Pre-commit Hooks
 
 Before each commit, the following automatically runs:
+
 1. **ESLint**: Checks code quality and fixes auto-fixable issues
 2. **Prettier**: Formats code according to project standards
 
@@ -52,6 +56,7 @@ Before each commit, the following automatically runs:
 ## Installation
 
 The hooks are automatically installed when you run:
+
 ```bash
 npm install
 ```
@@ -59,6 +64,7 @@ npm install
 ## Troubleshooting
 
 If you encounter commit issues:
+
 1. Run `npm run fix` to fix formatting/linting issues
 2. Ensure your commit message follows the conventional format
 3. Check that all staged files pass linting

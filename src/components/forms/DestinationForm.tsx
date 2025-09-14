@@ -1,9 +1,7 @@
 import { TrainClass, type Destination, Country } from '../../types';
-import { type FormEvent, useState } from 'react';
-import { generateId } from '../../utils';
-import { useDestinations } from '../../hooks/useDestinations';
 import { useResources } from '../../hooks/useResources';
 import { useAppForm } from '../../hooks/form';
+import { destinationSchema } from '../../schemas';
 
 interface DestinationFormProps {
   destination?: Destination;
@@ -16,7 +14,6 @@ export const DestinationForm: React.FC<DestinationFormProps> = ({
   onClose,
 }) => {
   const isAddMode = !destination;
-  const { data: destinations = {} } = useDestinations();
   const { data: resources = {} } = useResources();
 
   const form = useAppForm({
@@ -31,6 +28,13 @@ export const DestinationForm: React.FC<DestinationFormProps> = ({
         TrainClass.Legendary,
       ],
       country: destination?.country ?? Country.Britain,
+    },
+    validators: {
+      onChange: destinationSchema,
+    },
+    onSubmit: ({ value }) => {
+      const result = destinationSchema.cast(value);
+      onSubmit(result);
     },
   });
 
@@ -92,8 +96,7 @@ export const DestinationForm: React.FC<DestinationFormProps> = ({
                 label="Country"
                 options={Object.values(Country).map(country => ({
                   id: country,
-                  name:
-                    country.charAt(0).toUpperCase() + country.slice(1),
+                  name: country.charAt(0).toUpperCase() + country.slice(1),
                 }))}
               />
             )}

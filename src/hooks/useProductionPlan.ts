@@ -1,11 +1,14 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { ProductionPlan as ProductionPlanType } from '../types';
-import { useStepInventoryChanges } from './useInventory';
-import { saveProductionPlanToStorage, loadProductionPlanFromStorage } from '../lib/localStorageUtils';
+import {
+  saveProductionPlanToStorage,
+  loadProductionPlanFromStorage,
+} from '../lib/localStorageUtils';
 export const productionPlanKeys = {
   all: ['productionPlan'] as const,
   current: () => [...productionPlanKeys.all, 'current'] as const,
-  inventory: (level: number) => [...productionPlanKeys.all, 'inventory', level] as const,
+  inventory: (level: number) =>
+    [...productionPlanKeys.all, 'inventory', level] as const,
 };
 
 // Default production plan
@@ -32,7 +35,9 @@ const fetchProductionPlan = async (): Promise<ProductionPlanType> => {
 };
 
 // Save production plan to localStorage
-const saveProductionPlan = async (plan: ProductionPlanType): Promise<ProductionPlanType> => {
+const saveProductionPlan = async (
+  plan: ProductionPlanType
+): Promise<ProductionPlanType> => {
   saveProductionPlanToStorage(plan);
   return plan;
 };
@@ -49,12 +54,12 @@ export const useProductionPlan = () => {
 // Hook to update production plan
 export const useUpdateProductionPlan = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (plan: ProductionPlanType) => {
       return saveProductionPlan(plan);
     },
-    onSuccess: (updatedPlan) => {
+    onSuccess: updatedPlan => {
       queryClient.setQueryData(productionPlanKeys.current(), updatedPlan);
       // Invalidate inventory queries for all levels
       queryClient.invalidateQueries({ queryKey: productionPlanKeys.all });
@@ -65,15 +70,16 @@ export const useUpdateProductionPlan = () => {
 // Hook to get inventory at a specific level
 export const useInventoryAtLevel = (level: number) => {
   const queryClient = useQueryClient();
-  
+
   return useQuery({
     queryKey: productionPlanKeys.inventory(level),
     queryFn: async () => {
-      const productionPlan = queryClient.getQueryData<ProductionPlanType>(productionPlanKeys.current());
+      const productionPlan = queryClient.getQueryData<ProductionPlanType>(
+        productionPlanKeys.current()
+      );
       if (!productionPlan) {
         return {};
       }
-      
     },
     enabled: level > 0,
     staleTime: 1000 * 30, // 30 seconds
@@ -83,12 +89,12 @@ export const useInventoryAtLevel = (level: number) => {
 // Hook to clear production plan
 export const useClearProductionPlan = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async () => {
       return saveProductionPlan(defaultProductionPlan);
     },
-    onSuccess: (clearedPlan) => {
+    onSuccess: clearedPlan => {
       queryClient.setQueryData(productionPlanKeys.current(), clearedPlan);
       queryClient.invalidateQueries({ queryKey: productionPlanKeys.all });
     },

@@ -1,29 +1,22 @@
 import React, { useState } from 'react';
 import type {
   PlanningLevel,
-  Destination,
-  Resource,
-  Factory,
-  Train,
   Step,
   ProductionPlan,
   ResourceRequirement,
-  Order,
 } from '../../../types';
 import { StepType } from '../../../types';
 import { ProductionJob } from './ProductionJob';
 import { JobForm } from '../../../components/forms/JobForm';
-import { useLevelInventoryChanges } from '../../../hooks/useInventory';
+import { getInventoryChanges } from '../../../hooks/useInventory';
 import { calculateInventoryAtLevel } from '../../../hooks/useInventory';
+import { useOrders } from '../../../hooks/useOrders';
+import { useTrains } from '../../../hooks/useTrains';
+import { useFactories } from '../../../hooks/useFactories';
 
 interface ProductionLevelProps {
   level: PlanningLevel;
-  resources: Record<string, Resource>;
-  factories: Record<string, Factory>;
-  destinations: Record<string, Destination>;
-  orders: Order[];
   productionPlan: ProductionPlan;
-  trains: Record<string, Train>;
   maxConcurrentTrains: number;
   isActiveLevel: boolean;
   onLevelClick: (levelNumber: number) => void;
@@ -40,12 +33,7 @@ interface ProductionLevelProps {
 
 export const ProductionLevel: React.FC<ProductionLevelProps> = ({
   level,
-  resources,
-  factories,
-  destinations,
-  orders,
   productionPlan,
-  trains,
   maxConcurrentTrains,
   isActiveLevel,
   onLevelClick,
@@ -55,9 +43,15 @@ export const ProductionLevel: React.FC<ProductionLevelProps> = ({
   onMoveJobToLevel,
   onAddJobToLevel,
 }) => {
+  const { data: factories, isLoading: factoriesLoading } = useFactories();
+  const { data: trains, isLoading: trainsLoading } = useTrains();
+  const { data: orders, isLoading: ordersLoading } = useOrders();
   const [showAddJobCard, setShowAddJobCard] = useState<boolean>(false);
   const [showJobControls, setShowJobControls] = useState<boolean>(false);
 
+  if (factoriesLoading || trainsLoading || ordersLoading) {
+    return <div>Loading...</div>;
+  }
   // Check if inventory has enough resources for all jobs in this level
   const checkInventorySufficiency = () => {
     const insufficientResources: string[] = [];
@@ -80,7 +74,12 @@ export const ProductionLevel: React.FC<ProductionLevelProps> = ({
       ...level,
       steps: updatedSteps,
     };
-    updatedLevel.inventoryChanges = useLevelInventoryChanges(updatedLevel);
+    updatedLevel.inventoryChanges = getInventoryChanges(
+      updatedLevel,
+      factories!,
+      trains!,
+      orders!
+    );
     onLevelChange(updatedLevel);
   };
 
@@ -109,7 +108,12 @@ export const ProductionLevel: React.FC<ProductionLevelProps> = ({
       ...level,
       steps: newSteps,
     };
-    updatedLevel.inventoryChanges = calculateLevelInventoryChanges(updatedLevel);
+    updatedLevel.inventoryChanges = getInventoryChanges(
+      updatedLevel,
+      factories!,
+      trains!,
+      orders!
+    );
     onLevelChange(updatedLevel);
   };
 
@@ -138,10 +142,12 @@ export const ProductionLevel: React.FC<ProductionLevelProps> = ({
 
   // Check if factory steps exceed any factory's queue capacity
   const factoryStepsCount = (): Record<string, number> => {
-    let counts: Record<string, number> = {};
-    for (const factory of Object.values(factories)) {
-      var outputResourceIds = factory.recipes.map(recipe => recipe.resourceId);
-      var factorySteps = level.steps.filter(
+    const counts: Record<string, number> = {};
+    for (const factory of Object.values(factories!)) {
+      const outputResourceIds = factory.recipes.map(
+        recipe => recipe.resourceId
+      );
+      const factorySteps = level.steps.filter(
         step =>
           step.type === StepType.Factory && step.resourceId in outputResourceIds
       );
@@ -151,7 +157,7 @@ export const ProductionLevel: React.FC<ProductionLevelProps> = ({
   };
 
   const factoryQueueExceeded = Object.entries(factoryStepsCount()).some(
-    ([id, count]) => count > factories[id].queueMaxSize
+    ([id, count]) => count > factories![id].queueMaxSize
   );
 
   return (
@@ -241,7 +247,7 @@ export const ProductionLevel: React.FC<ProductionLevelProps> = ({
         {showAddJobCard && (
           <JobForm
             level={level}
-            orders={orders}
+            orders={orders!}
             onSubmit={addJobToLevel}
             onClose={() => setShowAddJobCard(false)}
           />
@@ -300,11 +306,6 @@ export const ProductionLevel: React.FC<ProductionLevelProps> = ({
                 <ProductionJob
                   key={step.id}
                   job={step}
-                  resources={resources}
-                  factories={factories}
-                  trains={trains}
-                  destinations={destinations}
-                  orders={orders}
                   plan={productionPlan}
                   maxConcurrentTrains={maxConcurrentTrains}
                   onJobUpdate={updatedJob => {
@@ -315,8 +316,12 @@ export const ProductionLevel: React.FC<ProductionLevelProps> = ({
                       ...level,
                       steps: updatedSteps,
                     };
-                    updatedLevel.inventoryChanges =
-                      useInventoryChanges(updatedLevel);
+                    updatedLevel.inventoryChanges = getInventoryChanges(
+                      updatedLevel,
+                      factories!,
+                      trains!,
+                      orders!
+                    );
 
                     onLevelChange(updatedLevel);
                   }}

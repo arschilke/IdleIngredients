@@ -1,22 +1,21 @@
 import type {
   Order,
-  Resource,
   ProductionPlan,
   BoatOrder,
-  Train,
   Step,
   DeliveryStep,
   SubmitStep,
 } from '../../../types';
-import { formatTime, generateId } from "../../../utils";
-import { useBestTrains } from '../../../hooks/useBestTrains';
-import { useLevelInventoryChanges } from '../../../hooks/useInventory';
+import { formatTime, generateId } from '../../../utils';
+import { getInventoryChanges } from '../../../hooks/useInventory';
 import React from 'react';
+import { getBestTrains } from '../../../trains';
+import { useOrders } from '../../../hooks/useOrders';
+import { useResources } from '../../../hooks/useResources';
+import { useTrains } from '../../../hooks/useTrains';
+import { useFactories } from '../../../hooks/useFactories';
 
 interface CurrentOrdersProps {
-  orders: Order[];
-  resources: Record<string, Resource>;
-  trains: Record<string, Train>;
   productionPlan: ProductionPlan;
   activeLevel: number;
   onProductionPlanChange: (plan: ProductionPlan) => void;
@@ -25,14 +24,18 @@ interface CurrentOrdersProps {
 }
 
 export const CurrentOrders: React.FC<CurrentOrdersProps> = ({
-  orders,
-  resources,
-  trains,
   productionPlan,
   activeLevel,
   onProductionPlanChange,
   onOrdersChange,
 }) => {
+  const { data: orders } = useOrders();
+  const { data: resources } = useResources();
+  const { data: trains } = useTrains();
+  const { data: factories } = useFactories();
+  if (!orders || !resources || !trains || !factories) {
+    return <div>Loading...</div>;
+  }
   // Calculate delivered amounts for each order's resource requirements
 
   const handlePlanProduction = (order: Order) => {
@@ -48,13 +51,14 @@ export const CurrentOrders: React.FC<CurrentOrdersProps> = ({
 
     const jobs: Step[] = [];
     if (order.type === 'story') {
-      const selectedTrains = useBestTrains({
-        level: activeLevelData,
-        amount: order.resources[0].amount,
-        allowedClasses: order.classes,
-        allowedCountries: order.country ? [order.country] : undefined
-      }).bestTrains;
-      
+      const selectedTrains = getBestTrains(
+        activeLevelData,
+        order.resources[0].amount,
+        trains,
+        order.classes,
+        order.country ? [order.country] : undefined
+      );
+
       let trainsIndex = 0;
       while (trainsIndex < selectedTrains.length) {
         jobs.push({
@@ -89,7 +93,12 @@ export const CurrentOrders: React.FC<CurrentOrdersProps> = ({
       ...activeLevelData,
       steps: updatedSteps,
     };
-    updatedLevel.inventoryChanges = useLevelInventoryChanges(updatedLevel);
+    updatedLevel.inventoryChanges = getInventoryChanges(
+      updatedLevel,
+      factories!,
+      trains!,
+      orders
+    );
 
     const updatedPlan = {
       ...productionPlan,

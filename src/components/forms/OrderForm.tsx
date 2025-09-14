@@ -1,10 +1,9 @@
-import { useState, type FormEvent } from 'react';
-import type { Order, Resource, ResourceRequirement } from '../../types';
+import { Order, OrderType, Resource, ResourceRequirement } from '../../types';
 import { TrainClass, Country } from '../../types';
-import { formatTime } from '../../utils';
 import { useAppForm } from '../../hooks/form';
-import { useStore } from '@tanstack/react-form';
 import { ResourceRequirementFields } from './ResourceRequirementFields';
+import { orderSchema } from '../../schemas';
+import { generateId } from '../../utils';
 
 interface OrderFormProps {
   resources: Record<string, Resource>;
@@ -15,18 +14,36 @@ interface OrderFormProps {
 export const OrderForm = ({ resources, onSubmit }: OrderFormProps) => {
   const form = useAppForm({
     defaultValues: {
-      orderType: 'story',
-      orderName: '',
-      expirationTime: 3600 * 4,
-      travelTime: 3600,
-      resources: [{ resourceId: '', amount: 0, delivered: 0 }],
-      classes: [
-        TrainClass.Common,
-        TrainClass.Rare,
-        TrainClass.Epic,
-        TrainClass.Legendary,
-      ],
+      id: generateId('order'),
+      type: OrderType.Story,
+      name: '',
+      expirationTime: 0,
+      travelTime: 0,
+      classes: [] as TrainClass[],
       country: Country.Britain,
+      resources: [{ resourceId: '', amount: 0 }],
+    } as {
+      id: string;
+      type: OrderType;
+      name: string;
+      expirationTime?: number;
+      travelTime?: number;
+      classes?: TrainClass[];
+      country?: string | undefined;
+      resources: ResourceRequirement[];
+    },
+    validators: {
+      onChange: orderSchema,
+    },
+    onSubmit: ({ value }) => {
+      const formData = orderSchema.cast(value);
+      const order = {
+        ...formData,
+        type: formData.type as OrderType,
+        country: formData.country as Country,
+        classes: formData.classes as TrainClass[],
+      };
+      onSubmit(order as Order);
     },
   });
 
@@ -43,11 +60,11 @@ export const OrderForm = ({ resources, onSubmit }: OrderFormProps) => {
           }}
         >
           <form.AppField
-            name="orderType"
+            name="type"
             children={field => (
               <field.SelectField
                 label="Order Type"
-                options={['boat', 'story', 'building'].map(type => ({
+                options={Object.values(OrderType).map(type => ({
                   id: type,
                   name: type,
                 }))}
@@ -56,15 +73,15 @@ export const OrderForm = ({ resources, onSubmit }: OrderFormProps) => {
           />
 
           <form.AppField
-            name="orderName"
+            name="name"
             children={field => <field.TextField label="Order Name" />}
           />
 
           <form.Subscribe
-            selector={state => state.values.orderType}
-            children={orderType => (
+            selector={state => state.values.type}
+            children={type => (
               <>
-                {orderType === 'boat' && (
+                {type === OrderType.Boat && (
                   <form.AppField
                     name="expirationTime"
                     children={field => (
@@ -78,7 +95,7 @@ export const OrderForm = ({ resources, onSubmit }: OrderFormProps) => {
                   />
                 )}
 
-                {orderType === 'story' && (
+                {type === OrderType.Story && (
                   <>
                     <form.AppField
                       name="travelTime"
@@ -136,7 +153,10 @@ export const OrderForm = ({ resources, onSubmit }: OrderFormProps) => {
                   <div key={i} className="d-flex gap-2 mb-2">
                     <ResourceRequirementFields
                       form={form}
-                      fields={`resources[${i}]`}
+                      fields={{
+                        resourceId: `resources[${i}].resourceId`,
+                        amount: `resources[${i}].amount`,
+                      }}
                       resources={resources}
                     />
                     <button

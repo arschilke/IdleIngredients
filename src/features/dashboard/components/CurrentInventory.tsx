@@ -17,7 +17,7 @@ export const CurrentInventory: React.FC<CurrentInventoryProps> = ({
 }) => {
   // Use React Query to get inventory at the current level
   const { data: calculatedInventory = {} } = useInventoryAtLevel(activeLevel);
-  
+
   // Use prop inventory if provided, otherwise use calculated inventory
   const inventory = propInventory || calculatedInventory;
   const isDone = productionPlan?.levels[activeLevel]?.done ?? false;

@@ -17,62 +17,57 @@ import {
   ProductionPlan,
   TrainClass,
   Country,
-  BaseOrder,
-  BoatOrder,
-  StoryOrder,
-  BuildingOrder,
   Resource,
+  Train,
+  TrainEngine,
+  OrderType,
 } from './types';
 
-export let resourceSchema: ObjectSchema<Resource> = object({
+export const resourceSchema: ObjectSchema<Resource> = object({
   id: string().required(),
   name: string().required(),
   icon: string().required(),
 });
 
-export let resourceRequirementSchema: ObjectSchema<ResourceRequirement> =
+export const resourceRequirementSchema: ObjectSchema<ResourceRequirement> =
   object({
     resourceId: string().required(),
     amount: number().required(),
     delivered: number().optional(),
   });
 
-export let orderSchema: ObjectSchema<
-  BaseOrder | StoryOrder | BuildingOrder | BoatOrder
-> = object({
+// Form schema for OrderForm - flat structure with all fields
+export const orderSchema = object({
   id: string().required(),
+  type: string().oneOf(Object.values(OrderType)).required(),
   name: string().required(),
   resources: array(resourceRequirementSchema).required(),
-  type: string().oneOf(['boat', 'story', 'building']).required(),
+  expirationTime: number().when('type', {
+    is: OrderType.Boat,
+    then: schema => schema.required(),
+    otherwise: schema => schema.optional(),
+  }),
   travelTime: number().when('type', {
-    is: 'story',
+    is: OrderType.Story,
     then: schema => schema.required(),
     otherwise: schema => schema.optional(),
   }),
-  classes: array(
-    string()
-      .oneOf([
-        TrainClass.Common,
-        TrainClass.Rare,
-        TrainClass.Epic,
-        TrainClass.Legendary,
-      ])
-      .defined()
-  ).when('type', {
-    is: 'story',
-    then: schema => schema.required(),
-    otherwise: schema => schema.optional(),
-  }),
-  country: string()
-    .oneOf([Country.Britain, Country.Germany])
-    .when('type', {
-      is: 'story',
+  classes: array(string().oneOf(Object.values(TrainClass)).required()).when(
+    'type',
+    {
+      is: OrderType.Story,
       then: schema => schema.required(),
       otherwise: schema => schema.optional(),
-    }),
+    }
+  ),
+  country: string().when('type', {
+    is: OrderType.Story,
+    then: schema => schema.required(),
+    otherwise: schema => schema.optional(),
+  }),
 });
 
-export let recipeSchema: ObjectSchema<Recipe> = object({
+export const recipeSchema: ObjectSchema<Recipe> = object({
   factoryId: string()
     .required()
     .test(
@@ -89,14 +84,14 @@ export let recipeSchema: ObjectSchema<Recipe> = object({
   requires: array(resourceRequirementSchema).required(),
 });
 
-export let factorySchema: ObjectSchema<Factory> = object({
+export const factorySchema: ObjectSchema<Factory> = object({
   id: string().required(),
   queueMaxSize: number().required(),
   name: string().required(),
   recipes: array(recipeSchema).required(),
 });
 
-export let destinationSchema: ObjectSchema<Destination> = object({
+export const destinationSchema: ObjectSchema<Destination> = object({
   id: string().required(),
   name: string().required(),
   travelTime: number().required(),
@@ -114,9 +109,9 @@ export let destinationSchema: ObjectSchema<Destination> = object({
   country: string().oneOf([Country.Britain, Country.Germany]).required(),
 });
 
-export let stepSchema = object({
+export const stepSchema = object({
   id: string().required(),
-  type: string().required(),
+  type: string().oneOf(Object.values(StepType)).required(),
   name: string().required(),
   resourceId: string()
     .required()
@@ -134,28 +129,34 @@ export let stepSchema = object({
       }
     ),
   timeRequired: number().required(),
-  trainId: string().when('type', {
-    is: [StepType.Destination, StepType.Delivery],
-    then: schema =>
-      schema
-        .required()
-        .test('train-id-exists', 'Train ID must exist', (value, context) => {
-          const trains = context.parent.trains;
-          return trains[value] !== undefined;
-        }),
-    otherwise: schema => schema.optional(),
-  }),
-  orderId: string().when('type', {
-    is: [StepType.Delivery, StepType.Submit],
-    then: schema =>
-      schema
-        .required()
-        .test('order-id-exists', 'Order ID must exist', (value, context) => {
-          const orders = context.parent.orders;
-          return orders[value] !== undefined;
-        }),
-    otherwise: schema => schema.optional(),
-  }),
+  trainId: string()
+    .required()
+    .transform(value => (value == '' ? undefined : value))
+    .when('type', {
+      is: [StepType.Destination, StepType.Delivery],
+      then: schema =>
+        schema
+          .required()
+          .test('train-id-exists', 'Train ID must exist', (value, context) => {
+            const trains = context.parent.trains;
+            return trains[value] !== undefined;
+          }),
+      otherwise: schema => schema,
+    }),
+  orderId: string()
+    .required()
+    .transform(value => (value == '' ? undefined : value))
+    .when('type', {
+      is: [StepType.Delivery, StepType.Submit],
+      then: schema =>
+        schema
+          .required()
+          .test('order-id-exists', 'Order ID must exist', (value, context) => {
+            const orders = context.parent.orders;
+            return orders[value] !== undefined;
+          }),
+      otherwise: schema => schema,
+    }),
 });
 
 export const levelSchema = object({
@@ -211,4 +212,13 @@ export const productionPlanSchema: ObjectSchema<ProductionPlan> = object({
         return true;
       }
     ),
+});
+
+export const trainSchema: ObjectSchema<Train> = object({
+  id: string().required(),
+  name: string().required(),
+  capacity: number().required(),
+  class: string().oneOf(Object.values(TrainClass)).required(),
+  engine: string().oneOf(Object.values(TrainEngine)).required(),
+  country: string().oneOf(Object.values(Country)).required(),
 });

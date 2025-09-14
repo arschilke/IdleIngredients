@@ -9,7 +9,7 @@ erDiagram
         string name
         string icon
     }
-    
+
     Train {
         string id PK
         string name
@@ -17,54 +17,54 @@ erDiagram
         string class
         string engine
     }
-    
+
     Recipe {
         string resourceId FK
         int timeRequired
         int outputAmount
     }
-    
+
     Factory {
         string id PK
         string name
         int queueMaxSize
     }
-    
+
     Destination {
         string id PK
         int travelTime
         string resourceId FK
         classes: string[]
     }
-    
+
     ResourceRequirement {
         string resourceId FK
         int amount
         int delivered
     }
-    
+
     BaseOrder {
         string id PK
         string name
     }
-    
+
     BoatOrder {
         string id PK
         string type
         int expirationTime
     }
-    
+
     StoryOrder {
         string id PK
         string type
         int travelTime
     }
-    
+
     BuildingOrder {
         string id PK
         string type
     }
-    
+
     PlannedStep {
         string id PK
         PlannedStepType type
@@ -72,27 +72,27 @@ erDiagram
         int levelId FK
         int timeRequired
     }
-    
+
     PlanningLevel {
         int id PK
         boolean done
     }
-    
+
     ProductionPlan {
         int maxConcurrentWorkers
     }
-    
+
     %% Relationships
     Factory ||--|{ Recipe : has
 
     Recipe }o--|| Resource : produces
     Recipe ||--|{ ResourceRequirement : has
-    
+
     Destination }o--|| Resource : produces
-    
+
     BaseOrder ||--o{ ResourceRequirement : requires
     ResourceRequirement }o--|| Resource : references
-    
+
     BoatOrder ||--|| BaseOrder : extends
     StoryOrder ||--|| BaseOrder : extends
     BuildingOrder ||--|| BaseOrder : extends
@@ -100,9 +100,9 @@ erDiagram
     PlannedStep }o--|| Recipe : uses
     PlannedStep }o--|| Destination : dispatches
     PlannedStep }o--|| Train : assigned_to
-    
+
     PlanningLevel ||--o{ PlannedStep : contains
-    
+
     ProductionPlan ||--o{ PlanningLevel : contains
 
 ```
@@ -121,6 +121,7 @@ erDiagram
 10. **GameState** is the root entity containing all game data
 
 ## Notes:
+
 - PK = Primary Key
 - FK = Foreign Key
 - The diagram shows inheritance relationships (BaseOrder → Order types)

@@ -1,8 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { Resource } from '../../types';
-import { 
-  loadResourcesFromStorage, 
-  saveResourcesToStorage
+import {
+  loadResourcesFromStorage,
+  saveResourcesToStorage,
 } from '../lib/localStorageUtils';
 import { ensureLocalStorageData } from '../lib/migrateData';
 
@@ -14,7 +14,9 @@ export const resourceKeys = {
   list: (filters: string) => [...resourceKeys.lists(), { filters }] as const,
 };
 
-const saveResources = async (resources: Record<string, Resource>): Promise<Record<string, Resource>> => {
+const saveResources = async (
+  resources: Record<string, Resource>
+): Promise<Record<string, Resource>> => {
   saveResourcesToStorage(resources);
   return resources;
 };
@@ -45,7 +47,10 @@ export const useUpdateResource = (resource: Resource) => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (resource: Resource) => {
-      const currentResources = queryClient.getQueryData<Record<string, Resource>>(resourceKeys.lists()) || {};
+      const currentResources =
+        queryClient.getQueryData<Record<string, Resource>>(
+          resourceKeys.lists()
+        ) || {};
       const updatedResources = { ...currentResources, [resource.id]: resource };
       return saveResources(updatedResources);
     },
@@ -56,7 +61,10 @@ export const useAddResource = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (resource: Resource) => {
-      const currentResources = queryClient.getQueryData<Record<string, Resource>>(resourceKeys.lists()) || {};
+      const currentResources =
+        queryClient.getQueryData<Record<string, Resource>>(
+          resourceKeys.lists()
+        ) || {};
       const updatedResources = { ...currentResources, [resource.id]: resource };
       return saveResources(updatedResources);
     },

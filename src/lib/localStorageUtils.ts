@@ -1,9 +1,16 @@
-import type { Resource, Factory, Destination, Train, Order, ProductionPlan } from '../../types';
+import type {
+  Resource,
+  Factory,
+  Destination,
+  Train,
+  Order,
+  ProductionPlan,
+} from '../../types';
 
 // Storage keys
 const STORAGE_KEYS = {
   RESOURCES: 'idle-ingredients-resources',
-  FACTORIES: 'idle-ingredients-factories', 
+  FACTORIES: 'idle-ingredients-factories',
   DESTINATIONS: 'idle-ingredients-destinations',
   TRAINS: 'idle-ingredients-trains',
   ORDERS: 'idle-ingredients-orders',
@@ -36,7 +43,9 @@ const loadFromStorage = <T>(key: string, defaultValue: T): T => {
 };
 
 // Resources
-export const saveResourcesToStorage = (resources: Record<string, Resource>): void => {
+export const saveResourcesToStorage = (
+  resources: Record<string, Resource>
+): void => {
   saveToStorage(STORAGE_KEYS.RESOURCES, resources);
 };
 
@@ -45,7 +54,9 @@ export const loadResourcesFromStorage = (): Record<string, Resource> => {
 };
 
 // Factories
-export const saveFactoriesToStorage = (factories: Record<string, Factory>): void => {
+export const saveFactoriesToStorage = (
+  factories: Record<string, Factory>
+): void => {
   saveToStorage(STORAGE_KEYS.FACTORIES, factories);
 };
 
@@ -54,7 +65,9 @@ export const loadFactoriesFromStorage = (): Record<string, Factory> => {
 };
 
 // Destinations
-export const saveDestinationsToStorage = (destinations: Record<string, Destination>): void => {
+export const saveDestinationsToStorage = (
+  destinations: Record<string, Destination>
+): void => {
   saveToStorage(STORAGE_KEYS.DESTINATIONS, destinations);
 };
 
@@ -94,7 +107,10 @@ export const loadProductionPlanFromStorage = (): ProductionPlan | null => {
         // Convert inventoryChanges arrays back to Maps
         if (parsed.levels) {
           Object.values(parsed.levels).forEach((level: any) => {
-            if (level.inventoryChanges && Array.isArray(level.inventoryChanges)) {
+            if (
+              level.inventoryChanges &&
+              Array.isArray(level.inventoryChanges)
+            ) {
               level.inventoryChanges = new Map(level.inventoryChanges);
             }
           });

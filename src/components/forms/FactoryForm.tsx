@@ -1,11 +1,6 @@
-import type {
-  Resource,
-  Factory,
-  } from '../../types';
+import type { Factory } from '../../types';
 import React, { type FormEvent, useState } from 'react';
 import { generateId } from '../../utils';
-import { useResources } from '../../hooks/useResources';
-import { useFactories } from '../../hooks/useFactories';
 
 interface FactoryFormProps {
   factory?: Factory;
@@ -18,10 +13,11 @@ export const FactoryForm: React.FC<FactoryFormProps> = ({
   onClose,
 }) => {
   const isAddMode = !factory;
-  const { data: factories = {} } = useFactories();
   const [name, setName] = useState<string>(factory?.name ?? '');
-  const [queueMaxSize, setQueueMaxSize] = useState<number>(factory?.queueMaxSize ?? 2);
-  
+  const [queueMaxSize, setQueueMaxSize] = useState<number>(
+    factory?.queueMaxSize ?? 2
+  );
+
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (!name) {
@@ -58,36 +54,32 @@ export const FactoryForm: React.FC<FactoryFormProps> = ({
       </div>
       <div className="card-body">
         <form onSubmit={handleSubmit}>
-        <div className="form-group">
-              <label htmlFor="factoryName">Factory Name:</label>
-              <input
-                id="factoryName"
-                type="text"
-                className="form-control"
-                name="name"
-                value={name}
-                onChange={e =>
-                  setName(e.target.value)
-                }
-                placeholder="Enter factory name"
-                required
-              />
-            </div>
-            <div className="form-group">
-              <label htmlFor="factoryQueueMaxSize">Queue Max Size:</label>
-              <input
-                id="factoryQueueMaxSize"
-                type="number" 
-                className="form-control"
-                name="queueMaxSize"
-                value={queueMaxSize}
-                onChange={e =>
-                  setQueueMaxSize(parseInt(e.target.value) || 0)
-                }
-                placeholder="Enter queue max size"
-                required
-              />
-            </div>
+          <div className="form-group">
+            <label htmlFor="factoryName">Factory Name:</label>
+            <input
+              id="factoryName"
+              type="text"
+              className="form-control"
+              name="name"
+              value={name}
+              onChange={e => setName(e.target.value)}
+              placeholder="Enter factory name"
+              required
+            />
+          </div>
+          <div className="form-group">
+            <label htmlFor="factoryQueueMaxSize">Queue Max Size:</label>
+            <input
+              id="factoryQueueMaxSize"
+              type="number"
+              className="form-control"
+              name="queueMaxSize"
+              value={queueMaxSize}
+              onChange={e => setQueueMaxSize(parseInt(e.target.value) || 0)}
+              placeholder="Enter queue max size"
+              required
+            />
+          </div>
 
           <div className="d-flex gap-2 mt-4">
             <button type="submit" className="btn btn-primary">

@@ -85,7 +85,9 @@ export const useRemoveTrain = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const currentTrains = queryClient.getQueryData<Record<string, Train>>(trainsKeys.lists()) || {};
+      const currentTrains =
+        queryClient.getQueryData<Record<string, Train>>(trainsKeys.lists()) ||
+        {};
       delete currentTrains[id];
       return saveTrains(currentTrains);
     },

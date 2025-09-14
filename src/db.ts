@@ -464,7 +464,7 @@ export class Db {
       travelTime: 300,
       resourceId: 'wood',
       classes: [
-        TrainClass.Common,  
+        TrainClass.Common,
         TrainClass.Rare,
         TrainClass.Epic,
         TrainClass.Legendary,
@@ -485,7 +485,7 @@ export class Db {
       country: Country.Germany,
     },
     timber_factory: {
-      id: 'timber_factory',   
+      id: 'timber_factory',
       name: 'Timber Factory',
       travelTime: 180,
       resourceId: 'timber',
@@ -510,7 +510,6 @@ export class Db {
   public getTrains = async (): Promise<Record<string, Train>> => {
     return await Promise.resolve(this.trains);
   };
-
 }
 
 export const db = new Db();

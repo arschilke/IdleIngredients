@@ -3,28 +3,23 @@ import type {
   ProductionPlan as ProductionPlanType,
   PlanningLevel,
   Order,
-  Factory,
-  Destination,
-  Train,
-  Resource,
   Step,
   ResourceRequirement,
 } from '../../../types';
 import { StepType } from '../../../types';
 import { ProductionLevel } from './ProductionLevel';
-import { InsertNewLevelIntoPlan } from '../../../../plan';
-import { generateId } from "../../../utils";
-import { useBestTrains } from '../../hooks/useBestTrains';
-import { getInventoryChanges } from '../../../../inventoryUtils';
+import { generateId } from '../../../utils';
+import { getBestTrains } from '../../../trains';
+import { getInventoryChanges } from '../../../hooks/useInventory';
+import { useOrders } from '../../../hooks/useOrders';
+import { useFactories } from '../../../hooks/useFactories';
+import { useTrains } from '../../../hooks/useTrains';
+import { useDestinations } from '../../../hooks/useDestinations';
+import { InsertNewLevelIntoPlan } from '../../../plan';
 
 interface ProductionPlanProps {
   productionPlan: ProductionPlanType;
-  orders: Order[];
-  resources: Record<string, Resource>;
   activeLevel: number;
-  factories: Record<string, Factory>;
-  destinations: Record<string, Destination>;
-  trains: Record<string, Train>;
   maxConcurrentTrains: number;
   onActiveLevelChange: (levelNumber: number) => void;
   onProductionPlanChange: (newPlan: ProductionPlanType) => void;
@@ -34,17 +29,17 @@ interface ProductionPlanProps {
 
 export const ProductionPlan: React.FC<ProductionPlanProps> = ({
   productionPlan,
-  factories,
-  destinations,
-  trains,
-  orders,
-  resources,
   maxConcurrentTrains,
   activeLevel,
   onActiveLevelChange,
   onProductionPlanChange,
   onClearPlan,
 }) => {
+  const { data: factories, isLoading: factoriesLoading } = useFactories();
+  const { data: trains, isLoading: trainsLoading } = useTrains();
+  const { data: orders, isLoading: ordersLoading } = useOrders();
+  const { data: destinations, isLoading: destinationsLoading } =
+    useDestinations();
   const levelRefs = useRef<{ [key: number]: HTMLDivElement | null }>({});
 
   // Auto-scroll to active level when it changes
@@ -57,6 +52,14 @@ export const ProductionPlan: React.FC<ProductionPlanProps> = ({
     }
   }, [activeLevel, productionPlan]);
 
+  if (
+    factoriesLoading ||
+    trainsLoading ||
+    ordersLoading ||
+    destinationsLoading
+  ) {
+    return <div>Loading...</div>;
+  }
   // Handle moving a job from one level to another
   const moveJobToLevel = (
     jobId: string,
@@ -234,10 +237,10 @@ export const ProductionPlan: React.FC<ProductionPlanProps> = ({
       targetLevel = 1;
     }
 
-    const recipe = Object.values(factories)
+    const recipe = Object.values(factories!)
       .flatMap(f => f.recipes)
       .find(r => r.resourceId === requirement.resourceId);
-    const destination = Object.values(destinations).find(
+    const destination = Object.values(destinations!).find(
       dest => dest.resourceId === requirement.resourceId
     );
 
@@ -250,20 +253,23 @@ export const ProductionPlan: React.FC<ProductionPlanProps> = ({
     ) {
       newStep = {
         id: generateId('step'),
+        name: destination.name,
         type: StepType.Destination,
         resourceId: requirement.resourceId,
         levelId: targetLevel,
-        trainId: useBestTrains({
+        trainId: getBestTrains(
           level,
-          amount: requirement.amount,
-          allowedClasses: destination.classes,
-          allowedCountries: [destination.country]
-        }).bestTrains[0].id,
+          requirement.amount,
+          trains!,
+          destination.classes,
+          [destination.country]
+        )[0].id,
         timeRequired: destination.travelTime,
       };
     } else if (recipe) {
       newStep = {
         id: generateId('step'),
+        name: `Make ${recipe.resourceId}`,
         type: StepType.Factory,
         resourceId: requirement.resourceId,
         levelId: targetLevel,
@@ -279,7 +285,12 @@ export const ProductionPlan: React.FC<ProductionPlanProps> = ({
       return;
     }
     level.steps.push(newStep as Step);
-    level.inventoryChanges = getInventoryChanges(level);
+    level.inventoryChanges = getInventoryChanges(
+      level,
+      factories!,
+      trains!,
+      orders!
+    );
     if (newStep) {
       onProductionPlanChange({
         ...updatedPlan,
@@ -382,12 +393,7 @@ export const ProductionPlan: React.FC<ProductionPlanProps> = ({
           >
             <ProductionLevel
               level={level}
-              orders={orders}
-              factories={factories}
               productionPlan={productionPlan}
-              destinations={destinations}
-              trains={trains}
-              resources={resources}
               maxConcurrentTrains={maxConcurrentTrains}
               isActiveLevel={level.level === activeLevel}
               onLevelClick={handleLevelClick}

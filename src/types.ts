@@ -64,24 +64,30 @@ export interface ResourceRequirement {
 export interface BaseOrder {
   id: string;
   name: string;
-  type: 'boat' | 'story' | 'building';
+  type: OrderType;
   resources: ResourceRequirement[];
 }
 
+export enum OrderType {
+  Boat = 'boat',
+  Story = 'story',
+  Building = 'building',
+}
+
 export interface BoatOrder extends BaseOrder {
-  type: 'boat';
+  type: OrderType.Boat;
   expirationTime: number;
 }
 
 export interface StoryOrder extends BaseOrder {
-  type: 'story';
+  type: OrderType.Story;
   travelTime: number;
   classes: TrainClass[];
   country?: Country;
 }
 
 export interface BuildingOrder extends BaseOrder {
-  type: 'building';
+  type: OrderType.Building;
 }
 
 export type Order = BoatOrder | StoryOrder | BuildingOrder;
@@ -91,6 +97,7 @@ export type Step = FactoryStep | DestinationStep | DeliveryStep | SubmitStep;
 export interface BaseStep {
   type: StepType;
   id: string;
+  name: string;
   resourceId: string;
   levelId: number;
   timeRequired: number;

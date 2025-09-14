@@ -1,11 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { Factory } from '../../types';
-import { 
+import {
   loadFactoriesFromStorage,
-  saveFactoriesToStorage} from '../lib/localStorageUtils';
+  saveFactoriesToStorage,
+} from '../lib/localStorageUtils';
 import { ensureLocalStorageData } from '../lib/migrateData';
 
-const saveFactories = async (factories: Record<string, Factory>): Promise<Record<string, Factory>> => {
+const saveFactories = async (
+  factories: Record<string, Factory>
+): Promise<Record<string, Factory>> => {
   saveFactoriesToStorage(factories);
   return factories;
 };
@@ -44,7 +47,10 @@ export const useAddFactory = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (factory: Factory) => {
-      const currentFactories = queryClient.getQueryData<Record<string, Factory>>(factoriesKeys.lists()) || {};
+      const currentFactories =
+        queryClient.getQueryData<Record<string, Factory>>(
+          factoriesKeys.lists()
+        ) || {};
       const updatedFactories = { ...currentFactories, [factory.id]: factory };
       return saveFactories(updatedFactories);
     },
@@ -55,7 +61,10 @@ export const useUpdateFactory = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (factory: Factory) => {
-      const currentFactories = queryClient.getQueryData<Record<string, Factory>>(factoriesKeys.lists()) || {};
+      const currentFactories =
+        queryClient.getQueryData<Record<string, Factory>>(
+          factoriesKeys.lists()
+        ) || {};
       const updatedFactories = { ...currentFactories, [factory.id]: factory };
       return saveFactories(updatedFactories);
     },

@@ -12,7 +12,10 @@ import {
   useFactories,
   useUpdateFactory,
 } from '../../hooks/useFactories';
-import { useAddDestination, useDestinations } from '../../hooks/useDestinations';
+import {
+  useAddDestination,
+  useDestinations,
+} from '../../hooks/useDestinations';
 import React from 'react';
 import { ResourceForm } from '../../components/forms/ResourceForm';
 import { FactoryForm } from '../../components/forms/FactoryForm';
@@ -67,11 +70,11 @@ export const ResourceManager = () => {
     setIsAddingRecipe(-1);
   };
   const resetFactoryForm = () => {
-    setIsAddingFactory(false);  
+    setIsAddingFactory(false);
   };
 
   const resetDestinationForm = () => {
-    setIsAddingDestination(false);  
+    setIsAddingDestination(false);
   };
 
   const getResourceName = (resourceId: string): string => {

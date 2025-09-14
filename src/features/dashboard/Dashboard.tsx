@@ -4,14 +4,15 @@ import { ProductionPlan } from './components/ProductionPlan';
 import { CurrentInventory } from './components/CurrentInventory';
 import { CurrentOrders } from './components/CurrentOrders';
 import { Navbar } from '../../components/layout/Navbar';
-import type {
-  Order,
-  ProductionPlan as ProductionPlanType,
-} from '../../types';
+import type { Order, ProductionPlan as ProductionPlanType } from '../../types';
 import '../../styles.scss';
 import { Db } from '../../db';
 import { useOrders, useAddOrder, useUpdateOrders } from '../../hooks/useOrders';
-import { useProductionPlan, useUpdateProductionPlan, useClearProductionPlan } from '../../hooks/useProductionPlan';
+import {
+  useProductionPlan,
+  useUpdateProductionPlan,
+  useClearProductionPlan,
+} from '../../hooks/useProductionPlan';
 import { useResources } from '../../hooks/useResources';
 import { useFactories } from '../../hooks/useFactories';
 import { useTrains } from '../../hooks/useTrains';
@@ -19,15 +20,16 @@ import { useDestinations } from '../../hooks/useDestinations';
 
 const Dashboard = () => {
   const [activeLevel, setActiveLevel] = useState<number>(1);
-  
+
   // React Query hooks
   const { data: orders = [], isLoading: ordersLoading } = useOrders();
   const { data: productionPlan, isLoading: planLoading } = useProductionPlan();
   const { data: resources = {}, isLoading: resourcesLoading } = useResources();
   const { data: factories = {}, isLoading: factoriesLoading } = useFactories();
-  const { data: destinations = {}, isLoading: destinationsLoading } = useDestinations();
+  const { data: destinations = {}, isLoading: destinationsLoading } =
+    useDestinations();
   const { data: trains = {}, isLoading: trainsLoading } = useTrains();
-  
+
   const addOrderMutation = useAddOrder();
   const updateOrdersMutation = useUpdateOrders();
   const updateProductionPlanMutation = useUpdateProductionPlan();
@@ -54,12 +56,22 @@ const Dashboard = () => {
   };
 
   // Show loading state while data is being fetched
-  if (ordersLoading || planLoading || resourcesLoading || factoriesLoading || destinationsLoading || trainsLoading) {
+  if (
+    ordersLoading ||
+    planLoading ||
+    resourcesLoading ||
+    factoriesLoading ||
+    destinationsLoading ||
+    trainsLoading
+  ) {
     return (
       <div className="app">
         <Navbar />
         <main className="main-grid m-2 pb-2">
-          <div className="d-flex justify-content-center align-items-center" style={{ height: '400px' }}>
+          <div
+            className="d-flex justify-content-center align-items-center"
+            style={{ height: '400px' }}
+          >
             <div className="spinner-border" role="status">
               <span className="visually-hidden">Loading...</span>
             </div>

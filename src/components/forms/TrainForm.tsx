@@ -1,14 +1,7 @@
-import {
-  Country,
-  TrainClass,
-  TrainEngine,
-  type Resource,
-  type Train,
-} from '../../types';
-import React, { type FormEvent, useState } from 'react';
-import { generateId } from '../../utils';
-import { useResources } from '../../hooks/useResources';
+import { Country, TrainClass, TrainEngine, type Train } from '../../types';
+import React from 'react';
 import { useAppForm } from '../../hooks/form';
+import { trainSchema } from '../../schemas';
 
 interface TrainFormProps {
   train?: Train;
@@ -21,7 +14,6 @@ export const TrainForm: React.FC<TrainFormProps> = ({
   onClose,
 }) => {
   const isAddMode = !train;
-  const { data: resources = {} } = useResources();
 
   const form = useAppForm({
     defaultValues: {
@@ -30,6 +22,13 @@ export const TrainForm: React.FC<TrainFormProps> = ({
       class: train?.class ?? TrainClass.Common,
       engine: train?.engine ?? TrainEngine.Steam,
       country: train?.country ?? Country.Britain,
+    },
+    validators: {
+      onChange: trainSchema,
+    },
+    onSubmit: ({ value }) => {
+      const result = trainSchema.cast(value);
+      onSubmit(result);
     },
   });
 

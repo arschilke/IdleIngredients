@@ -1,8 +1,5 @@
-import { array, object } from 'yup';
-import { withFieldGroup, withForm } from '../../hooks/form';
-import { resourceRequirementSchema } from '../../schemas';
-import { Resource, ResourceRequirement } from '../../types';
-import { useStore } from '@tanstack/react-form';
+import { withFieldGroup } from '../../hooks/form';
+import { Resource } from '../../types';
 
 export const ResourceRequirementFields = withFieldGroup({
   defaultValues: {

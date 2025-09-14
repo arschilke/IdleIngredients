@@ -1,8 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { Destination } from '../../types';
-import { 
-  loadDestinationsFromStorage, 
-  saveDestinationsToStorage
+import {
+  loadDestinationsFromStorage,
+  saveDestinationsToStorage,
 } from '../lib/localStorageUtils';
 import { ensureLocalStorageData } from '../lib/migrateData';
 
@@ -11,10 +11,13 @@ export const destinationsKeys = {
   all: ['destinations'] as const,
   id: (id: string) => [...destinationsKeys.all, id] as const,
   lists: () => [...destinationsKeys.all, 'list'] as const,
-  list: (filters: string) => [...destinationsKeys.lists(), { filters }] as const,
+  list: (filters: string) =>
+    [...destinationsKeys.lists(), { filters }] as const,
 };
 
-const saveDestinations = async (destinations: Record<string, Destination>): Promise<Record<string, Destination>> => {
+const saveDestinations = async (
+  destinations: Record<string, Destination>
+): Promise<Record<string, Destination>> => {
   saveDestinationsToStorage(destinations);
   return destinations;
 };
@@ -29,7 +32,7 @@ export const useDestinations = () => {
     },
     staleTime: 1000 * 60 * 60, // 1 hour - destinations don't change often
   });
-};  
+};
 
 export const useDestination = (id: string) => {
   return useQuery({
@@ -45,8 +48,14 @@ export const useAddDestination = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (destination: Destination) => {
-      const currentDestinations = queryClient.getQueryData<Record<string, Destination>>(destinationsKeys.lists()) || {};
-      const updatedDestinations = { ...currentDestinations, [destination.id]: destination };
+      const currentDestinations =
+        queryClient.getQueryData<Record<string, Destination>>(
+          destinationsKeys.lists()
+        ) || {};
+      const updatedDestinations = {
+        ...currentDestinations,
+        [destination.id]: destination,
+      };
       return saveDestinations(updatedDestinations);
     },
   });

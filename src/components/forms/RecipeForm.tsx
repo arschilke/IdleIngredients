@@ -1,10 +1,8 @@
-import type { Recipe, ResourceRequirement } from '../../types';
-import React, { type FormEvent, useState } from 'react';
-import { generateId } from '../../utils';
+import type { Recipe } from '../../types';
+import React from 'react';
 import { useResources } from '../../hooks/useResources';
 import { useAppForm } from '../../hooks/form';
 import { recipeSchema } from '../../schemas';
-import { useStore } from '@tanstack/react-form';
 import { ResourceRequirementFields } from './ResourceRequirementFields';
 
 interface RecipeFormProps {
@@ -75,7 +73,10 @@ export const RecipeForm: React.FC<RecipeFormProps> = ({
                         <ResourceRequirementFields
                           key={i}
                           form={form}
-                          fields={`requires[${i}]`}
+                          fields={{
+                            resourceId: `requires[${i}].resourceId`,
+                            amount: `requires[${i}].amount`,
+                          }}
                           resources={resources}
                         />
                         <button

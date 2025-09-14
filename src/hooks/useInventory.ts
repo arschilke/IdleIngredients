@@ -1,4 +1,3 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import {
   type Inventory,
@@ -11,10 +10,11 @@ import {
   type Factory,
   type DestinationStep,
   type Train,
+  ResourceRequirement,
+  Recipe,
 } from '../types';
 import { useFactories } from './useFactories';
 import { useTrains } from './useTrains';
-import { useOrder, useOrders } from './useOrders';
 
 // Query keys
 export const inventoryKeys = {
@@ -52,7 +52,7 @@ const calculateStepInventoryChange = (
       return calculateSubmitStepChanges(step, order);
 
     default:
-      console.warn(`Unknown step type: ${(step as any).type}`);
+      //console.warn(`Unknown step type: ${(step as any).type}`);
       return changes;
   }
 };
@@ -62,16 +62,16 @@ const calculateStepInventoryChange = (
  */
 const calculateFactoryStepChanges = (
   step: Step,
-  factories: Record<string, any>
+  factories: Record<string, Factory>
 ): Map<string, number> => {
   const changes: Map<string, number> = new Map();
 
   const recipe = Object.values(factories)
-    .flatMap((f: any) => f.recipes)
-    .find((r: any) => r.resourceId === step.resourceId);
+    .flatMap(f => f.recipes)
+    .find(r => r.resourceId === step.resourceId);
 
   if (!recipe) {
-    console.warn(`Recipe not found for resource: ${step.resourceId}`);
+    //console.warn(`Recipe not found for resource: ${step.resourceId}`);
     return changes;
   }
 
@@ -79,7 +79,7 @@ const calculateFactoryStepChanges = (
   changes.set(step.resourceId, recipe.outputAmount);
 
   // Add inputs (negative change)
-  recipe.requires.forEach((requirement: any) => {
+  recipe.requires.forEach((requirement: ResourceRequirement) => {
     changes.set(requirement.resourceId, -requirement.amount);
   });
 
@@ -155,41 +155,23 @@ const calculateSubmitStepChanges = (
 };
 
 /**
- * Hook to calculate inventory changes for a single step
- */
-export const useStepInventoryChanges = (step: Step, order?: Order) => {
-  const { data: factories } = useFactories();
-  const { data: trains } = useTrains();
-
-  return useQuery({
-    queryKey: inventoryKeys.stepChanges(step.id),
-    queryFn: () => {
-      if (!factories || !trains) return new Map();
-      return calculateStepInventoryChange(step, order, factories, trains);
-    },
-    enabled: !!factories && !!trains,
-    staleTime: 1000 * 60 * 5, // 5 minutes
-  });
-};
-
-/**
  * Hook to calculate inventory changes for a planning level
  */
-export const useLevelInventoryChanges = (
-  level: PlanningLevel
+export const getInventoryChanges = (
+  level: PlanningLevel,
+  factories: Record<string, Factory>,
+  trains: Record<string, Train>,
+  orders: Order[]
 ) => {
-  const { data: factories } = useFactories();
-  const { data: trains } = useTrains();
-
   const inventoryChanges = new Map<string, number>();
 
   level.steps.forEach(step => {
     let order: Order | undefined;
     if (step.type === StepType.Submit) {
-      order = useOrder(step.orderId).data;
+      order = orders.find(o => o.id === step.orderId);
     }
 
-    calculateStepInventoryChange(step, order, factories!, trains!).forEach(
+    calculateStepInventoryChange(step, order, factories, trains).forEach(
       (value, key) => {
         inventoryChanges.set(key, (inventoryChanges.get(key) || 0) + value);
       }
@@ -206,32 +188,24 @@ export const calculateInventoryAtLevel = (
   productionPlan: ProductionPlan,
   levelNumber: number
 ) => {
-  return useQuery({
-    queryKey: inventoryKeys.atLevel(levelNumber),
-    queryFn: () => {
-      // Initialize inventory
-      const inventory: Inventory = {};
+  const inventory: Inventory = {};
 
-      // Get all level numbers, sort them in ascending order
-      const sortedLevels = Object.keys(productionPlan.levels)
-        .map(Number)
-        .filter(lvl => lvl <= levelNumber)
-        .sort((a, b) => a - b);
+  // Get all level numbers, sort them in ascending order
+  const sortedLevels = Object.keys(productionPlan.levels)
+    .map(Number)
+    .filter(lvl => lvl <= levelNumber)
+    .sort((a, b) => a - b);
 
-      // Step through each level in order, applying inventory changes
-      for (const lvl of sortedLevels) {
-        const level = productionPlan.levels[lvl];
-        if (!level) continue;
-        for (const [resourceId, change] of level.inventoryChanges.entries()) {
-          inventory[resourceId] += change;
-        }
-      }
+  // Step through each level in order, applying inventory changes
+  for (const lvl of sortedLevels) {
+    const level = productionPlan.levels[lvl];
+    if (!level) continue;
+    for (const [resourceId, change] of level.inventoryChanges.entries()) {
+      inventory[resourceId] += change;
+    }
+  }
 
-      return inventory;
-    },
-    staleTime: 1000 * 60 * 5, // 5 minutes
-    enabled: !!productionPlan,
-  });
+  return inventory;
 };
 
 /**
@@ -245,13 +219,13 @@ export const useStepOutputAmount = (step: Step) => {
     if (!factories || !trains) return 0;
 
     if (step.type === StepType.Destination) {
-      const train = trains[(step as any).trainId];
+      const train = trains[(step as DestinationStep).trainId];
       return train?.capacity ?? 0;
     }
     if (step.type === StepType.Factory) {
       const recipe = Object.values(factories)
-        .flatMap((f: any) => f.recipes)
-        .find((r: any) => r.resourceId === step.resourceId);
+        .flatMap(f => f.recipes)
+        .find(r => r.resourceId === step.resourceId);
       return recipe?.outputAmount ?? 0;
     }
     return 0;
@@ -261,29 +235,33 @@ export const useStepOutputAmount = (step: Step) => {
 /**
  * Hook to get step input amounts
  */
-export const useStepInputAmounts = (step: Step) => {
-  const { data: factories } = useFactories();
-  const { data: trains } = useTrains();
-
+export const useStepInputAmounts = (
+  step: Step,
+  factories: Record<string, Factory>,
+  trains: Record<string, Train>
+) => {
   return useMemo(() => {
     if (!factories || !trains) return new Map();
 
     if (step.type === StepType.Factory) {
       const recipe = Object.values(factories)
-        .flatMap((f: any) => f.recipes)
-        .find((r: any) => r.resourceId === step.resourceId);
+        .flatMap(f => f.recipes)
+        .find((r: Recipe) => r.resourceId === step.resourceId);
 
       if (!recipe) return new Map();
 
       return new Map(
-        recipe.requires.map((req: any) => [req.resourceId, req.amount])
+        recipe.requires.map((req: ResourceRequirement) => [
+          req.resourceId,
+          req.amount,
+        ])
       );
     }
     if (step.type === StepType.Delivery) {
-      const train = trains[(step as any).trainId];
+      const train = trains[(step as DeliveryStep).trainId];
       if (!train) return new Map();
 
-      return new Map([[(step as any).resourceId, train.capacity]]);
+      return new Map([[(step as DeliveryStep).resourceId, train.capacity]]);
     }
     return new Map();
   }, [step, factories, trains]);
