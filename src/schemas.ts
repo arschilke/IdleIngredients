@@ -163,7 +163,9 @@ export const levelSchema = object({
   level: number().required(),
   done: boolean().required(),
   steps: array().of(stepSchema).required(),
-  inventoryChanges: mixed<Map<string, number>>().required(),
+  inventoryChanges: mixed<Map<string, number>>()
+    .required()
+    .default(new Map<string, number>()),
 });
 
 export const productionPlanSchema: ObjectSchema<ProductionPlan> = object({

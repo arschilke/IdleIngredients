@@ -1,9 +1,8 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import type { Inventory, ProductionPlan, Resource } from '../../../types';
-import { useInventoryAtLevel } from '../../../hooks/useProductionPlan';
+import { calculateInventoryAtLevel } from '../../../hooks/useProductionPlan';
 
 interface CurrentInventoryProps {
-  inventory?: Inventory; // Made optional since we'll calculate it
   resources: Record<string, Resource>;
   activeLevel: number;
   productionPlan: ProductionPlan | null;
@@ -13,13 +12,18 @@ export const CurrentInventory: React.FC<CurrentInventoryProps> = ({
   resources,
   activeLevel,
   productionPlan,
-  inventory: propInventory,
 }) => {
   // Use React Query to get inventory at the current level
-  const { data: calculatedInventory = {} } = useInventoryAtLevel(activeLevel);
+  const { data: inventory = {} as Inventory, isLoading: inventoryLoading } =
+    useMemo(
+      () => calculateInventoryAtLevel(activeLevel, productionPlan!),
+      [activeLevel, productionPlan]
+    );
 
-  // Use prop inventory if provided, otherwise use calculated inventory
-  const inventory = propInventory || calculatedInventory;
+  if (inventoryLoading) {
+    return <div>Loading...</div>;
+  }
+
   const isDone = productionPlan?.levels[activeLevel]?.done ?? false;
 
   const getResourceNumberColor = (
@@ -136,7 +140,7 @@ export const CurrentInventory: React.FC<CurrentInventoryProps> = ({
                       <div className="d-flex justify-content-center flex-column">
                         <div className="flex-shrink-1">
                           <img
-                            src={`/Assets/${resource.icon}`}
+                            src={`${resource.icon}`}
                             alt={resource.name}
                             className="img-fluid"
                           />

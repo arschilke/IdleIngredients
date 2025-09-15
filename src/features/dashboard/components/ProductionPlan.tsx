@@ -142,7 +142,7 @@ export const ProductionPlan: React.FC<ProductionPlanProps> = ({
     const newLevel: PlanningLevel = {
       level: insertBeforeLevel,
       steps: [],
-      inventoryChanges: new Map(),
+      inventoryChanges: new Map<string, number>(),
       done: false,
     };
 

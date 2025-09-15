@@ -1,5 +1,5 @@
 import { useStore } from '@tanstack/react-form';
-import { useFieldContext, useFormContext } from '../../hooks/formContext';
+import { useFieldContext } from '../../hooks/formContext';
 import { formatTime } from '../../utils';
 
 export function TextField({ label }: { label: string }) {
@@ -52,7 +52,6 @@ export function NumberField({ label }: { label: string }) {
 export function SelectField<T extends { id: string; name: string }>({
   label,
   options,
-  multiple,
 }: {
   label: string;
   options: T[];
@@ -64,9 +63,11 @@ export function SelectField<T extends { id: string; name: string }>({
 
   return (
     <div className="mb-1">
-      <label className="form-label">{label}</label>
+      <label className="form-label" htmlFor={field.name}>
+        {label}
+      </label>
       <select
-        multiple={multiple}
+        id={field.name}
         className="form-control"
         value={field.state.value}
         onChange={e => field.handleChange(e.target.value)}
@@ -87,22 +88,48 @@ export function SelectField<T extends { id: string; name: string }>({
   );
 }
 
-export function SubscribeButton({
-  icon,
+export function MultiSelectField<T extends { id: string; name: string }>({
   label,
+  options,
 }: {
-  icon: string;
   label: string;
+  options: T[];
 }) {
-  const form = useFormContext();
+  const field = useFieldContext<string[]>();
+
+  const errors = useStore(field.store, state => state.meta.errors);
+
   return (
-    <form.Subscribe selector={state => state.isSubmitting}>
-      {isSubmitting => (
-        <button disabled={isSubmitting} className="btn btn-primary">
-          <i className={'bi ' + icon}></i> {label}
-        </button>
-      )}
-    </form.Subscribe>
+    <div className="mb-1">
+      <label className="form-label" htmlFor={field.name}>
+        {label}
+      </label>
+      <select
+        multiple={true}
+        id={field.name}
+        className="form-control"
+        value={field.state.value}
+        onChange={e =>
+          field.handleChange(
+            Array.from(e.target.options)
+              .filter(option => option.selected)
+              .map(option => option.value)
+          )
+        }
+        onBlur={field.handleBlur}
+      >
+        {options.map(option => (
+          <option key={option.id} value={option.id}>
+            {option.name}
+          </option>
+        ))}
+      </select>
+      {errors.map((error: string) => (
+        <div key={error} style={{ color: 'red' }}>
+          {error}
+        </div>
+      ))}
+    </div>
   );
 }
 

@@ -28,6 +28,34 @@ export const ResourceManager = () => {
   const { data: destinations = {}, isLoading: destinationsLoading } =
     useDestinations();
 
+  const [isAddingRecipe, setIsAddingRecipe] = useState(-1);
+  const [isAddingResource, setIsAddingResource] = useState(false);
+  const [isAddingDestination, setIsAddingDestination] = useState(false);
+  const [isAddingFactory, setIsAddingFactory] = useState(false);
+
+  const { mutate: addResource } = useAddResource();
+  const { mutate: updateFactory } = useUpdateFactory();
+  const { mutate: addFactory } = useAddFactory();
+  const { mutate: addDestination } = useAddDestination();
+
+  const handleAddResource = (resource: Resource) => {
+    addResource(resource);
+  };
+
+  const handleAddRecipe = (factoryId: string, recipe: Recipe) => {
+    const factory = factories[factoryId];
+    factory.recipes.push(recipe);
+    updateFactory(factory);
+  };
+
+  const handleAddFactory = (factory: Factory) => {
+    addFactory(factory);
+  };
+
+  const handleAddDestination = (destination: Destination) => {
+    addDestination(destination);
+  };
+
   if (resourcesLoading || factoriesLoading || destinationsLoading) {
     return (
       <div className="app">
@@ -38,29 +66,6 @@ export const ResourceManager = () => {
       </div>
     );
   }
-
-  const [isAddingRecipe, setIsAddingRecipe] = useState(-1);
-  const [isAddingResource, setIsAddingResource] = useState(false);
-  const [isAddingDestination, setIsAddingDestination] = useState(false);
-  const [isAddingFactory, setIsAddingFactory] = useState(false);
-
-  const handleAddResource = (resource: Resource) => {
-    useAddResource().mutate(resource);
-  };
-
-  const handleAddRecipe = (factoryId: string, recipe: Recipe) => {
-    const factory = factories[factoryId];
-    factory.recipes.push(recipe);
-    useUpdateFactory().mutate(factory);
-  };
-
-  const handleAddFactory = (factory: Factory) => {
-    useAddFactory().mutate(factory);
-  };
-
-  const handleAddDestination = (destination: Destination) => {
-    useAddDestination().mutate(destination);
-  };
 
   const resetResourceForm = () => {
     setIsAddingResource(false);
@@ -75,10 +80,6 @@ export const ResourceManager = () => {
 
   const resetDestinationForm = () => {
     setIsAddingDestination(false);
-  };
-
-  const getResourceName = (resourceId: string): string => {
-    return resources[resourceId]?.name || resourceId;
   };
 
   return (
@@ -112,7 +113,7 @@ export const ResourceManager = () => {
                     <h5>{resource.name}</h5>
                     <img
                       className="img-fluid"
-                      src={`/Assets/${resource.icon}`}
+                      src={`${resource.icon}`}
                       alt={resource.name}
                     />
                   </div>

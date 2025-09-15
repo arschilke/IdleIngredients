@@ -5,7 +5,7 @@ import type {
   Train,
   Order,
   ProductionPlan,
-} from '../../types';
+} from '../types';
 
 // Storage keys
 const STORAGE_KEYS = {
@@ -109,9 +109,13 @@ export const loadProductionPlanFromStorage = (): ProductionPlan | null => {
           Object.values(parsed.levels).forEach((level: any) => {
             if (
               level.inventoryChanges &&
-              Array.isArray(level.inventoryChanges)
+              typeof level.inventoryChanges === 'object'
             ) {
-              level.inventoryChanges = new Map(level.inventoryChanges);
+              const newMap = new Map<string, number>();
+              Object.entries(level.inventoryChanges).forEach(([key, value]) => {
+                newMap.set(key, value as number);
+              });
+              level.inventoryChanges = newMap;
             }
           });
         }

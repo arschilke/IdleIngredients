@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { Resource } from '../../types';
+import type { Resource } from '../types';
 import {
   loadResourcesFromStorage,
   saveResourcesToStorage,
@@ -33,17 +33,7 @@ export const useResources = () => {
   });
 };
 
-export const useResource = (id: string) => {
-  return useQuery({
-    queryKey: resourceKeys.id(id),
-    queryFn: async () => {
-      await ensureLocalStorageData();
-      return loadResourcesFromStorage()[id];
-    },
-  });
-};
-
-export const useUpdateResource = (resource: Resource) => {
+export const useUpdateResource = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (resource: Resource) => {

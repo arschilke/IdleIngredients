@@ -7,28 +7,20 @@ import { Navbar } from '../../components/layout/Navbar';
 import type { Order, ProductionPlan as ProductionPlanType } from '../../types';
 import '../../styles.scss';
 import { Db } from '../../db';
-import { useOrders, useAddOrder, useUpdateOrders } from '../../hooks/useOrders';
+import { useAddOrder, useUpdateOrders } from '../../hooks/useOrders';
 import {
   useProductionPlan,
   useUpdateProductionPlan,
   useClearProductionPlan,
 } from '../../hooks/useProductionPlan';
 import { useResources } from '../../hooks/useResources';
-import { useFactories } from '../../hooks/useFactories';
-import { useTrains } from '../../hooks/useTrains';
-import { useDestinations } from '../../hooks/useDestinations';
 
 const Dashboard = () => {
   const [activeLevel, setActiveLevel] = useState<number>(1);
 
   // React Query hooks
-  const { data: orders = [], isLoading: ordersLoading } = useOrders();
   const { data: productionPlan, isLoading: planLoading } = useProductionPlan();
   const { data: resources = {}, isLoading: resourcesLoading } = useResources();
-  const { data: factories = {}, isLoading: factoriesLoading } = useFactories();
-  const { data: destinations = {}, isLoading: destinationsLoading } =
-    useDestinations();
-  const { data: trains = {}, isLoading: trainsLoading } = useTrains();
 
   const addOrderMutation = useAddOrder();
   const updateOrdersMutation = useUpdateOrders();
@@ -56,14 +48,7 @@ const Dashboard = () => {
   };
 
   // Show loading state while data is being fetched
-  if (
-    ordersLoading ||
-    planLoading ||
-    resourcesLoading ||
-    factoriesLoading ||
-    destinationsLoading ||
-    trainsLoading
-  ) {
+  if (planLoading || resourcesLoading) {
     return (
       <div className="app">
         <Navbar />
@@ -87,7 +72,7 @@ const Dashboard = () => {
       1: {
         level: 1,
         steps: [],
-        inventoryChanges: new Map(),
+        inventoryChanges: new Map<string, number>(),
         done: false,
       },
     },
@@ -104,9 +89,6 @@ const Dashboard = () => {
 
         <div className="current-orders">
           <CurrentOrders
-            orders={orders}
-            resources={resources}
-            trains={trains}
             productionPlan={currentProductionPlan}
             activeLevel={activeLevel}
             onProductionPlanChange={handleProductionPlanChange}
@@ -123,14 +105,9 @@ const Dashboard = () => {
         </div>
         <div className="production-plan">
           <ProductionPlan
-            factories={factories}
-            destinations={destinations}
             productionPlan={currentProductionPlan}
             activeLevel={activeLevel}
-            trains={trains}
             maxConcurrentTrains={Db.maxConcurrentTrains}
-            resources={resources}
-            orders={orders}
             onActiveLevelChange={handleActiveLevelChange}
             onProductionPlanChange={handleProductionPlanChange}
             onOrdersChange={handleOrdersChange}
@@ -141,7 +118,6 @@ const Dashboard = () => {
         <div className="current-inventory">
           <CurrentInventory
             resources={resources}
-            inventory={{}}
             activeLevel={activeLevel}
             productionPlan={currentProductionPlan}
           />

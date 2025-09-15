@@ -1,4 +1,6 @@
 import { TrainClass, type Destination, Country } from '../../types';
+import { generateId } from '../../utils';
+import { useDestinations } from '../../hooks/useDestinations';
 import { useResources } from '../../hooks/useResources';
 import { useAppForm } from '../../hooks/form';
 import { destinationSchema } from '../../schemas';
@@ -37,6 +39,7 @@ export const DestinationForm: React.FC<DestinationFormProps> = ({
       onSubmit(result);
     },
   });
+  
 
   return (
     <div className="card mb-2">

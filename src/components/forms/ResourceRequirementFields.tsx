@@ -16,6 +16,7 @@ export const ResourceRequirementFields = withFieldGroup({
           name="resourceId"
           children={field => (
             <select
+              id={field.name}
               className="form-select form-select-sm flex-grow-1"
               value={field.state.value}
               onChange={e => field.handleChange(e.target.value)}
@@ -34,9 +35,9 @@ export const ResourceRequirementFields = withFieldGroup({
           name="amount"
           children={field => (
             <input
+              id={field.name}
               type="number"
-              className="form-control form-control-sm"
-              style={{ width: '100px' }}
+              className="form-control form-control-sm form-shrink-1"
               min="1"
               value={field.state.value}
               onChange={e => field.handleChange(Number(e.target.value))}

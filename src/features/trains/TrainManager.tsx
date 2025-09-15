@@ -15,11 +15,19 @@ export const TrainManager = () => {
 
   const { data: trains = {}, isLoading: trainsLoading } = useTrains();
 
+  const { mutate: addTrain } = useAddTrain();
+  const { mutate: updateTrain } = useUpdateTrain();
+  const { mutate: removeTrain } = useRemoveTrain();
+
+  if (trainsLoading) {
+    return <div>Loading...</div>;
+  }
+
   const handleSubmit = (train: Train) => {
     if (editingId) {
-      useUpdateTrain().mutate(train);
+      updateTrain(train);
     } else {
-      useAddTrain().mutate(train);
+      addTrain(train);
     }
     setIsAdding(false);
     setEditingId(null);
@@ -32,7 +40,7 @@ export const TrainManager = () => {
 
   const deleteTrain = (id: string) => {
     if (confirm('Are you sure you want to delete this train?')) {
-      useRemoveTrain().mutate(id);
+      removeTrain(id);
     }
   };
 
@@ -80,7 +88,7 @@ export const TrainManager = () => {
         <div className="trains-list">
           <div className="row">
             {Object.values(Country).map(country => (
-              <div className="col">
+              <div className="col" key={country}>
                 <h4>{country.toLocaleUpperCase()}</h4>
                 <div className="row row-cols-auto row-cols-md-2 g-2">
                   {Object.values(trains)

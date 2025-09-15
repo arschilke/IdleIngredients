@@ -23,7 +23,7 @@ export const ResourceForm: React.FC<ResourceFormProps> = ({
       id: resource?.id ?? generateId('resource'),
     },
     validators: {
-      onChange: resourceSchema,
+      onDynamic: resourceSchema,
     },
     onSubmit: ({ value }) => {
       const result = resourceSchema.cast(value);
@@ -61,23 +61,27 @@ export const ResourceForm: React.FC<ResourceFormProps> = ({
             children={field => <field.TextField label="Icon" />}
           />
 
-          <div className="d-flex gap-2 mt-4">
-            <form.SubscribeButton
-              icon="bi-check-lg"
-              label={isAddMode ? 'Add Resource' : 'Save Changes'}
-            />
-            <button
-              type="button"
-              className="btn btn-outline-secondary"
-              onClick={() => {
-                onClose();
-                form.reset();
-              }}
-            >
-              <i className="bi bi-x-lg me-1"></i>
-              Cancel
-            </button>
-          </div>
+          <form.Subscribe
+            selector={state => [state.canSubmit, state.isSubmitting]}
+            children={([canSubmit, isSubmitting]) => (
+              <div className="d-flex gap-2 mt-4">
+                <button type="submit" disabled={!canSubmit}>
+                  {isSubmitting ? '...' : 'Submit'}
+                </button>
+                <button
+                  type="reset"
+                  onClick={e => {
+                    // Avoid unexpected resets of form elements (especially <select> elements)
+                    e.preventDefault();
+                    onClose();
+                    form.reset();
+                  }}
+                >
+                  Reset
+                </button>
+              </div>
+            )}
+          />
         </form>
       </div>
     </div>

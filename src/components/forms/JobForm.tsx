@@ -94,12 +94,7 @@ export const JobForm: React.FC<JobFormProps> = ({
         </h5>
       </div>
       <div className="card-body">
-        <form
-          onSubmit={e => {
-            e.preventDefault();
-            form.handleSubmit();
-          }}
-        >
+        <form.AppForm>
           <form.AppField
             name="type"
             children={field => (
@@ -191,7 +186,7 @@ export const JobForm: React.FC<JobFormProps> = ({
               Cancel
             </button>
           </div>
-        </form>
+        </form.AppForm>
       </div>
     </div>
   );

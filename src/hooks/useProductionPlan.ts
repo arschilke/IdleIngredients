@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import type { ProductionPlan as ProductionPlanType } from '../types';
+import type { Inventory, ProductionPlan as ProductionPlanType } from '../types';
 import {
   saveProductionPlanToStorage,
   loadProductionPlanFromStorage,
@@ -17,7 +17,7 @@ const defaultProductionPlan: ProductionPlanType = {
     1: {
       level: 1,
       steps: [],
-      inventoryChanges: new Map(),
+      inventoryChanges: new Map<string, number>(),
       done: false,
     },
   },
@@ -68,22 +68,28 @@ export const useUpdateProductionPlan = () => {
 };
 
 // Hook to get inventory at a specific level
-export const useInventoryAtLevel = (level: number) => {
-  const queryClient = useQueryClient();
+export const calculateInventoryAtLevel = (
+  level: number,
+  productionPlan: ProductionPlanType
+) => {
+  const inventory: Inventory = {};
 
-  return useQuery({
-    queryKey: productionPlanKeys.inventory(level),
-    queryFn: async () => {
-      const productionPlan = queryClient.getQueryData<ProductionPlanType>(
-        productionPlanKeys.current()
-      );
-      if (!productionPlan) {
-        return {};
-      }
-    },
-    enabled: level > 0,
-    staleTime: 1000 * 30, // 30 seconds
-  });
+  // Get all level numbers, sort them in ascending order
+  const sortedLevels = Object.keys(productionPlan.levels)
+    .map(Number)
+    .filter(lvl => lvl <= level)
+    .sort((a, b) => a - b);
+
+  // Step through each level in order, applying inventory changes
+  for (const lvl of sortedLevels) {
+    const level = productionPlan.levels[lvl];
+    if (!level) continue;
+    for (const [resourceId, change] of level.inventoryChanges.entries()) {
+      inventory[resourceId] += change;
+    }
+  }
+
+  return inventory;
 };
 
 // Hook to clear production plan

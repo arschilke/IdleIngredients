@@ -33,7 +33,7 @@ export const OrderForm = ({ resources, onSubmit }: OrderFormProps) => {
       resources: ResourceRequirement[];
     },
     validators: {
-      onChange: orderSchema,
+      onSubmitAsync: orderSchema,
     },
     onSubmit: ({ value }) => {
       const formData = orderSchema.cast(value);
@@ -66,7 +66,7 @@ export const OrderForm = ({ resources, onSubmit }: OrderFormProps) => {
                 label="Order Type"
                 options={Object.values(OrderType).map(type => ({
                   id: type,
-                  name: type,
+                  name: type.charAt(0).toUpperCase() + type.slice(1),
                 }))}
               />
             )}
@@ -111,7 +111,7 @@ export const OrderForm = ({ resources, onSubmit }: OrderFormProps) => {
                     <form.AppField
                       name="classes"
                       children={field => (
-                        <field.SelectField
+                        <field.MultiSelectField
                           label="Train Classes"
                           options={Object.values(TrainClass).map(
                             trainClass => ({
@@ -121,7 +121,6 @@ export const OrderForm = ({ resources, onSubmit }: OrderFormProps) => {
                                 trainClass.slice(1),
                             })
                           )}
-                          multiple={true}
                         />
                       )}
                     />
@@ -148,7 +147,9 @@ export const OrderForm = ({ resources, onSubmit }: OrderFormProps) => {
           <form.AppField name="resources" mode="array">
             {field => (
               <div className="mb-1">
-                <label className="form-label">Resources Required:</label>
+                <label className="form-label" htmlFor="resources">
+                  Resources Required:
+                </label>
                 {field.state.value.map((_, i) => (
                   <div key={i} className="d-flex gap-2 mb-2">
                     <ResourceRequirementFields
@@ -184,7 +185,11 @@ export const OrderForm = ({ resources, onSubmit }: OrderFormProps) => {
           <form.Subscribe
             selector={state => [state.canSubmit, state.isSubmitting]}
             children={([canSubmit, isSubmitting]) => (
-              <button type="submit" disabled={!canSubmit}>
+              <button
+                className="btn btn-primary"
+                type="submit"
+                disabled={!canSubmit}
+              >
                 {isSubmitting ? '...' : 'Create Order'}
               </button>
             )}

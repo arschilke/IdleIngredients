@@ -41,12 +41,7 @@ export const TrainForm: React.FC<TrainFormProps> = ({
         </h5>
       </div>
       <div className="card-body">
-        <form
-          onSubmit={e => {
-            e.preventDefault();
-            form.handleSubmit();
-          }}
-        >
+        <form.AppForm>
           <form.AppField
             name="name"
             children={field => <field.TextField label="Train Name" />}
@@ -112,7 +107,7 @@ export const TrainForm: React.FC<TrainFormProps> = ({
               Cancel
             </button>
           </div>
-        </form>
+        </form.AppForm>
       </div>
     </div>
   );

@@ -26,7 +26,7 @@ export const RecipeForm: React.FC<RecipeFormProps> = ({
       requires: recipe?.requires ?? [{ resourceId: '', amount: 0 }],
     },
     validators: {
-      onChange: recipeSchema,
+      onDynamic: recipeSchema,
     },
     onSubmit: ({ value }) => {
       const result = recipeSchema.cast(value);
@@ -65,31 +65,45 @@ export const RecipeForm: React.FC<RecipeFormProps> = ({
           <form.AppField name="requires" mode="array">
             {field => {
               return (
-                <div className="mb-1">
-                  <label htmlFor="requirements">Requirements:</label>
-                  {field.state.value.map((_, i) => {
-                    return (
-                      <>
-                        <ResourceRequirementFields
-                          key={i}
-                          form={form}
-                          fields={{
-                            resourceId: `requires[${i}].resourceId`,
-                            amount: `requires[${i}].amount`,
-                          }}
-                          resources={resources}
-                        />
-                        <button
-                          type="button"
-                          className="btn btn-outline-danger btn-sm"
-                          onClick={() => field.removeValue(i)}
-                        >
-                          <i className="bi bi-trash"></i>
-                        </button>
-                      </>
-                    );
-                  })}
-                </div>
+                <>
+                  <div className="mb-1">
+                    <label htmlFor="requirements">Requirements:</label>
+                    {field.state.value.map((_, i) => {
+                      return (
+                        <div key={i} className="d-flex gap-2 mb-2">
+                          <ResourceRequirementFields
+                            form={form}
+                            fields={{
+                              resourceId: `requires[${i}].resourceId`,
+                              amount: `requires[${i}].amount`,
+                            }}
+                            resources={resources}
+                          />
+                          <button
+                            type="button"
+                            className="btn btn-outline-danger btn-sm"
+                            onClick={() => field.removeValue(i)}
+                          >
+                            <i className="bi bi-trash"></i>
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      field.pushValue({
+                        resourceId: '',
+                        amount: 0,
+                      })
+                    }
+                    className="btn btn-outline-secondary btn-sm"
+                  >
+                    <i className="bi bi-plus me-1"></i>
+                    Add Requirement
+                  </button>
+                </>
               );
             }}
           </form.AppField>
@@ -105,21 +119,27 @@ export const RecipeForm: React.FC<RecipeFormProps> = ({
           />
 
           <div className="d-flex gap-2 mt-4">
-            <form.SubscribeButton
-              icon="bi-check-lg"
-              label={isAddMode ? 'Add Recipe' : 'Save Changes'}
+            <form.Subscribe
+              selector={state => [state.canSubmit, state.isSubmitting]}
+              children={([canSubmit, isSubmitting]) => (
+                <>
+                  <button type="submit" disabled={!canSubmit}>
+                    {isSubmitting ? '...' : 'Submit'}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-outline-secondary"
+                    onClick={() => {
+                      onClose();
+                      form.reset();
+                    }}
+                  >
+                    <i className="bi bi-x-lg me-1"></i>
+                    Cancel
+                  </button>
+                </>
+              )}
             />
-            <button
-              type="button"
-              className="btn btn-outline-secondary"
-              onClick={() => {
-                onClose();
-                form.reset();
-              }}
-            >
-              <i className="bi bi-x-lg me-1"></i>
-              Cancel
-            </button>
           </div>
         </form>
       </div>
