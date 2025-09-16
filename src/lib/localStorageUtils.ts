@@ -15,6 +15,7 @@ const STORAGE_KEYS = {
   TRAINS: 'idle-ingredients-trains',
   ORDERS: 'idle-ingredients-orders',
   PRODUCTION_PLAN: 'idle-ingredients-production-plan',
+  INITIAL_INVENTORY: 'idle-ingredients-initial-inventory',
 } as const;
 
 // Generic localStorage utilities
@@ -126,6 +127,18 @@ export const loadProductionPlanFromStorage = (): ProductionPlan | null => {
     console.error('Failed to load production plan from localStorage:', error);
   }
   return null;
+};
+
+// Initial Inventory
+export const saveInitialInventoryToStorage = (
+  inventory: Map<string, number>
+): void => {
+  saveToStorage(STORAGE_KEYS.INITIAL_INVENTORY, Object.fromEntries(inventory));
+};
+export const loadInitialInventoryFromStorage = (): Map<string, number> => {
+  return new Map<string, number>(
+    Object.entries(loadFromStorage(STORAGE_KEYS.INITIAL_INVENTORY, {}))
+  );
 };
 
 // Initialize default data if not exists

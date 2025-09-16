@@ -7,11 +7,13 @@ import { ResourceRequirementFields } from './ResourceRequirementFields';
 
 interface RecipeFormProps {
   recipe?: Recipe;
+  factoryId?: string;
   onSubmit: (recipe: Recipe) => void;
   onClose: () => void;
 }
 export const RecipeForm: React.FC<RecipeFormProps> = ({
   recipe,
+  factoryId,
   onSubmit,
   onClose,
 }) => {
@@ -23,6 +25,7 @@ export const RecipeForm: React.FC<RecipeFormProps> = ({
       resourceId: recipe?.resourceId ?? '',
       timeRequired: recipe?.timeRequired ?? 0,
       outputAmount: recipe?.outputAmount ?? 0,
+      factoryId: recipe?.factoryId ?? factoryId,
       requires: recipe?.requires ?? [{ resourceId: '', amount: 0 }],
     },
     validators: {
@@ -49,6 +52,12 @@ export const RecipeForm: React.FC<RecipeFormProps> = ({
             form.handleSubmit();
           }}
         >
+          <form.AppField
+            name="factoryId"
+            children={field => (
+              <input type="hidden" name="factoryId" value={field.state.value} />
+            )}
+          />
           <form.AppField
             name="resourceId"
             children={field => (

@@ -1,30 +1,35 @@
-import React, { useMemo } from 'react';
-import type { Inventory, ProductionPlan, Resource } from '../../../types';
+import React, { useState } from 'react';
+import type { ProductionPlan, Resource } from '../../../types';
 import { calculateInventoryAtLevel } from '../../../hooks/useProductionPlan';
+import { InventoryForm } from '../../../components/forms/InventoryForm';
 
 interface CurrentInventoryProps {
   resources: Record<string, Resource>;
   activeLevel: number;
   productionPlan: ProductionPlan | null;
+  initialInventory: Map<string, number>;
+  onInitialInventoryChange: (inventory: Map<string, number>) => void;
 }
 
 export const CurrentInventory: React.FC<CurrentInventoryProps> = ({
   resources,
   activeLevel,
   productionPlan,
+  initialInventory,
+  onInitialInventoryChange,
 }) => {
-  // Use React Query to get inventory at the current level
-  const { data: inventory = {} as Inventory, isLoading: inventoryLoading } =
-    useMemo(
-      () => calculateInventoryAtLevel(activeLevel, productionPlan!),
-      [activeLevel, productionPlan]
-    );
+  const [showInitialInventoryForm, setShowInitialInventoryForm] =
+    useState(false);
 
-  if (inventoryLoading) {
-    return <div>Loading...</div>;
-  }
+  const editInitialInventory = () => {
+    setShowInitialInventoryForm(true);
+  };
 
-  const isDone = productionPlan?.levels[activeLevel]?.done ?? false;
+  const inventory: Map<string, number> = calculateInventoryAtLevel(
+    initialInventory,
+    activeLevel,
+    productionPlan!
+  );
 
   const getResourceNumberColor = (
     resourceId: string,
@@ -48,34 +53,46 @@ export const CurrentInventory: React.FC<CurrentInventoryProps> = ({
   };
 
   const activeLevelChanges = getActiveLevelInventoryChanges();
-  const currentSize = Object.values(inventory).reduce(
-    (sum, val) => sum + val,
+  const currentSize = Array.from(inventory.values()).reduce(
+    (sum: number, val: number) => sum + val,
     0
   );
 
+  if (showInitialInventoryForm) {
+    return (
+      <InventoryForm
+        initialInventory={initialInventory}
+        onInitialInventoryChange={onInitialInventoryChange}
+        resources={resources}
+        onClose={() => {
+          setShowInitialInventoryForm(false);
+        }}
+      />
+    );
+  }
+
   return (
-    <div className="card">
+    <div className="card h-100 d-flex flex-column">
       <div className="card-header">
-        <h5 className="mb-0">
-          <i className="bi bi-box-seam"></i> Current Inventory
-        </h5>
+        <div className="d-flex justify-content-between align-items-center">
+          <h5 className="card-title">
+            <i className="bi bi-box-seam"></i> Current Inventory
+          </h5>
+          <h4>Level {activeLevel}</h4>
+        </div>
       </div>
-      <div className="card-body">
+      <div className="actions bg-dark p-2">
+        <button
+          className="btn btn-sm btn-outline-primary"
+          onClick={() => {
+            editInitialInventory();
+          }}
+        >
+          Edit Initial Inventory
+        </button>
+      </div>
+      <div className="card-body flex-grow-1 overflow-auto">
         <div className="mb-2">
-          {activeLevel && (
-            <div
-              className={`alert ${isDone ? 'alert-secondary' : 'alert-info'}`}
-            >
-              <small>
-                <i
-                  className={`bi ${isDone ? 'bi-check-circle' : 'bi-info-circle'}`}
-                ></i>
-                {isDone
-                  ? ` Level ${activeLevel} is completed`
-                  : ` Showing inventory at the end of level ${activeLevel}`}
-              </small>
-            </div>
-          )}
           {!activeLevel && productionPlan && (
             <div className="alert alert-warning">
               <small>
@@ -131,7 +148,7 @@ export const CurrentInventory: React.FC<CurrentInventoryProps> = ({
 
         <div className="inventory-grid">
           <div className="row row-cols-6 g-2">
-            {Object.keys(inventory).map(resourceId => {
+            {Array.from(inventory.entries()).map(([resourceId, amount]) => {
               const resource = resources[resourceId];
               return (
                 <div key={resourceId} className="col">
@@ -149,9 +166,9 @@ export const CurrentInventory: React.FC<CurrentInventoryProps> = ({
                           {resource.name}
                         </span>
                         <span
-                          className={`fw-bold ${getResourceNumberColor(resourceId, inventory[resourceId])}`}
+                          className={`fw-bold ${getResourceNumberColor(resourceId, amount)}`}
                         >
-                          {inventory[resourceId]}
+                          {amount}
                         </span>
                       </div>
                     </div>

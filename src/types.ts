@@ -83,7 +83,7 @@ export interface StoryOrder extends BaseOrder {
   type: OrderType.Story;
   travelTime: number;
   classes: TrainClass[];
-  country?: Country;
+  countries: Country[];
 }
 
 export interface BuildingOrder extends BaseOrder {
@@ -141,8 +141,4 @@ export interface ProductionPlan {
   levels: Record<number, PlanningLevel>;
   totalTime: number;
   maxConcurrentWorkers: number;
-}
-
-export interface Inventory {
-  [resourceId: string]: number;
 }

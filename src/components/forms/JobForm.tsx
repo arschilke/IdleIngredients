@@ -79,7 +79,7 @@ export const JobForm: React.FC<JobFormProps> = ({
         TrainClass.Epic,
         TrainClass.Legendary,
       ];
-      countries = [order?.country ?? Country.Britain];
+      countries = order?.countries ?? [Country.Britain];
     }
 
     return getBestTrains(level, 1, trains, classes, countries);

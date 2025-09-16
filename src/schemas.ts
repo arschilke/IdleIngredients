@@ -1,226 +1,376 @@
-import {
-  object,
-  string,
-  number,
-  array,
-  boolean,
-  ObjectSchema,
-  mixed,
-} from 'yup';
-import {
-  StepType,
-  PlanningLevel,
-  ResourceRequirement,
-  Recipe,
-  Factory,
-  Destination,
-  ProductionPlan,
-  TrainClass,
-  Country,
-  Resource,
-  Train,
-  TrainEngine,
-  OrderType,
-} from './types';
+import { z } from 'zod';
+import { StepType, TrainClass, Country, TrainEngine, OrderType } from './types';
 
-export const resourceSchema: ObjectSchema<Resource> = object({
-  id: string().required(),
-  name: string().required(),
-  icon: string().required(),
+export const resourceSchema = z.object({
+  id: z.string().max(100),
+  name: z.string(),
+  icon: z.string(),
 });
 
-export const resourceRequirementSchema: ObjectSchema<ResourceRequirement> =
-  object({
-    resourceId: string().required(),
-    amount: number().required(),
-    delivered: number().optional(),
-  });
+export const resourceDbSchema = {
+  title: 'resource schema',
+  version: 0,
+  description: 'describes a simple resource',
+  primaryKey: 'id',
+  type: 'object',
+  properties: {
+    id: {
+      type: 'string',
+      maxLength: 100,
+    },
+    name: {
+      type: 'string',
+    },
+    icon: {
+      type: 'string',
+    },
+  },
+  required: ['id', 'name', 'icon'],
+};
 
+export const resourceRequirementSchema = z.object({
+  resourceId: z.string(),
+  amount: z.number(),
+  delivered: z.number().optional(),
+});
+
+export const resourceRequirementDbSchema = {
+  title: 'resource requirement schema',
+  version: 0,
+  description: 'describes a simple resource requirement',
+  type: 'object',
+  properties: {
+    resourceId: {
+      type: 'string',
+    },
+    amount: {
+      type: 'number',
+    },
+    delivered: {
+      type: 'number',
+    },
+  },
+  required: ['resourceId', 'amount'],
+};
 // Form schema for OrderForm - flat structure with all fields
-export const orderSchema = object({
-  id: string().required(),
-  type: string().oneOf(Object.values(OrderType)).required(),
-  name: string().required(),
-  resources: array(resourceRequirementSchema).required(),
-  expirationTime: number().when('type', {
-    is: OrderType.Boat,
-    then: schema => schema.required(),
-    otherwise: schema => schema.optional(),
-  }),
-  travelTime: number().when('type', {
-    is: OrderType.Story,
-    then: schema => schema.required(),
-    otherwise: schema => schema.optional(),
-  }),
-  classes: array(string().oneOf(Object.values(TrainClass)).required()).when(
-    'type',
-    {
-      is: OrderType.Story,
-      then: schema => schema.required(),
-      otherwise: schema => schema.optional(),
-    }
-  ),
-  country: string().when('type', {
-    is: OrderType.Story,
-    then: schema => schema.required(),
-    otherwise: schema => schema.optional(),
-  }),
+export const orderSchema = z.object({
+  id: z.string(),
+  type: z.enum(Object.values(OrderType)),
+  name: z.string(),
+  resources: z.array(resourceRequirementSchema),
+  expirationTime: z.number().optional(),
+  travelTime: z.number().optional(),
+  classes: z.array(z.enum(TrainClass)).optional(),
+  countries: z.array(z.enum(Country)).optional(),
 });
 
-export const recipeSchema: ObjectSchema<Recipe> = object({
-  factoryId: string()
-    .required()
-    .test(
-      'factory-id-match',
-      'Factory ID must match factory ID',
-      (value, context) => {
-        const factory = context.parent.id;
-        return factory === value;
-      }
-    ),
-  resourceId: string().required(),
-  timeRequired: number().required(),
-  outputAmount: number().required(),
-  requires: array(resourceRequirementSchema).required(),
+export const orderDbSchema = {
+  title: 'order schema',
+  version: 0,
+  description: 'describes a simple order',
+  primaryKey: 'id',
+  type: 'object',
+  properties: {
+    id: {
+      type: 'string',
+      maxLength: 100,
+    },
+    type: {
+      type: 'string',
+    },
+    name: {
+      type: 'string',
+    },
+    resources: {
+      type: 'array',
+      items: resourceRequirementDbSchema,
+    },
+    expirationTime: {
+      type: 'number',
+    },
+    travelTime: {
+      type: 'number',
+    },
+    classes: {
+      type: 'array',
+      items: {
+        enum: [Object.values(TrainClass)],
+      },
+    },
+    countries: {
+      type: 'array',
+      items: {
+        enum: [Object.values(Country)],
+      },
+    },
+  },
+  required: ['id', 'type', 'name', 'resources'],
+};
+
+export const recipeSchema = z.object({
+  factoryId: z.string(),
+  resourceId: z.string(),
+  timeRequired: z.number(),
+  outputAmount: z.number(),
+  requires: z.array(resourceRequirementSchema),
 });
 
-export const factorySchema: ObjectSchema<Factory> = object({
-  id: string().required(),
-  queueMaxSize: number().required(),
-  name: string().required(),
-  recipes: array(recipeSchema).required(),
+export const recipeDbSchema = {
+  title: 'recipe schema',
+  version: 0,
+  description: 'describes a simple recipe',
+  type: 'object',
+  properties: {
+    factoryId: {
+      type: 'string',
+    },
+    resourceId: {
+      type: 'string',
+    },
+    timeRequired: {
+      type: 'number',
+    },
+    outputAmount: {
+      type: 'number',
+    },
+    requires: {
+      type: 'array',
+      items: resourceRequirementDbSchema,
+    },
+  },
+  required: [
+    'factoryId',
+    'resourceId',
+    'timeRequired',
+    'outputAmount',
+    'requires',
+  ],
+};
+
+export const factorySchema = z.object({
+  id: z.string(),
+  queueMaxSize: z.number(),
+  name: z.string(),
+  recipes: z.array(recipeSchema),
 });
 
-export const destinationSchema: ObjectSchema<Destination> = object({
-  id: string().required(),
-  name: string().required(),
-  travelTime: number().required(),
-  resourceId: string().required(),
-  classes: array(
-    string()
-      .oneOf([
-        TrainClass.Common,
-        TrainClass.Rare,
-        TrainClass.Epic,
-        TrainClass.Legendary,
-      ])
-      .required()
-  ).required(),
-  country: string().oneOf([Country.Britain, Country.Germany]).required(),
+export const factoryDbSchema = {
+  title: 'factory schema',
+  version: 0,
+  description: 'describes a simple factory',
+  primaryKey: 'id',
+  type: 'object',
+  properties: {
+    id: {
+      type: 'string',
+      maxLength: 100,
+    },
+    queueMaxSize: {
+      type: 'number',
+    },
+    name: {
+      type: 'string',
+    },
+    recipes: {
+      type: 'array',
+      items: recipeDbSchema,
+    },
+  },
+  required: ['id', 'queueMaxSize', 'name', 'recipes'],
+};
+
+export const destinationSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  travelTime: z.number(),
+  resourceId: z.string(),
+  classes: z.array(z.enum(TrainClass)),
+  country: z.enum(Country),
 });
 
-export const stepSchema = object({
-  id: string().required(),
-  type: string().oneOf(Object.values(StepType)).required(),
-  name: string().required(),
-  resourceId: string()
-    .required()
-    .test('resource-id-exists', 'Resource ID must exist', (value, context) => {
-      const resources = context.parent.resources;
-      return resources[value] !== undefined;
-    }),
-  levelId: number()
-    .required()
-    .test(
-      'level-id-must-equal-to-parent',
-      'Level ID must equal to parent level ID',
-      (value, context) => {
-        return value === context.parent?.levelId;
-      }
-    ),
-  timeRequired: number().required(),
-  trainId: string()
-    .required()
-    .transform(value => (value == '' ? undefined : value))
-    .when('type', {
-      is: [StepType.Destination, StepType.Delivery],
-      then: schema =>
-        schema
-          .required()
-          .test('train-id-exists', 'Train ID must exist', (value, context) => {
-            const trains = context.parent.trains;
-            return trains[value] !== undefined;
-          }),
-      otherwise: schema => schema,
-    }),
-  orderId: string()
-    .required()
-    .transform(value => (value == '' ? undefined : value))
-    .when('type', {
-      is: [StepType.Delivery, StepType.Submit],
-      then: schema =>
-        schema
-          .required()
-          .test('order-id-exists', 'Order ID must exist', (value, context) => {
-            const orders = context.parent.orders;
-            return orders[value] !== undefined;
-          }),
-      otherwise: schema => schema,
-    }),
+export const destinationDbSchema = {
+  title: 'destination schema',
+  version: 0,
+  description: 'describes a simple destination',
+  primaryKey: 'id',
+  type: 'object',
+  properties: {
+    id: {
+      type: 'string',
+      maxLength: 100,
+    },
+    name: {
+      type: 'string',
+    },
+    travelTime: {
+      type: 'number',
+    },
+    resourceId: {
+      type: 'string',
+    },
+    classes: {
+      type: 'array',
+      items: {
+        enum: [Object.values(TrainClass)],
+      },
+    },
+    country: {
+      type: 'string',
+      enum: [Object.values(Country)],
+    },
+  },
+  required: ['id', 'name', 'travelTime', 'resourceId', 'classes', 'country'],
+};
+
+export const stepSchema = z.object({
+  id: z.string(),
+  type: z.enum(StepType),
+  name: z.string(),
+  resourceId: z.string(),
+  levelId: z.number(),
+  timeRequired: z.number(),
+  trainId: z.string().optional(),
+  orderId: z.string().optional(),
 });
 
-export const levelSchema = object({
-  level: number().required(),
-  done: boolean().required(),
-  steps: array().of(stepSchema).required(),
-  inventoryChanges: mixed<Map<string, number>>()
-    .required()
-    .default(new Map<string, number>()),
+export const stepDbSchema = {
+  title: 'step schema',
+  version: 0,
+  description: 'describes a simple step',
+  primaryKey: 'id',
+  type: 'object',
+  properties: {
+    id: {
+      type: 'string',
+      maxLength: 100,
+    },
+    type: {
+      type: 'string',
+      enum: [Object.values(StepType)],
+    },
+    name: {
+      type: 'string',
+    },
+    resourceId: {
+      type: 'string',
+    },
+    levelId: {
+      type: 'number',
+    },
+    timeRequired: {
+      type: 'number',
+    },
+    trainId: {
+      type: 'string',
+    },
+    orderId: {
+      type: 'string',
+    },
+  },
+  required: ['id', 'type', 'name', 'resourceId', 'levelId', 'timeRequired'],
+};
+
+export const levelSchema = z.object({
+  level: z.number(),
+  done: z.boolean(),
+  steps: z.array(stepSchema),
+  inventoryChanges: z.map(z.string(), z.number()),
 });
 
-export const productionPlanSchema: ObjectSchema<ProductionPlan> = object({
-  maxConcurrentWorkers: number().required(),
-  totalTime: number().required(),
-  levels: mixed<Record<number, PlanningLevel>>()
-    .required()
-    .test(
-      'levels-key-match-id',
-      'Level keys must match their level',
-      async function (levels) {
-        if (!levels) return true;
+export const levelDbSchema = {
+  title: 'level schema',
+  version: 0,
+  description: 'describes a simple level',
+  primaryKey: 'level',
+  type: 'object',
+  properties: {
+    level: {
+      type: 'number',
+    },
+    done: {
+      type: 'boolean',
+    },
+    steps: {
+      type: 'array',
+      items: stepDbSchema,
+    },
+    inventoryChanges: {
+      type: 'object',
+      patternProperties: {
+        '.{1,}': { type: 'number' },
+      },
+    },
+  },
+  required: ['level', 'done', 'steps', 'inventoryChanges'],
+};
 
-        for (const [key, level] of Object.entries(levels)) {
-          const keyNum = parseInt(key);
-          const levelData = level as PlanningLevel;
-
-          // Check if key matches level.level
-          if (isNaN(keyNum) || levelData.level !== keyNum) {
-            return this.createError({
-              message: `Level key "${key}" does not match level.level "${levelData.level}"`,
-              path: `levels.${key}.level`,
-            });
-          }
-        }
-        return true;
-      }
-    )
-    .test(
-      'levels-schema-match',
-      'Level objects must conform to levelSchema',
-      async function (levels) {
-        if (!levels) return true;
-
-        for (const level of Object.values<PlanningLevel>(levels)) {
-          // Validate the level object against levelSchema
-          try {
-            await levelSchema.validate(level, { strict: true });
-          } catch (validationError) {
-            return this.createError({
-              message: `Level validation failed: ${validationError.message}`,
-              path: `levels.${level.level}`,
-            });
-          }
-        }
-        return true;
-      }
-    ),
+export const productionPlanSchema = z.object({
+  maxConcurrentWorkers: z.number(),
+  totalTime: z.number(),
+  levels: z.record(z.number(), levelSchema),
 });
 
-export const trainSchema: ObjectSchema<Train> = object({
-  id: string().required(),
-  name: string().required(),
-  capacity: number().required(),
-  class: string().oneOf(Object.values(TrainClass)).required(),
-  engine: string().oneOf(Object.values(TrainEngine)).required(),
-  country: string().oneOf(Object.values(Country)).required(),
+export const productionPlanDbSchema = {
+  title: 'production plan schema',
+  version: 0,
+  description: 'describes a simple production plan',
+  primaryKey: 'maxConcurrentWorkers',
+  type: 'object',
+  properties: {
+    maxConcurrentWorkers: {
+      type: 'number',
+    },
+    totalTime: {
+      type: 'number',
+    },
+    levels: {
+      type: 'object',
+      patternProperties: {
+        '[0-9]+': levelDbSchema,
+      },
+    },
+  },
+  required: ['maxConcurrentWorkers', 'totalTime', 'levels'],
+};
+
+export const trainSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  capacity: z.number(),
+  class: z.enum(TrainClass),
+  engine: z.enum(TrainEngine),
+  country: z.enum(Country),
 });
+
+export const trainDbSchema = {
+  title: 'train schema',
+  version: 0,
+  description: 'describes a simple train',
+  primaryKey: 'id',
+  type: 'object',
+  properties: {
+    id: {
+      type: 'string',
+      maxLength: 100,
+    },
+    name: {
+      type: 'string',
+    },
+    capacity: {
+      type: 'number',
+    },
+    class: {
+      type: 'string',
+      enum: [Object.values(TrainClass)],
+    },
+    engine: {
+      type: 'string',
+      enum: [Object.values(TrainEngine)],
+    },
+    country: {
+      type: 'string',
+      enum: [Object.values(Country)],
+    },
+  },
+  required: ['id', 'name', 'capacity', 'class', 'engine', 'country'],
+};

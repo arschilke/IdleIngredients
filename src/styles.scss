@@ -51,7 +51,9 @@ $border-radius-lg: 12px;
 
 // Base styles
 .app {
-  min-height: 100vh;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
   background: linear-gradient(
     135deg,
     $dark 0%,
@@ -75,30 +77,35 @@ $border-radius-lg: 12px;
 }
 
 .main-grid {
+  flex: 1;
   display: grid;
-  grid-template-columns: min-content 2fr minmax(1fr, min-content);
-  grid-template-rows: minmax() min-content 2fr minmax(min-content, 1fr);
-  gap: 1rem;
+  grid-template-columns: 1fr 2fr;
+  grid-template-rows: 1fr 1fr;
+  gap: .5rem;
   grid-template-areas:
-    'current-orders current-orders order-form'
-    'production-plan production-plan current-inventory'
-    'production-plan production-plan current-inventory';
+    'current-orders production-plan'
+    'current-inventory production-plan';
+  overflow: hidden;
+  padding: .5rem;
 }
 
 .current-orders {
   grid-area: current-orders;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
-
-.order-form {
-  grid-area: order-form;
-}
-
 .production-plan {
   grid-area: production-plan;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
-
 .current-inventory {
   grid-area: current-inventory;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 // Custom order type badges
@@ -392,13 +399,12 @@ $border-radius-lg: 12px;
 
 // Order form specific styling
 .card:has(.card-header h3.h5) {
-  max-height: 60vh;
+  height: 100%;
   overflow-y: auto;
 
   .card-header {
     position: sticky;
     top: 0;
-    background: rgba($dark-elevation, 0.95);
     z-index: 10;
   }
 }

@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import type { Inventory, ProductionPlan as ProductionPlanType } from '../types';
+import type { ProductionPlan as ProductionPlanType } from '../types';
 import {
   saveProductionPlanToStorage,
   loadProductionPlanFromStorage,
@@ -69,10 +69,11 @@ export const useUpdateProductionPlan = () => {
 
 // Hook to get inventory at a specific level
 export const calculateInventoryAtLevel = (
+  initialValues: Map<string, number>,
   level: number,
   productionPlan: ProductionPlanType
 ) => {
-  const inventory: Inventory = {};
+  const inventory = new Map<string, number>(initialValues);
 
   // Get all level numbers, sort them in ascending order
   const sortedLevels = Object.keys(productionPlan.levels)

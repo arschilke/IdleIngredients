@@ -20,7 +20,7 @@ export const OrderForm = ({ resources, onSubmit }: OrderFormProps) => {
       expirationTime: 0,
       travelTime: 0,
       classes: [] as TrainClass[],
-      country: Country.Britain,
+      countries: [Country.Britain],
       resources: [{ resourceId: '', amount: 0 }],
     } as {
       id: string;
@@ -29,7 +29,7 @@ export const OrderForm = ({ resources, onSubmit }: OrderFormProps) => {
       expirationTime?: number;
       travelTime?: number;
       classes?: TrainClass[];
-      country?: string | undefined;
+      countries?: Country[];
       resources: ResourceRequirement[];
     },
     validators: {
@@ -40,7 +40,7 @@ export const OrderForm = ({ resources, onSubmit }: OrderFormProps) => {
       const order = {
         ...formData,
         type: formData.type as OrderType,
-        country: formData.country as Country,
+        countries: formData.countries as Country[],
         classes: formData.classes as TrainClass[],
       };
       onSubmit(order as Order);
@@ -125,10 +125,10 @@ export const OrderForm = ({ resources, onSubmit }: OrderFormProps) => {
                       )}
                     />
                     <form.AppField
-                      name="country"
+                      name="countries"
                       children={field => (
-                        <field.SelectField
-                          label="Country"
+                        <field.MultiSelectField
+                          label="Countries"
                           options={Object.values(Country).map(country => ({
                             id: country,
                             name:

@@ -1,6 +1,5 @@
 import { useMemo } from 'react';
 import {
-  type Inventory,
   type PlanningLevel,
   type ProductionPlan,
   type Step,
@@ -15,17 +14,6 @@ import {
 } from '../types';
 import { useFactories } from './useFactories';
 import { useTrains } from './useTrains';
-
-// Query keys
-export const inventoryKeys = {
-  all: ['inventory'] as const,
-  stepChanges: (stepId: string) =>
-    [...inventoryKeys.all, 'stepChanges', stepId] as const,
-  levelChanges: (levelId: number) =>
-    [...inventoryKeys.all, 'levelChanges', levelId] as const,
-  atLevel: (levelNumber: number) =>
-    [...inventoryKeys.all, 'atLevel', levelNumber] as const,
-};
 
 /**
  * Calculate the net inventory change for a step
@@ -188,7 +176,7 @@ export const calculateInventoryAtLevel = (
   productionPlan: ProductionPlan,
   levelNumber: number
 ) => {
-  const inventory: Inventory = {};
+  const inventory: Map<string, number> = new Map();
 
   // Get all level numbers, sort them in ascending order
   const sortedLevels = Object.keys(productionPlan.levels)
@@ -201,7 +189,7 @@ export const calculateInventoryAtLevel = (
     const level = productionPlan.levels[lvl];
     if (!level) continue;
     for (const [resourceId, change] of level.inventoryChanges.entries()) {
-      inventory[resourceId] += change;
+      inventory.set(resourceId, (inventory.get(resourceId) || 0) + change);
     }
   }
 
