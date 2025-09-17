@@ -10,125 +10,7 @@ import {
   TrainEngine,
 } from '../types';
 
-import { addRxPlugin, createRxDatabase } from 'rxdb/plugins/core';
-import { createCollection } from '@tanstack/react-db';
-import { rxdbCollectionOptions } from '@tanstack/rxdb-db-collection';
-import { RxDBDevModePlugin } from 'rxdb/plugins/dev-mode';
-import { getRxStorageLocalstorage } from 'rxdb/plugins/storage-localstorage';
-import { wrappedValidateAjvStorage } from 'rxdb/plugins/validate-ajv';
-import { RxDBJsonDumpPlugin } from 'rxdb/plugins/json-dump';
-import {
-  destinationDbSchema,
-  destinationSchema,
-  factoryDbSchema,
-  factorySchema,
-  orderDbSchema,
-  orderSchema,
-  productionPlanDbSchema,
-  productionPlanSchema,
-  resourceDbSchema,
-  resourceSchema,
-  trainDbSchema,
-  trainSchema,
-} from '../schemas';
-
-addRxPlugin(RxDBDevModePlugin);
-addRxPlugin(RxDBJsonDumpPlugin);
-
-const db = await createRxDatabase({
-  name: 'idleingredients',
-  storage: wrappedValidateAjvStorage({ storage: getRxStorageLocalstorage() }),
-});
-
-await db.addCollections({
-  resources: {
-    schema: resourceDbSchema,
-  },
-  factories: {
-    schema: factoryDbSchema,
-  },
-  destinations: {
-    schema: destinationDbSchema,
-  },
-  trains: {
-    schema: trainDbSchema,
-  },
-  productionPlan: {
-    schema: productionPlanDbSchema,
-  },
-  orders: {
-    schema: orderDbSchema,
-  },
-  initialInventory: {
-    schema: {
-      title: 'initial inventory schema',
-      version: 0,
-      description: 'describes the initial inventory',
-      primaryKey: 'resourceId',
-      type: 'object',
-      properties: {
-        resourceId: {
-          type: 'string',
-          maxLength: 100,
-        },
-        amount: {
-          type: 'number',
-        },
-      },
-      required: ['resourceId', 'amount'],
-    },
-  },
-});
-
 const maxConcurrentTrains = 5; // Maximum number of trains that can work simultaneously
-
-const resourcesCollection = createCollection(
-  rxdbCollectionOptions({
-    schema: resourceSchema,
-    rxCollection: db.resources as any,
-  })
-);
-
-const factoriesCollection = createCollection(
-  rxdbCollectionOptions({
-    schema: factorySchema,
-    rxCollection: db.factories as any,
-  })
-);
-
-const destinationsCollection = createCollection(
-  rxdbCollectionOptions({
-    schema: destinationSchema,
-    rxCollection: db.destinations as any,
-  })
-);
-
-const trainsCollection = createCollection(
-  rxdbCollectionOptions({
-    schema: trainSchema,
-    rxCollection: db.trains as any,
-  })
-);
-
-const productionPlanCollection = createCollection(
-  rxdbCollectionOptions({
-    schema: productionPlanSchema,
-    rxCollection: db.productionPlan as any,
-  })
-);
-
-const ordersCollection = createCollection(
-  rxdbCollectionOptions({
-    schema: orderSchema,
-    rxCollection: db.orders as any,
-  })
-);
-
-const initialInventoryCollection = createCollection(
-  rxdbCollectionOptions({
-    rxCollection: db.initialInventory as any,
-  })
-);
 
 const resources: Resource[] = [
   { id: 'coal', name: 'Coal', icon: 'Icon_Coal.png' },
@@ -622,79 +504,6 @@ const initialInventory: Map<string, number> = new Map(
   resources.map(resource => [resource.id, 0])
 );
 
-await db.resources.bulkInsert(resources);
-await db.factories.bulkInsert(factories);
-await db.destinations.bulkInsert(destinations);
-await db.trains.bulkInsert(trains);
-await db.initialInventory.bulkInsert(Array.from(initialInventory.entries()));
-
-const saveFile = async (blob: Blob, filename: string) => {
-  const a = document.createElement('a');
-  a.download = filename;
-  a.href = URL.createObjectURL(blob);
-  a.addEventListener('click', () => {
-    setTimeout(() => URL.revokeObjectURL(a.href), 30 * 1000);
-  });
-  a.click();
-};
-
-db.resources.exportJSON().then(json => {
-  const filename = 'idle-ingredients-resources.json';
-
-  const blob = new Blob([JSON.stringify(json, null, 2)], {
-    type: 'application/json',
-  });
-  saveFile(blob, filename);
-});
-
-db.factories.exportJSON().then(json => {
-  const filename = 'idle-ingredients-factories.json';
-  const blob = new Blob([JSON.stringify(json, null, 2)], {
-    type: 'application/json',
-  });
-  saveFile(blob, filename);
-});
-
-db.destinations.exportJSON().then(json => {
-  const filename = 'idle-ingredients-destinations.json';
-  const blob = new Blob([JSON.stringify(json, null, 2)], {
-    type: 'application/json',
-  });
-  saveFile(blob, filename);
-});
-
-db.trains.exportJSON().then(json => {
-  const filename = 'idle-ingredients-trains.json';
-  const blob = new Blob([JSON.stringify(json, null, 2)], {
-    type: 'application/json',
-  });
-  saveFile(blob, filename);
-});
-
-db.productionPlan.exportJSON().then(json => {
-  const filename = 'idle-ingredients-production-plan.json';
-  const blob = new Blob([JSON.stringify(json, null, 2)], {
-    type: 'application/json',
-  });
-  saveFile(blob, filename);
-});
-
-db.orders.exportJSON().then(json => {
-  const filename = 'idle-ingredients-orders.json';
-  const blob = new Blob([JSON.stringify(json, null, 2)], {
-    type: 'application/json',
-  });
-  saveFile(blob, filename);
-});
-
-db.initialInventory.exportJSON().then(json => {
-  const filename = 'idle-ingredients-initial-inventory.json';
-  const blob = new Blob([JSON.stringify(json, null, 2)], {
-    type: 'application/json',
-  });
-  saveFile(blob, filename);
-});
-
 const defaultProductionPlan: ProductionPlan = {
   id: '1',
   levels: {
@@ -711,12 +520,10 @@ const defaultProductionPlan: ProductionPlan = {
 
 export {
   maxConcurrentTrains,
-  resourcesCollection,
-  factoriesCollection,
-  destinationsCollection,
-  trainsCollection,
-  productionPlanCollection,
-  ordersCollection,
-  initialInventoryCollection,
+  resources,
+  factories,
+  destinations,
+  trains,
+  initialInventory,
   defaultProductionPlan,
 };

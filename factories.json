@@ -1,0 +1,205 @@
+{
+    "factory1": {
+      "id": "factory1",
+      "name": "Smelting Plant",
+      "queueMaxSize": 3,
+      "recipes": [
+        {
+          "resourceId": "steel",
+          "timeRequired": 300,
+          "requires": [
+            {
+              "resourceId": "iron",
+              "amount": 10
+            },
+            {
+              "resourceId": "coal",
+              "amount": 30
+            }
+          ],
+          "outputAmount": 40,
+          "factoryId": "factory1"
+        },
+        {
+          "resourceId": "copper",
+          "timeRequired": 500,
+          "requires": [
+            {
+              "resourceId": "copper_ore",
+              "amount": 40
+            }
+          ],
+          "outputAmount": 40,
+          "factoryId": "factory1"
+        }
+      ]
+    },
+    "factory2": {
+      "id": "factory2",
+      "name": "Iron Mill",
+      "queueMaxSize": 10,
+      "recipes": [
+        {
+          "resourceId": "iron_powder",
+          "timeRequired": 90,
+          "requires": [
+            {
+              "resourceId": "iron",
+              "amount": 30
+            }
+          ],
+          "outputAmount": 30,
+          "factoryId": "factory2"
+        },
+        {
+          "resourceId": "nails",
+          "timeRequired": 600,
+          "requires": [
+            {
+              "resourceId": "steel",
+              "amount": 40
+            }
+          ],
+          "outputAmount": 40,
+          "factoryId": "factory2"
+        },
+        {
+          "resourceId": "saw_blade",
+          "timeRequired": 1200,
+          "requires": [
+            {
+              "resourceId": "steel",
+              "amount": 40
+            },
+            {
+              "resourceId": "iron_powder",
+              "amount": 30
+            }
+          ],
+          "outputAmount": 70,
+          "factoryId": "factory2"
+        },
+        {
+          "resourceId": "copper_wire",
+          "timeRequired": 1500,
+          "requires": [
+            {
+              "resourceId": "copper",
+              "amount": 80
+            },
+            {
+              "resourceId": "copper_ore",
+              "amount": 30
+            }
+          ],
+          "outputAmount": 30,
+          "factoryId": "factory2"
+        }
+      ]
+    },
+    "factory3": {
+      "id": "factory3",
+      "name": "Sawmill",
+      "queueMaxSize": 10,
+      "recipes": [
+        {
+          "resourceId": "timber",
+          "timeRequired": 900,
+          "requires": [
+            {
+              "resourceId": "wood",
+              "amount": 40
+            }
+          ],
+          "outputAmount": 40,
+          "factoryId": "factory3"
+        }
+      ]
+    },
+    "factory4": {
+      "id": "factory4",
+      "name": "Furniture and Textile",
+      "queueMaxSize": 10,
+      "recipes": [
+        {
+          "resourceId": "chair",
+          "timeRequired": 120,
+          "requires": [
+            {
+              "resourceId": "timber",
+              "amount": 80
+            }
+          ],
+          "outputAmount": 120,
+          "factoryId": "factory4"
+        },
+        {
+          "resourceId": "table",
+          "timeRequired": 150,
+          "requires": [
+            {
+              "resourceId": "timber",
+              "amount": 80
+            }
+          ],
+          "outputAmount": 150,
+          "factoryId": "factory4"
+        },
+        {
+          "resourceId": "barrel",
+          "timeRequired": 1800,
+          "requires": [
+            {
+              "resourceId": "wood",
+              "amount": 100
+            },
+            {
+              "resourceId": "copper_wire",
+              "amount": 110
+            }
+          ],
+          "outputAmount": 210,
+          "factoryId": "factory4"
+        }
+      ]
+    },
+    "factory_1758030242587_epgncdqda": {
+      "id": "factory_1758030242587_epgncdqda",
+      "name": "Oil Rig Event",
+      "queueMaxSize": 2,
+      "recipes": [
+        {
+          "resourceId": "storage_tank",
+          "timeRequired": 900,
+          "outputAmount": 120,
+          "requires": [
+            {
+              "resourceId": "alloy_steel",
+              "amount": 80
+            },
+            {
+              "resourceId": "concrete",
+              "amount": 40
+            }
+          ],
+          "factoryId": ""
+        },
+        {
+          "resourceId": "alloy_steel",
+          "timeRequired": 420,
+          "outputAmount": 80,
+          "requires": [
+            {
+              "resourceId": "steel",
+              "amount": 30
+            },
+            {
+              "resourceId": "chromium",
+              "amount": 50
+            }
+          ],
+          "factoryId": ""
+        }
+      ]
+    }
+  }
