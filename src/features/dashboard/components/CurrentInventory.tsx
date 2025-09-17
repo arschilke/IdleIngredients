@@ -2,11 +2,12 @@ import React, { useState } from 'react';
 import type { ProductionPlan, Resource } from '../../../types';
 import { calculateInventoryAtLevel } from '../../../hooks/useProductionPlan';
 import { InventoryForm } from '../../../components/forms/InventoryForm';
+import { useLiveQuery } from '@tanstack/react-db';
 
 interface CurrentInventoryProps {
   resources: Record<string, Resource>;
   activeLevel: number;
-  productionPlan: ProductionPlan | null;
+  productionPlan: ProductionPlan;
   initialInventory: Map<string, number>;
   onInitialInventoryChange: (inventory: Map<string, number>) => void;
 }

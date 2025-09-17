@@ -1,26 +1,36 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import {
   Country,
   type Destination,
   type Factory,
+  ProductionPlan,
   type Resource,
   type Train,
   TrainClass,
   TrainEngine,
-} from './types';
+} from '../types';
 
 import { addRxPlugin, createRxDatabase } from 'rxdb/plugins/core';
+import { createCollection } from '@tanstack/react-db';
+import { rxdbCollectionOptions } from '@tanstack/rxdb-db-collection';
 import { RxDBDevModePlugin } from 'rxdb/plugins/dev-mode';
 import { getRxStorageLocalstorage } from 'rxdb/plugins/storage-localstorage';
 import { wrappedValidateAjvStorage } from 'rxdb/plugins/validate-ajv';
 import { RxDBJsonDumpPlugin } from 'rxdb/plugins/json-dump';
 import {
   destinationDbSchema,
+  destinationSchema,
   factoryDbSchema,
+  factorySchema,
   orderDbSchema,
+  orderSchema,
   productionPlanDbSchema,
+  productionPlanSchema,
   resourceDbSchema,
+  resourceSchema,
   trainDbSchema,
-} from './schemas';
+  trainSchema,
+} from '../schemas';
 
 addRxPlugin(RxDBDevModePlugin);
 addRxPlugin(RxDBJsonDumpPlugin);
@@ -49,46 +59,113 @@ await db.addCollections({
   orders: {
     schema: orderDbSchema,
   },
+  initialInventory: {
+    schema: {
+      title: 'initial inventory schema',
+      version: 0,
+      description: 'describes the initial inventory',
+      primaryKey: 'resourceId',
+      type: 'object',
+      properties: {
+        resourceId: {
+          type: 'string',
+          maxLength: 100,
+        },
+        amount: {
+          type: 'number',
+        },
+      },
+      required: ['resourceId', 'amount'],
+    },
+  },
 });
 
 const maxConcurrentTrains = 5; // Maximum number of trains that can work simultaneously
 
-const resources: Record<string, Resource> = {
-  coal: { id: 'coal', name: 'Coal', icon: 'Icon_Coal.png' },
-  iron: { id: 'iron', name: 'Iron', icon: 'Icon_Iron_Ore.png' },
-  wood: { id: 'wood', name: 'Oakwood', icon: 'Icon_Wood.png' },
-  steel: { id: 'steel', name: 'Steel', icon: 'Icon_Steel.png' },
-  nails: { id: 'nails', name: 'Nails', icon: 'Icon_Nails.webp' },
-  iron_powder: {
+const resourcesCollection = createCollection(
+  rxdbCollectionOptions({
+    schema: resourceSchema,
+    rxCollection: db.resources as any,
+  })
+);
+
+const factoriesCollection = createCollection(
+  rxdbCollectionOptions({
+    schema: factorySchema,
+    rxCollection: db.factories as any,
+  })
+);
+
+const destinationsCollection = createCollection(
+  rxdbCollectionOptions({
+    schema: destinationSchema,
+    rxCollection: db.destinations as any,
+  })
+);
+
+const trainsCollection = createCollection(
+  rxdbCollectionOptions({
+    schema: trainSchema,
+    rxCollection: db.trains as any,
+  })
+);
+
+const productionPlanCollection = createCollection(
+  rxdbCollectionOptions({
+    schema: productionPlanSchema,
+    rxCollection: db.productionPlan as any,
+  })
+);
+
+const ordersCollection = createCollection(
+  rxdbCollectionOptions({
+    schema: orderSchema,
+    rxCollection: db.orders as any,
+  })
+);
+
+const initialInventoryCollection = createCollection(
+  rxdbCollectionOptions({
+    rxCollection: db.initialInventory as any,
+  })
+);
+
+const resources: Resource[] = [
+  { id: 'coal', name: 'Coal', icon: 'Icon_Coal.png' },
+  { id: 'iron', name: 'Iron', icon: 'Icon_Iron_Ore.png' },
+  { id: 'wood', name: 'Oakwood', icon: 'Icon_Wood.png' },
+  { id: 'steel', name: 'Steel', icon: 'Icon_Steel.png' },
+  { id: 'nails', name: 'Nails', icon: 'Icon_Nails.webp' },
+  {
     id: 'iron_powder',
     name: 'Iron Powder',
     icon: 'Icon_Iron_Powder.webp',
   },
-  saw_blade: {
+  {
     id: 'saw_blade',
     name: 'Saw Blade',
     icon: 'Icon_Saw_Blade.webp',
   },
-  copper_ore: {
+  {
     id: 'copper_ore',
     name: 'Copper Ore',
     icon: 'Icon_Copper_Ore.png',
   },
-  copper: { id: 'copper', name: 'Copper', icon: 'Icon_Copper.webp' },
-  timber: { id: 'timber', name: 'Timber', icon: 'Icon_Timber.png' },
-  chair: { id: 'chair', name: 'Chair', icon: 'Icon_Chair.webp' },
-  table: { id: 'table', name: 'Table', icon: 'Icon_Table.webp' },
-  copper_wire: {
+  { id: 'copper', name: 'Copper', icon: 'Icon_Copper.webp' },
+  { id: 'timber', name: 'Timber', icon: 'Icon_Timber.png' },
+  { id: 'chair', name: 'Chair', icon: 'Icon_Chair.webp' },
+  { id: 'table', name: 'Table', icon: 'Icon_Table.webp' },
+  {
     id: 'copper_wire',
     name: 'Copper Wire',
     icon: 'Icon_Copper_Wire.webp',
   },
-  barrel: { id: 'barrel', name: 'Barrel', icon: 'Icon_Barrel.webp' },
-  oakwood: { id: 'oakwood', name: 'Oakwood', icon: 'Icon_Wood.png' },
-};
+  { id: 'barrel', name: 'Barrel', icon: 'Icon_Barrel.webp' },
+  { id: 'oakwood', name: 'Oakwood', icon: 'Icon_Wood.png' },
+];
 
-const trains: Record<string, Train> = {
-  train1: {
+const trains: Train[] = [
+  {
     id: 'train1',
     name: 'FS CLASS 740',
     engine: TrainEngine.Steam,
@@ -96,7 +173,7 @@ const trains: Record<string, Train> = {
     class: TrainClass.Common,
     country: Country.Britain,
   },
-  train2: {
+  {
     id: 'train2',
     name: 'GER CLASS S69',
     engine: TrainEngine.Steam,
@@ -104,7 +181,7 @@ const trains: Record<string, Train> = {
     class: TrainClass.Common,
     country: Country.Britain,
   },
-  train3: {
+  {
     id: 'train3',
     name: 'STAR CLASS 4000',
     engine: TrainEngine.Steam,
@@ -112,7 +189,7 @@ const trains: Record<string, Train> = {
     class: TrainClass.Common,
     country: Country.Britain,
   },
-  train4: {
+  {
     id: 'train4',
     name: 'PRUSSIAN P8',
     engine: TrainEngine.Steam,
@@ -120,7 +197,7 @@ const trains: Record<string, Train> = {
     class: TrainClass.Common,
     country: Country.Britain,
   },
-  train5: {
+  {
     id: 'train5',
     name: 'NORD 140',
     engine: TrainEngine.Steam,
@@ -128,7 +205,7 @@ const trains: Record<string, Train> = {
     class: TrainClass.Rare,
     country: Country.Britain,
   },
-  train6: {
+  {
     id: 'train6',
     name: 'LB&SCR B4',
     engine: TrainEngine.Steam,
@@ -136,7 +213,7 @@ const trains: Record<string, Train> = {
     class: TrainClass.Rare,
     country: Country.Britain,
   },
-  train7: {
+  {
     id: 'train7',
     name: 'SHAY CLASS C',
     engine: TrainEngine.Steam,
@@ -144,7 +221,7 @@ const trains: Record<string, Train> = {
     class: TrainClass.Epic,
     country: Country.Britain,
   },
-  train8: {
+  {
     id: 'train8',
     name: 'GWR 3041 THE QUEEN',
     engine: TrainEngine.Steam,
@@ -152,7 +229,7 @@ const trains: Record<string, Train> = {
     class: TrainClass.Epic,
     country: Country.Britain,
   },
-  train9: {
+  {
     id: 'train9',
     name: 'ERIE L-1',
     engine: TrainEngine.Steam,
@@ -160,7 +237,7 @@ const trains: Record<string, Train> = {
     class: TrainClass.Legendary,
     country: Country.Britain,
   },
-  train11: {
+  {
     id: 'train11',
     name: 'CRAMPTON',
     engine: TrainEngine.Steam,
@@ -168,7 +245,7 @@ const trains: Record<string, Train> = {
     class: TrainClass.Legendary,
     country: Country.Britain,
   },
-  train12: {
+  {
     id: 'train12',
     name: 'BLUE COMET',
     engine: TrainEngine.Steam,
@@ -176,7 +253,7 @@ const trains: Record<string, Train> = {
     class: TrainClass.Legendary,
     country: Country.Britain,
   },
-  train13: {
+  {
     id: 'train13',
     name: 'CLASS V100',
     engine: TrainEngine.Diesel,
@@ -184,7 +261,7 @@ const trains: Record<string, Train> = {
     class: TrainClass.Common,
     country: Country.Germany,
   },
-  train14: {
+  {
     id: 'train14',
     name: 'LNER K3',
     engine: TrainEngine.Steam,
@@ -192,7 +269,7 @@ const trains: Record<string, Train> = {
     class: TrainClass.Common,
     country: Country.Germany,
   },
-  train15: {
+  {
     id: 'train15',
     name: 'SECR N CLASS',
     engine: TrainEngine.Steam,
@@ -200,7 +277,7 @@ const trains: Record<string, Train> = {
     class: TrainClass.Common,
     country: Country.Germany,
   },
-  train16: {
+  {
     id: 'train16',
     name: 'VICTORIAN C CLASS',
     engine: TrainEngine.Steam,
@@ -208,7 +285,7 @@ const trains: Record<string, Train> = {
     class: TrainClass.Common,
     country: Country.Germany,
   },
-  train17: {
+  {
     id: 'train17',
     name: 'DR 18 201',
     engine: TrainEngine.Steam,
@@ -216,7 +293,7 @@ const trains: Record<string, Train> = {
     class: TrainClass.Rare,
     country: Country.Germany,
   },
-  train18: {
+  {
     id: 'train18',
     name: 'LRZ 14',
     engine: TrainEngine.Diesel,
@@ -224,7 +301,7 @@ const trains: Record<string, Train> = {
     class: TrainClass.Common,
     country: Country.Germany,
   },
-  train19: {
+  {
     id: 'train19',
     name: 'MILWAUKEE ROAD EF-1',
     engine: TrainEngine.Electric,
@@ -232,7 +309,7 @@ const trains: Record<string, Train> = {
     class: TrainClass.Rare,
     country: Country.Germany,
   },
-  train20: {
+  {
     id: 'train20',
     name: 'PRR K-4',
     engine: TrainEngine.Steam,
@@ -240,7 +317,7 @@ const trains: Record<string, Train> = {
     class: TrainClass.Rare,
     country: Country.Germany,
   },
-  train21: {
+  {
     id: 'train21',
     name: 'PRUSSIAN T 14',
     engine: TrainEngine.Steam,
@@ -248,7 +325,7 @@ const trains: Record<string, Train> = {
     class: TrainClass.Rare,
     country: Country.Germany,
   },
-  train22: {
+  {
     id: 'train22',
     name: 'ATSF 3000',
     engine: TrainEngine.Steam,
@@ -256,7 +333,7 @@ const trains: Record<string, Train> = {
     class: TrainClass.Epic,
     country: Country.Germany,
   },
-  train23: {
+  {
     id: 'train23',
     name: 'CROCODILE CE 6/8',
     engine: TrainEngine.Electric,
@@ -264,7 +341,7 @@ const trains: Record<string, Train> = {
     class: TrainClass.Epic,
     country: Country.Germany,
   },
-  train24: {
+  {
     id: 'train24',
     name: 'CLASS V200',
     engine: TrainEngine.Diesel,
@@ -272,7 +349,7 @@ const trains: Record<string, Train> = {
     class: TrainClass.Epic,
     country: Country.Germany,
   },
-  train25: {
+  {
     id: 'train25',
     name: 'FS CLASS 670',
     engine: TrainEngine.Steam,
@@ -280,7 +357,7 @@ const trains: Record<string, Train> = {
     class: TrainClass.Epic,
     country: Country.Germany,
   },
-  train26: {
+  {
     id: 'train26',
     name: 'EP-2 BIPOLAR',
     engine: TrainEngine.Electric,
@@ -288,7 +365,7 @@ const trains: Record<string, Train> = {
     class: TrainClass.Legendary,
     country: Country.Germany,
   },
-  train27: {
+  {
     id: 'train27',
     name: 'UP BIG BOY',
     engine: TrainEngine.Steam,
@@ -296,7 +373,7 @@ const trains: Record<string, Train> = {
     class: TrainClass.Legendary,
     country: Country.Germany,
   },
-  train28: {
+  {
     id: 'train28',
     name: 'UP BIG BOY 2',
     engine: TrainEngine.Steam,
@@ -304,7 +381,7 @@ const trains: Record<string, Train> = {
     class: TrainClass.Legendary,
     country: Country.Germany,
   },
-  train29: {
+  {
     id: 'train29',
     name: 'John Bull',
     engine: TrainEngine.Steam,
@@ -312,10 +389,10 @@ const trains: Record<string, Train> = {
     class: TrainClass.Common,
     country: Country.Germany,
   },
-};
+];
 
-const factories: Record<string, Factory> = {
-  factory1: {
+const factories: Factory[] = [
+  {
     id: 'factory1',
     name: 'Smelting Plant',
     queueMaxSize: 3,
@@ -339,7 +416,7 @@ const factories: Record<string, Factory> = {
       },
     ],
   },
-  factory2: {
+  {
     id: 'factory2',
     name: 'Iron Mill',
     queueMaxSize: 10,
@@ -402,7 +479,7 @@ const factories: Record<string, Factory> = {
       },
     ],
   },
-  factory3: {
+  {
     id: 'factory3',
     name: 'Sawmill',
     queueMaxSize: 10,
@@ -421,7 +498,7 @@ const factories: Record<string, Factory> = {
       },
     ],
   },
-  factory4: {
+  {
     id: 'factory4',
     name: 'Furniture and Textile',
     queueMaxSize: 10,
@@ -468,10 +545,10 @@ const factories: Record<string, Factory> = {
       },
     ],
   },
-};
+];
 
-const destinations: Record<string, Destination> = {
-  coal_mine: {
+const destinations: Destination[] = [
+  {
     id: 'coal_mine',
     name: 'Coal Mine',
     travelTime: 30,
@@ -484,7 +561,7 @@ const destinations: Record<string, Destination> = {
     ],
     country: Country.Britain,
   },
-  iron_ore_mine: {
+  {
     id: 'iron_ore_mine',
     name: 'Iron Ore Mine',
     travelTime: 30,
@@ -497,7 +574,7 @@ const destinations: Record<string, Destination> = {
     ],
     country: Country.Britain,
   },
-  steel_factory: {
+  {
     id: 'steel_factory',
     name: 'Steel Factory',
     travelTime: 180,
@@ -505,7 +582,7 @@ const destinations: Record<string, Destination> = {
     classes: [TrainClass.Epic, TrainClass.Legendary],
     country: Country.Britain,
   },
-  oakwood: {
+  {
     id: 'oakwood',
     name: 'Oak wood',
     travelTime: 300,
@@ -518,7 +595,7 @@ const destinations: Record<string, Destination> = {
     ],
     country: Country.Germany,
   },
-  copper_mine: {
+  {
     id: 'copper_mine',
     name: 'Copper Mine',
     travelTime: 300,
@@ -531,7 +608,7 @@ const destinations: Record<string, Destination> = {
     ],
     country: Country.Germany,
   },
-  timber_factory: {
+  {
     id: 'timber_factory',
     name: 'Timber Factory',
     travelTime: 180,
@@ -539,18 +616,23 @@ const destinations: Record<string, Destination> = {
     classes: [TrainClass.Epic, TrainClass.Legendary],
     country: Country.Germany,
   },
-};
+];
 
-await db.resources.bulkInsert(Object.values(resources));
-await db.factories.bulkInsert(Object.values(factories));
-await db.destinations.bulkInsert(Object.values(destinations));
-await db.trains.bulkInsert(Object.values(trains));
+const initialInventory: Map<string, number> = new Map(
+  resources.map(resource => [resource.id, 0])
+);
+
+await db.resources.bulkInsert(resources);
+await db.factories.bulkInsert(factories);
+await db.destinations.bulkInsert(destinations);
+await db.trains.bulkInsert(trains);
+await db.initialInventory.bulkInsert(Array.from(initialInventory.entries()));
 
 const saveFile = async (blob: Blob, filename: string) => {
   const a = document.createElement('a');
   a.download = filename;
   a.href = URL.createObjectURL(blob);
-  a.addEventListener('click', (e: Event) => {
+  a.addEventListener('click', () => {
     setTimeout(() => URL.revokeObjectURL(a.href), 30 * 1000);
   });
   a.click();
@@ -613,4 +695,28 @@ db.initialInventory.exportJSON().then(json => {
   saveFile(blob, filename);
 });
 
-export { db, maxConcurrentTrains };
+const defaultProductionPlan: ProductionPlan = {
+  id: '1',
+  levels: {
+    1: {
+      level: 1,
+      steps: [],
+      inventoryChanges: new Map<string, number>(),
+      done: false,
+    },
+  },
+  totalTime: 0,
+  maxConcurrentWorkers: 3, // Default value, will be updated from Db
+};
+
+export {
+  maxConcurrentTrains,
+  resourcesCollection,
+  factoriesCollection,
+  destinationsCollection,
+  trainsCollection,
+  productionPlanCollection,
+  ordersCollection,
+  initialInventoryCollection,
+  defaultProductionPlan,
+};

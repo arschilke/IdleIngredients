@@ -305,6 +305,7 @@ export const levelDbSchema = {
 };
 
 export const productionPlanSchema = z.object({
+  id: z.string(),
   maxConcurrentWorkers: z.number(),
   totalTime: z.number(),
   levels: z.record(z.number(), levelSchema),
@@ -314,9 +315,13 @@ export const productionPlanDbSchema = {
   title: 'production plan schema',
   version: 0,
   description: 'describes a simple production plan',
-  primaryKey: 'maxConcurrentWorkers',
+  primaryKey: 'id',
   type: 'object',
   properties: {
+    id: {
+      type: 'string',
+      maxLength: 100,
+    },
     maxConcurrentWorkers: {
       type: 'number',
     },

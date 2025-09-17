@@ -8,93 +8,54 @@ import type {
   SubmitStep,
   DeliveryStep,
   Step,
-  Train,
+  PlanningLevel,
 } from '../../types';
 import '../../styles.scss';
-import { Db } from '../../db';
-import { useOrders, useUpdateOrders } from '../../hooks/useOrders';
-import {
-  useProductionPlan,
-  useUpdateProductionPlan,
-  useClearProductionPlan,
-} from '../../hooks/useProductionPlan';
-import { useResources } from '../../hooks/useResources';
 import { getInventoryChanges } from '../../hooks/useInventory';
 import { OrderList } from './components/OrderList';
-import { useFactories } from '../../hooks/useFactories';
-import { useTrains } from '../../hooks/useTrains';
 import { getBestTrains } from '../../trains';
 import { generateId } from '../../utils';
+
 import {
-  loadInitialInventoryFromStorage,
-  saveInitialInventoryToStorage,
-} from '../../lib/localStorageUtils';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+  maxConcurrentTrains,
+  productionPlanCollection,
+  defaultProductionPlan,
+  trainsCollection,
+} from '../../lib/db';
+import { eq, useLiveQuery } from '@tanstack/react-db';
 
 const Dashboard = () => {
   const [activeLevel, setActiveLevel] = useState<number>(1);
-  const queryClient = useQueryClient();
-  // React Query hooks
-  const { data: productionPlan, isLoading: planLoading } = useProductionPlan();
-  const { data: resources = {}, isLoading: resourcesLoading } = useResources();
-  const { data: orders = [], isLoading: ordersLoading } = useOrders();
-  const { data: trains = {}, isLoading: trainsLoading } = useTrains();
-  const { data: factories = {}, isLoading: factoriesLoading } = useFactories();
 
-  const { data: initialInventory, isLoading: initialInventoryLoading } =
-    useQuery({
-      queryKey: ['initial', resources],
-      queryFn: async () => {
-        const initialInventory = loadInitialInventoryFromStorage();
-        if (initialInventory.size === 0) {
-          return new Map(
-            Object.values(resources).map(resource => [resource.id, 0])
-          );
-        }
-        return initialInventory;
-      },
-      enabled: !!resources,
-      staleTime: 1000 * 60 * 1, // 1 minute
+  const { data: productionPlans, isLoading: productionPlanLoading } =
+    useLiveQuery(q =>
+      q
+        .from({ plan: productionPlanCollection })
+        .where(({ plan }) => eq(plan.id, '1'))
+    );
+
+  const productionPlan = productionPlans?.[0];
+
+  const handleProductionPlanChange = async (plan: ProductionPlanType) => {
+    const tx = productionPlanCollection.update('1', draft => {
+      return { ...draft, ...plan };
     });
-
-  const updateInitialInventoryMutation = useMutation({
-    mutationFn: async (inventory: Map<string, number>) => {
-      saveInitialInventoryToStorage(inventory);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['initial'] });
-    },
-  });
-
-  const updateOrdersMutation = useUpdateOrders();
-  const updateProductionPlanMutation = useUpdateProductionPlan();
-  const clearProductionPlanMutation = useClearProductionPlan();
-
-  const handleProductionPlanChange = (plan: ProductionPlanType) => {
-    updateProductionPlanMutation.mutate(plan);
+    await tx.isPersisted.promise;
   };
 
   const handleActiveLevelChange = (levelNumber: number) => {
     setActiveLevel(levelNumber);
   };
 
-  const handleClearProductionPlan = (): void => {
-    clearProductionPlanMutation.mutate();
-  };
-
-  const handleOrdersChange = (newOrders: Order[]) => {
-    updateOrdersMutation.mutate(newOrders);
+  const handleClearProductionPlan = async () => {
+    const tx = productionPlanCollection.update('1', _ => {
+      return defaultProductionPlan;
+    });
+    await tx.isPersisted.promise;
   };
 
   // Show loading state while data is being fetched
-  if (
-    planLoading ||
-    resourcesLoading ||
-    ordersLoading ||
-    trainsLoading ||
-    factoriesLoading ||
-    initialInventoryLoading
-  ) {
+  if (productionPlanLoading) {
     return (
       <div className="app">
         <Navbar />
@@ -112,37 +73,25 @@ const Dashboard = () => {
     );
   }
 
-  // Ensure we have a production plan
-  const currentProductionPlan = productionPlan || {
-    levels: {
-      1: {
-        level: 1,
-        steps: [],
-        inventoryChanges: new Map<string, number>(),
-        done: false,
-      },
-    },
-    totalTime: 0,
-    maxConcurrentWorkers: Db.maxConcurrentTrains,
-  };
-
   const handlePlanProduction = (order: Order) => {
     if (!productionPlan) {
       return;
     }
     // Add to existing active level
-    const activeLevelData = productionPlan.levels[activeLevel];
+    const activeLevelData = productionPlan.levels[activeLevel] as PlanningLevel;
 
     if (!activeLevelData) {
       return;
     }
+
+  
 
     const jobs: Step[] = [];
     if (order.type === 'story') {
       const selectedTrains = getBestTrains(
         activeLevelData,
         order.resources[0].amount,
-        trains as Record<string, Train>,
+        trains!,
         order.classes,
         order.countries ? order.countries : undefined
       );
@@ -193,7 +142,7 @@ const Dashboard = () => {
       levels: { ...productionPlan.levels, [updatedLevel.level]: updatedLevel },
     };
 
-    handleProductionPlanChange(updatedPlan);
+    handleProductionPlanChange(updatedPlan as ProductionPlanType);
   };
 
   return (
@@ -225,7 +174,7 @@ const Dashboard = () => {
           <ProductionPlan
             productionPlan={currentProductionPlan}
             activeLevel={activeLevel}
-            maxConcurrentTrains={Db.maxConcurrentTrains}
+            maxConcurrentTrains={maxConcurrentTrains}
             onActiveLevelChange={handleActiveLevelChange}
             onProductionPlanChange={handleProductionPlanChange}
             onOrdersChange={handleOrdersChange}

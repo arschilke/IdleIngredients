@@ -138,6 +138,7 @@ export interface PlanningLevel {
 }
 
 export interface ProductionPlan {
+  id: string;
   levels: Record<number, PlanningLevel>;
   totalTime: number;
   maxConcurrentWorkers: number;

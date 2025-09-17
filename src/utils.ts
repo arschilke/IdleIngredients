@@ -55,7 +55,7 @@ export const formatNumber = (num: number): string => {
  * @returns A unique ID string
  */
 export const generateId = (prefix: string = 'id'): string => {
-  return `${prefix}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  return `${prefix}_${Date.now()}_${Math.random().toString(36).substr(2, 8)}`;
 };
 
 /**
