@@ -1,0 +1,17 @@
+<label [for]="field.api.name" class="form-label">{{ label() }}</label>
+<input
+  class="form-control"
+  type="number"
+  [id]="field.api.name"
+  [name]="field.api.name"
+  [value]="field.api.state.value"
+  (blur)="field.api.handleBlur()"
+  (input)="field.api.handleChange($any($event).target.valueAsNumber)"
+/>
+@if (field.api.state.meta.isTouched) { @for (error of field.api.state.meta.errors; track $index) {
+<div style="color: red">
+  {{ error.message }}
+</div>
+} } @if (field.api.state.meta.isValidating) {
+<p>Validating...</p>
+}

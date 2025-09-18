@@ -1,0 +1,127 @@
+<div class="card">
+  <div class="card-header">
+    <h5 class="mb-0">Create New Order</h5>
+  </div>
+  <div class="card-body">
+    <form (submit)="handleSubmit($event)">
+      <app-select-field
+        tanstack-app-field
+        [tanstackField]="orderForm"
+        name="type"
+        label="Order Type"
+        [options]="orderTypes"
+      />
+      <app-text-field
+        tanstack-app-field
+        [tanstackField]="orderForm"
+        name="name"
+        label="Order Name"
+      />
+      @if( type() == 'boat') {
+      <app-number-field
+        tanstack-app-field
+        [tanstackField]="orderForm"
+        name="expirationTime"
+        label="Expiration Time"
+      />
+      } @if( type() === 'story') {
+      <app-number-field
+        tanstack-app-field
+        [tanstackField]="orderForm"
+        name="travelTime"
+        label="Travel Time"
+      />
+
+      <app-multi-select-field
+        tanstack-app-field
+        [tanstackField]="orderForm"
+        name="classes"
+        label="Classes"
+        [options]="trainClasses"
+      />
+      <app-multi-select-field
+        tanstack-app-field
+        [tanstackField]="orderForm"
+        name="countries"
+        label="Countries"
+        [options]="countries"
+      />
+      }
+      <span class="form-label">Resources</span>
+
+      <ng-container [tanstackField]="orderForm" [name]="'resources'" #resources="field">
+        @for (_ of resources.api.state.value; track $index) {
+        <div class="d-flex gap-2 mb-1">
+          <ng-container
+            [tanstackField]="orderForm"
+            [name]="getRequirementResourceName($index)"
+            #resourceId="field"
+          >
+            <div class="w-100">
+              <select
+                class="form-control"
+                [value]="resourceId.api.state.value"
+                (input)="resourceId.api.handleChange($any($event).target.value)"
+              >
+                @for (resource of (resources$ | async) ?? []; track resource.id) {
+                <option [value]="resource.id">{{ resource.name }}</option>
+                }
+              </select>
+              @if (resourceId.api.state.meta.isTouched) { @for (error of resourceId.api.state.meta.errors; track $index) {
+                <div style="color: red">
+                  {{ error.message }}
+                </div>
+                } } @if (resourceId.api.state.meta.isValidating) {
+                <p>Validating...</p>
+                }
+                
+            </div>
+          </ng-container>
+          <ng-container
+            [tanstackField]="orderForm"
+            [name]="getRequirementAmountName($index)"
+            #amount="field"
+          >
+            <div>
+              <input
+                type="number"
+                class="form-control"
+                type="number"
+                [value]="amount.api.state.value"
+                (input)="amount.api.handleChange($any($event).target.valueAsNumber)"
+              />
+              @if (amount.api.state.meta.isTouched) { @for (error of amount.api.state.meta.errors; track $index) {
+                <div style="color: red">
+                  {{ error.message }}
+                </div>
+                } } @if (amount.api.state.meta.isValidating) {
+                <p>Validating...</p>
+                }
+            </div>
+          </ng-container>
+          <button
+            type="button"
+            class="btn btn-outline-danger btn-sm"
+            (click)="resources.api.removeValue($index)"
+          >
+            <i class="bi bi-trash"></i>
+          </button>
+        </div>
+        }
+      </ng-container>
+
+      <button
+        type="button"
+        class="btn btn-outline-secondary btn-sm d-block mb-1"
+        (click)="resources.api.pushValue({ resourceId: '', amount: 0 })"
+      >
+        <i class="bi bi-plus"></i>
+      </button>
+
+      <button type="submit" class="btn btn-primary" [disabled]="!canSubmit()">
+        <i class="bi bi-check-lg"></i>
+         {{ isSubmitting() ? '...' : 'Save Changes' }}
+      </button>
+    </form>
+  </div>
+</div>

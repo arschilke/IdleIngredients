@@ -1,0 +1,226 @@
+{
+    "train1": {
+      "id": "train1",
+      "name": "FS CLASS 740",
+      "engine": "steam",
+      "capacity": 20,
+      "class": "common",
+      "country": "britain"
+    },
+    "train2": {
+      "id": "train2",
+      "name": "GER CLASS S69",
+      "engine": "steam",
+      "capacity": 20,
+      "class": "common",
+      "country": "britain"
+    },
+    "train3": {
+      "id": "train3",
+      "name": "STAR CLASS 4000",
+      "engine": "steam",
+      "capacity": 20,
+      "class": "common",
+      "country": "britain"
+    },
+    "train4": {
+      "id": "train4",
+      "name": "PRUSSIAN P8",
+      "engine": "steam",
+      "capacity": 20,
+      "class": "common",
+      "country": "britain"
+    },
+    "train5": {
+      "id": "train5",
+      "name": "NORD 140",
+      "engine": "steam",
+      "capacity": 30,
+      "class": "rare",
+      "country": "britain"
+    },
+    "train6": {
+      "id": "train6",
+      "name": "LB&SCR B4",
+      "engine": "steam",
+      "capacity": 30,
+      "class": "rare",
+      "country": "britain"
+    },
+    "train7": {
+      "id": "train7",
+      "name": "SHAY CLASS C",
+      "engine": "steam",
+      "capacity": 45,
+      "class": "epic",
+      "country": "britain"
+    },
+    "train8": {
+      "id": "train8",
+      "name": "GWR 3041 THE QUEEN",
+      "engine": "steam",
+      "capacity": 45,
+      "class": "epic",
+      "country": "britain"
+    },
+    "train9": {
+      "id": "train9",
+      "name": "ERIE L-1",
+      "engine": "steam",
+      "capacity": 0,
+      "class": "legendary",
+      "country": "britain"
+    },
+    "train11": {
+      "id": "train11",
+      "name": "CRAMPTON",
+      "engine": "steam",
+      "capacity": 60,
+      "class": "legendary",
+      "country": "britain"
+    },
+    "train12": {
+      "id": "train12",
+      "name": "BLUE COMET",
+      "engine": "steam",
+      "capacity": 0,
+      "class": "legendary",
+      "country": "britain"
+    },
+    "train13": {
+      "id": "train13",
+      "name": "CLASS V100",
+      "engine": "diesel",
+      "capacity": 20,
+      "class": "common",
+      "country": "germany"
+    },
+    "train14": {
+      "id": "train14",
+      "name": "LNER K3",
+      "engine": "steam",
+      "capacity": 4,
+      "class": "common",
+      "country": "germany"
+    },
+    "train15": {
+      "id": "train15",
+      "name": "SECR N CLASS",
+      "engine": "steam",
+      "capacity": 4,
+      "class": "common",
+      "country": "germany"
+    },
+    "train16": {
+      "id": "train16",
+      "name": "VICTORIAN C CLASS",
+      "engine": "steam",
+      "capacity": 8,
+      "class": "common",
+      "country": "germany"
+    },
+    "train17": {
+      "id": "train17",
+      "name": "DR 18 201",
+      "engine": "steam",
+      "capacity": 11,
+      "class": "rare",
+      "country": "germany"
+    },
+    "train18": {
+      "id": "train18",
+      "name": "LRZ 14",
+      "engine": "diesel",
+      "capacity": 20,
+      "class": "common",
+      "country": "germany"
+    },
+    "train19": {
+      "id": "train19",
+      "name": "MILWAUKEE ROAD EF-1",
+      "engine": "electric",
+      "capacity": 9,
+      "class": "rare",
+      "country": "germany"
+    },
+    "train20": {
+      "id": "train20",
+      "name": "PRR K-4",
+      "engine": "steam",
+      "capacity": 13,
+      "class": "rare",
+      "country": "germany"
+    },
+    "train21": {
+      "id": "train21",
+      "name": "PRUSSIAN T 14",
+      "engine": "steam",
+      "capacity": 7,
+      "class": "rare",
+      "country": "germany"
+    },
+    "train22": {
+      "id": "train22",
+      "name": "ATSF 3000",
+      "engine": "steam",
+      "capacity": 0,
+      "class": "epic",
+      "country": "germany"
+    },
+    "train23": {
+      "id": "train23",
+      "name": "CROCODILE CE 6/8",
+      "engine": "electric",
+      "capacity": 20,
+      "class": "epic",
+      "country": "germany"
+    },
+    "train24": {
+      "id": "train24",
+      "name": "CLASS V200",
+      "engine": "diesel",
+      "capacity": 43,
+      "class": "epic",
+      "country": "germany"
+    },
+    "train25": {
+      "id": "train25",
+      "name": "FS CLASS 670",
+      "engine": "steam",
+      "capacity": 19,
+      "class": "epic",
+      "country": "germany"
+    },
+    "train26": {
+      "id": "train26",
+      "name": "EP-2 BIPOLAR",
+      "engine": "electric",
+      "capacity": 27,
+      "class": "legendary",
+      "country": "germany"
+    },
+    "train27": {
+      "id": "train27",
+      "name": "UP BIG BOY",
+      "engine": "steam",
+      "capacity": 50,
+      "class": "legendary",
+      "country": "germany"
+    },
+    "train28": {
+      "id": "train28",
+      "name": "UP BIG BOY 2",
+      "engine": "steam",
+      "capacity": 20,
+      "class": "legendary",
+      "country": "germany"
+    },
+    "train29": {
+      "id": "train29",
+      "name": "John Bull",
+      "engine": "steam",
+      "capacity": 15,
+      "class": "common",
+      "country": "germany"
+    }
+  }

@@ -1,0 +1,76 @@
+{
+    "coal_mine": {
+      "id": "coal_mine",
+      "name": "Coal Mine",
+      "travelTime": 30,
+      "resourceId": "coal",
+      "classes": [
+        "common",
+        "rare",
+        "epic",
+        "legendary"
+      ],
+      "country": "britain"
+    },
+    "iron_ore_mine": {
+      "id": "iron_ore_mine",
+      "name": "Iron Ore Mine",
+      "travelTime": 30,
+      "resourceId": "iron",
+      "classes": [
+        "common",
+        "rare",
+        "epic",
+        "legendary"
+      ],
+      "country": "britain"
+    },
+    "steel_factory": {
+      "id": "steel_factory",
+      "name": "Steel Factory",
+      "travelTime": 180,
+      "resourceId": "steel",
+      "classes": [
+        "epic",
+        "legendary"
+      ],
+      "country": "britain"
+    },
+    "oakwood": {
+      "id": "oakwood",
+      "name": "Oak wood",
+      "travelTime": 300,
+      "resourceId": "wood",
+      "classes": [
+        "common",
+        "rare",
+        "epic",
+        "legendary"
+      ],
+      "country": "germany"
+    },
+    "copper_mine": {
+      "id": "copper_mine",
+      "name": "Copper Mine",
+      "travelTime": 300,
+      "resourceId": "copper_ore",
+      "classes": [
+        "common",
+        "rare",
+        "epic",
+        "legendary"
+      ],
+      "country": "germany"
+    },
+    "timber_factory": {
+      "id": "timber_factory",
+      "name": "Timber Factory",
+      "travelTime": 180,
+      "resourceId": "timber",
+      "classes": [
+        "epic",
+        "legendary"
+      ],
+      "country": "germany"
+    }
+  }

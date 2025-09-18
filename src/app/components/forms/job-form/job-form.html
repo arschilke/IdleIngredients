@@ -1,0 +1,44 @@
+<div className="card">
+    <div className="card-header">
+      <h5 className="mb-0">
+        <i className="bi bi-plus-circle me-2"></i>
+        {{isAddMode ? 'Add New Step' : 'Edit Step'}}
+      </h5>
+    </div>
+    <div className="card-body">
+      <form> 
+        <ng-container [tanstackField]="jobForm" name="levelId" #levelId="field">
+            <input type="hidden" name="levelId" [value]="levelId.api.state.value" (blur)="levelId.api.handleBlur()" (input)="levelId.api.handleChange($any($event).target.value)" />
+        </ng-container>
+        
+        <app-select-field tanstack-app-field [tanstackField]="jobForm" name="type" label="Step Type" [options]="stepTypes" />
+        <app-select-field tanstack-app-field [tanstackField]="jobForm" name="resourceId" label="Resource" [options]="(resources$ | async) ?? []" />
+      
+        <app-number-field tanstack-app-field [tanstackField]="jobForm" name="timeRequired" label="Time Required" />
+        
+        @if( type() === 'delivery' || type() === 'submit' ) {
+        <app-select-field tanstack-app-field [tanstackField]="jobForm" name="orderId" label="Order" [options]="(orders$ | async) ?? []" />
+        }
+        
+        @if( type() === 'destination' || type() === 'delivery' ) {
+        <app-select-field tanstack-app-field [tanstackField]="jobForm" name="trainId" label="Train" [options]="(trains$ | async) ?? []" />
+        }
+    
+
+        <div className="d-flex gap-2 mt-4">
+          <button type="submit" className="btn btn-primary">
+            <i className="bi bi-check-lg me-1"></i>
+            {{isAddMode ? 'Add Step' : 'Save Changes'}}
+          </button>
+          <button
+            type="button"
+            className="btn btn-outline-secondary"
+            (click)="onClose()"
+          >
+            <i className="bi bi-x-lg me-1"></i>
+            Cancel
+          </button>
+        </div>
+      </form>
+  </div>
+</div>
